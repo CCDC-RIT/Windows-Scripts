@@ -10,8 +10,8 @@ netsh advfirewall set allprofiles logging droppedconnections enable
 netsh advfirewall set allprofiles logging allowedconnections enable
 
 :: ICMP/Ping
-netsh adv firewall a r n=PingIn dir=in act=allow prof=any prot=icmpv4:8,any 
-netsh adv firewall a r n=PingOut dir=out act=allow prof=any prot=icmpv4:8,any 
+netsh adv f a r n=PingIn dir=in act=allow prof=any prot=icmpv4:8,any 
+netsh adv f a r n=PingOut dir=out act=allow prof=any prot=icmpv4:8,any 
 
 :: Delete this rule when not needed
 :: HTTP(S) Client (to access web)
@@ -48,8 +48,8 @@ netsh adv f a r n=LDAP-Server dir=in act=allow prof=any prot=tcp localport=389
 
 :: Uncommon Services
 :: ICMP 
-netsh adv firewall a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any 
-netsh adv firewall a r n=ICMP-Out dir=out act=allow prof=any prot=icmpv4:8,any 
+netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any 
+netsh adv f a r n=ICMP-Out dir=out act=allow prof=any prot=icmpv4:8,any 
 
 :: SMB
 netsh adv f a r n=SMB-Client dir=out act=allow prof=any prot=tcp remoteport=445
@@ -107,12 +107,12 @@ netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp localport=rpc-epma
 
 :: Logging Protocols
 :: Wazuh 
-netsh adv a r n=Wazuh-Client dir=out act=allow prof=any prot=tcp remoteport=1514
-netsh adv a r n=Wazuh-Server dir=in act=allow prof=any prot=tcp localport=1514
+netsh adv f a r n=Wazuh-Client dir=out act=allow prof=any prot=tcp remoteport=1514
+netsh adv f a r n=Wazuh-Server dir=in act=allow prof=any prot=tcp localport=1514
 
 :: Pandora 
-netsh advfirewall a r n=Pandora-Client dir=out act=allow prof=any prot=tcp remoteport=41121
-netsh advfirewall a r n=Pandora-Server dir=in act=allow prof=any prot=tcp localport=41121
+netsh adv f a r n=Pandora-Client dir=out act=allow prof=any prot=tcp remoteport=41121
+netsh adv f a r n=Pandora-Server dir=in act=allow prof=any prot=tcp localport=41121
 
 :: Syslog
 netsh adv f a r n=Syslog-Client dir=out act=allow prof=any prot=udp remoteport=514
