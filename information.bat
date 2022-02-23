@@ -5,3 +5,36 @@ exit /b
 
 :sub
 ::basic inventory
+hostname
+ipconfig /all
+systeminfo | findstr OS
+
+::check for listening ports
+netstat -ano | findstr LIST | findstr /V ::1 | findstr /V 127.0.0.1
+
+::users and groups
+net user
+net localgroup
+net localgroup “Administrators”
+net localgroup “Remote Desktop Users”
+
+::looking for network shares
+net share
+
+::Check startup programs
+reg query HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run
+reg query HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce
+reg query HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
+reg query HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce
+
+::services
+net start
+
+::processes
+tasklist /svc /FO table
+
+::exe files
+dir /B /S \*.exe
+
+::system32
+dir /B /S \windows\system32
