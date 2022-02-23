@@ -10,8 +10,8 @@ netsh advfirewall set allprofiles logging droppedconnections enable
 netsh advfirewall set allprofiles logging allowedconnections enable
 
 :: ICMP/Ping
-netsh adv firewall a r n=”PingIn” dir=in act=allow prof=any prot=icmpv4:8,any 
-netsh adv firewall a r n=”PingOut” dir=out act=allow prof=any prot=icmpv4:8,any 
+netsh adv firewall a r n=PingIn dir=in act=allow prof=any prot=icmpv4:8,any 
+netsh adv firewall a r n=PingOut dir=out act=allow prof=any prot=icmpv4:8,any 
 
 :: Delete this rule when not needed
 :: HTTP(S) Client (to access web)
