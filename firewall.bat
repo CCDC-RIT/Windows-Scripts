@@ -96,7 +96,7 @@ netsh adv f a r n=OpenVPN-Server-UDP dir=in act=allow prof=any prot=udp localpor
 netsh adv f a r n=OpenVPN-Server-TCP dir=in act=allow prof=any prot=tcp localport=443
 
 :: Hyper-V VM Console
-netsh adv f a r n=Hyper-V-Client dir=out act=allow prof=any prot=tcp remoteport=2179 remoteip=[Hyper-V IP]
+netsh adv f a r n=Hyper-V-Client dir=out act=allow prof=any prot=tcp remoteport=2179
 netsh adv f a r n=Hyper-V-Server dir=in act=allow prof=any prot=tcp localport=2179
 
 :: Domain Controller Rules
