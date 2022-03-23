@@ -9,7 +9,7 @@ wmic useraccount where "name='Guest'" rename veggie
 wmic useraccount where "name='Administrator'" rename pickle
 
 :: Create backup admin(s)
-net user cucumber P@ssw0rd-123* /add
+net user cucumber Passw0rd-123* /add
 net localgroup Administrators cucumber /add
 
 :: Powershell logging
