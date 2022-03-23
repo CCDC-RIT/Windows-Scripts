@@ -5,7 +5,7 @@ cmd> net user <username> *
 :: Note: Make sure to change password in the scoring engine whenever scored user password is changed
 
 :: Rename administrator account
-cmd> wmic useraccount where “name=’Administrator’” rename pickle
+cmd> wmic useraccount where “name='Administrator'” rename pickle
 
 :: Add backup admin account
 cmd> net user /add cucumber [password]
@@ -65,9 +65,12 @@ ps> .\winfwctrl.exe
 :: Audit Host Information
 cmd> .\information.bat
 
-:: Sysmon Setup
+:: Sysmon Setup (choose one of the two configs, first one is more comprehensive)
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://github.com/olafhartong/sysmon-modular/blob/master/sysmonconfig.xml”, “C:\sysmonconfig.xml”)
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://github.com/SwiftOnSecurity/sysmon-config/blob/master/sysmonconfig-export.xml”, “C:\sysmonconfig.xml”)
+cmd> wget -o sysmonconfig.xml https://github.com/olafhartong/sysmon-modular/blob/master/sysmonconfig.xml
+cmd> wget -o sysmonconfig.xml https://github.com/SwiftOnSecurity/sysmon-config/blob/master/sysmonconfig-export.xml 
+
 ps> .\sysmon.exe -i sysmonconfig.xml
 
 :: Logs are located in Event Viewer under Applications and Services Log > Microsoft > Windows > Sysmon > Operational
