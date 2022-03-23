@@ -17,33 +17,58 @@ cmd> net user <username> /delete
 
 :: Install Sysinternals Suite
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://download.sysinternals.com/files/SysinternalsSuite.zip”, “C:\sysinternals.zip”)
+cmd> wget -o sysinternals.zip https://download.sysinternals.com/files/SysinternalsSuite.zip
 ps> Expand-Archive -LiteralPath C:\sysinternals.zip -DestinationPath C:\sysinternals
+
+::Links for Sysinternals tools we actually use
+https://live.sysinternals.com/autoruns.exe
+https://download.sysinternals.com/files/Autoruns.zip
+
+https://download.sysinternals.com/files/ListDlls.zip
+
+https://live.sysinternals.com/procexp.exe
+https://download.sysinternals.com/files/ProcessExplorer.zip
+
+https://live.sysinternals.com/Procmon.exe
+https://download.sysinternals.com/files/ProcessMonitor.zip
+
+https://live.sysinternals.com/Tcpview.exe
+https://download.sysinternals.com/files/TCPView.zip
+
+https://download.sysinternals.com/files/Sigcheck.zip
+
+https://download.sysinternals.com/files/Sysmon.zip
 
 
 :: Install Explorer++ (for windows core boxes)
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://explorerplusplus.com/software/explorer++_1.3.5_x64.zip”, “C:\explorerplusplus.zip”)
+cmd> wget -o explorerplusplus.zip https://explorerplusplus.com/software/explorer++_1.3.5_x64.zip
 ps> Expand-Archive -LiteralPath C:\explorerplusplus.zip -DestinationPath C:\explorerplusplus
-
 
 :: Install Wireshark
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://2.na.dl.wireshark.org/win64/Wireshark-win64-3.6.2.exe”, “C:\wireshark.exe”)
+cmd> wget -o wireshark.exe https://2.na.dl.wireshark.org/win64/Wireshark-win64-3.6.2.exe
 
 :: Install Windows Firewall Control 
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://www.binisoft.org/download/wfc6setup.exe”, “C:\winfwctrl.exe”)
+cmd> wget -o winfwctrl.exe https://www.binisoft.org/download/wfc6setup.exe
+
+:: Run firewall script
+cmd> .\firewall.bat
+
+:: Open Windows Firewall Control
 ps> .\winfwctrl.exe
 
 :: Lock windows firewall control with password
 :: Only allow rules created through windows firewall control
-
-:: Run firewall script
-cmd> .\firewall.bat
 
 :: Audit Host Information
 cmd> .\information.bat
 
 :: Sysmon Setup
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://github.com/olafhartong/sysmon-modular/blob/master/sysmonconfig.xml”, “C:\sysmonconfig.xml”)
-ps> .\sysmon64.exe -i sysmonconfig.xml
+ps> (New-Object System.Net.WebClient).DownloadFile(“https://github.com/SwiftOnSecurity/sysmon-config/blob/master/sysmonconfig-export.xml”, “C:\sysmonconfig.xml”)
+ps> .\sysmon.exe -i sysmonconfig.xml
 
 :: Logs are located in Event Viewer under Applications and Services Log > Microsoft > Windows > Sysmon > Operational
 :: https://www.blackhillsinfosec.com/a-sysmon-event-id-breakdown/ 
