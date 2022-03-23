@@ -67,6 +67,12 @@ cmd> .\winfwctrl.exe
 :: Audit Host Information
 cmd> .\information.bat
 
+:: Backups (add more)
+:: DNS
+cmd> xcopy /E /I C:\Windows\System32\dns "C:\Program Files\WindowsPowershell\picklestuff\dns"
+:: IIS
+cmd> xcopy /E /I C:\inetpub\wwwroot "C:\Program Files\WindowsPowershell\picklestuff\iis"
+
 :: Sysmon Setup (choose one of the two configs, first one is more comprehensive)
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml”, “C:\Program Files\WindowsPowershell\pickles\sysmonconfig.xml”)
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://raw.githubusercontent.com/SwiftOnSecurity/sysmon-config/master/sysmonconfig-export.xml”, “C:\Program Files\WindowsPowershell\pickles\sysmonconfig.xml”)
@@ -110,3 +116,9 @@ cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging\
 cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" /v EnableScriptBlockLogging /t REG_DWORD /d 1 /f
 cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v EnableTranscripting /t REG_DWORD /d 1 /f
 cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v OutputDirectory /t REG_SZ /d C:\scrips /f
+
+:: Privileges for cmd and powershell
+
+:: Check for Windows Defender file exclusions
+
+:: Check for implants
