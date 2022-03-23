@@ -51,6 +51,9 @@ ps> Expand-Archive -LiteralPath explorerplusplus.zip -DestinationPath explorerpl
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://2.na.dl.wireshark.org/win64/Wireshark-win64-3.6.2.exe”, “C:\Program Files\WindowsPowershell\pickles\wireshark.exe”)
 cmd> wget -o wireshark.exe https://2.na.dl.wireshark.org/win64/Wireshark-win64-3.6.2.exe
 
+:: Wireshark display filter to find meterpreter, beaconing, psexec ->
+data contains “==” || data contains “exe” || data contains “17:03:00:00” || data contains “This program cannot”
+
 :: Install Windows Firewall Control 
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://www.binisoft.org/download/wfc6setup.exe”, “C:\Program Files\WindowsPowershell\pickles\winfwctrl.exe”)
 cmd> wget -o winfwctrl.exe https://www.binisoft.org/download/wfc6setup.exe
@@ -71,7 +74,7 @@ cmd> .\information.bat
 :: DNS
 cmd> xcopy /E /I C:\Windows\System32\dns "C:\Program Files\WindowsPowershell\picklestuff\dns"
 :: IIS
-cmd> xcopy /E /I C:\inetpub\wwwroot "C:\Program Files\WindowsPowershell\picklestuff\iis"
+cmd> xcopy /E /I C:\inetpub "C:\Program Files\WindowsPowershell\picklestuff\iis"
 
 :: Sysmon Setup (choose one of the two configs, first one is more comprehensive)
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml”, “C:\Program Files\WindowsPowershell\pickles\sysmonconfig.xml”)
