@@ -118,8 +118,41 @@ cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription"
 cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v OutputDirectory /t REG_SZ /d C:\scrips /f
 
 :: Privileges for cmd and powershell
+:: Take ownership of executables
 cmd> takeown /f C:\Windows\System32\cmd.exe
 cmd> takeown /f C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe
+
+:: Backup & Restore file/folder permissions
+cmd> icacls c:\Windows\System32\cmd.exe /save c:\Program Files\WindowsPowershell\picklestuff\cmdacl /T
+cmd> icacls c:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /save c:\Program Files\WindowsPowershell\picklestuff\psacl /T
+cmd> icacls c:\Windows\System32\cmd.exe /restore c:\Program Files\WindowsPowershell\picklestuff\cmdacl
+cmd> icacls c:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /restore c:\Program Files\WindowsPowershell\picklestuff\psacl
+
+:: Grant one admin account permissions
+cmd> icacls C:\Windows\System32\cmd.exe /grant pickle:F
+cmd> icacls C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /grant pickle:F
+
+:: Disable inheritance
+cmd> icacls C:\Windows\System32\cmd.exe /inheritance:d
+cmd> icacls C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /inheritance:d
+
+:: Remove all permissions except one admin account
+cmd> icacls C:\Windows\System32\cmd.exe /remove Users
+cmd> icacls C:\Windows\System32\cmd.exe /remove Administrators
+cmd> icacls C:\Windows\System32\cmd.exe /remove SYSTEM 
+cmd> icacls C:\Windows\System32\cmd.exe /remove "ALL APPLICATION PACKAGES"
+cmd> icacls C:\Windows\System32\cmd.exe /remove "ALL RESTRICTED APPLICATION PACKAGES"
+
+cmd> icacls C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /remove Users
+cmd> icacls C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /remove Administrators
+cmd> icacls C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /remove SYSTEM 
+cmd> icacls C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /remove "ALL APPLICATION PACKAGES"
+cmd> icacls C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /remove "ALL RESTRICTED APPLICATION PACKAGES"
+cmd> icacls C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /remove TrustedInstaller
+
+:: Experiment with resetting permissions (might cause problems on core?)
+cmd> icacls C:\Windows\System32\cmd.exe /q /c /reset
+cmd> icacls C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /q /c /reset
 
 :: Check for Windows Defender file exclusions
 
