@@ -11,7 +11,7 @@ cmd> wmic useraccount where “name=’Administrator’” rename pickle
 cmd> net user /add cucumber [password]
 cmd> net localgroup Administrators cucumber /add
 
-:: Disable or remove unneeded users (guest)
+:: Disable or remove unneeded users (Guest, WDAGUtilityAccount, krbtgt, DefaultAccount - should all be disabled)
 cmd> net user <username> /active:no
 cmd> net user <username> /delete
 

@@ -29,9 +29,6 @@ net localgroup
 echo:
 echo Administrators Users:
 net localgroup "Administrators"
-echo:
-echo Remote Desktop Users:
-net localgroup "Remote Desktop Users"
 
 ::looking for network shares
 echo:
@@ -55,13 +52,3 @@ net start
 echo:
 echo Processes:
 tasklist /svc /FO table
-
-::exe files
-echo:
-echo Exe files:
-dir /B /S \*.exe
-
-::system32
-echo:
-echo system32:
-dir /B /S \windows\system32
