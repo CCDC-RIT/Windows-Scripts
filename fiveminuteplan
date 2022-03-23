@@ -15,10 +15,13 @@ cmd> net localgroup Administrators cucumber /add
 cmd> net user <username> /active:no
 cmd> net user <username> /delete
 
+:: Create directory for downloads
+cmd> mkdir "C:\Program Files\WindowsPowershell\pickles"
+
 :: Install Sysinternals Suite
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://download.sysinternals.com/files/SysinternalsSuite.zip”, “C:\Program Files\WindowsPowershell\pickles\sysinternals.zip”)
 cmd> wget -o sysinternals.zip https://download.sysinternals.com/files/SysinternalsSuite.zip
-ps> Expand-Archive -LiteralPath C:\sysinternals.zip -DestinationPath C:\sysinternals
+ps> Expand-Archive -LiteralPath sysinternals.zip -DestinationPath sysinternals
 
 ::Links for Sysinternals tools we actually use
 https://live.sysinternals.com/autoruns.exe
@@ -43,7 +46,7 @@ https://download.sysinternals.com/files/Sysmon.zip
 :: Install Explorer++ (for windows core boxes)
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://explorerplusplus.com/software/explorer++_1.3.5_x64.zip”, “C:\Program Files\WindowsPowershell\pickles\explorerplusplus.zip”)
 cmd> wget -o explorerplusplus.zip https://explorerplusplus.com/software/explorer++_1.3.5_x64.zip
-ps> Expand-Archive -LiteralPath C:\explorerplusplus.zip -DestinationPath C:\explorerplusplus
+ps> Expand-Archive -LiteralPath explorerplusplus.zip -DestinationPath explorerplusplus
 
 :: Install Wireshark
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://2.na.dl.wireshark.org/win64/Wireshark-win64-3.6.2.exe”, “C:\Program Files\WindowsPowershell\pickles\wireshark.exe”)
@@ -68,8 +71,8 @@ cmd> .\information.bat
 :: Sysmon Setup (choose one of the two configs, first one is more comprehensive)
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml”, “C:\Program Files\WindowsPowershell\pickles\sysmonconfig.xml”)
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://raw.githubusercontent.com/SwiftOnSecurity/sysmon-config/master/sysmonconfig-export.xml”, “C:\Program Files\WindowsPowershell\pickles\sysmonconfig.xml”)
-cmd> wget -o sysmonconfig.xml https://github.com/olafhartong/sysmon-modular/blob/master/sysmonconfig.xml
-cmd> wget -o sysmonconfig.xml https://github.com/SwiftOnSecurity/sysmon-config/blob/master/sysmonconfig-export.xml 
+cmd> wget -o sysmonconfig.xml https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml
+cmd> wget -o sysmonconfig.xml https://raw.githubusercontent.com/SwiftOnSecurity/sysmon-config/master/sysmonconfig-export.xml
 
 ps> .\sysmon.exe -i sysmonconfig.xml
 
