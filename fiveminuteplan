@@ -1,13 +1,75 @@
-:: Make sure to change password in the scoring engine whenever scored user password is changed
-net user Administrator *
-net user [username] *
+:: Change passwords (Administrator & scored users)
+cmd> net user Administrator *
+cmd> net user <username> *
 
-:: Renmae Administrator
-wmic useraccount where “name=’Administrator’” rename cucumber
+:: Note: Make sure to change password in the scoring engine whenever scored user password is changed
 
-:: Backup Admin
-net user /add pickle
-net localgroup Administrators pickle /add
+:: Rename administrator account
+cmd> wmic useraccount where “name=’Administrator’” rename pickle
 
-:: Disable guests
-net user Guest /active:no
+:: Add backup admin account
+cmd> net user /add cucumber [password]
+cmd> net localgroup Administrators cucumber /add
+
+:: Disable or remove unneeded users (guest)
+cmd> net user <username> /active:no
+cmd> net user <username> /delete
+
+:: Install Sysinternals Suite
+ps> (New-Object System.Net.WebClient).DownloadFile(“https://download.sysinternals.com/files/SysinternalsSuite.zip”, “C:\sysinternals.zip”)
+ps> Expand-Archive -LiteralPath C:\sysinternals.zip -DestinationPath C:\sysinternals
+
+
+:: Install Explorer++ (for windows core boxes)
+ps> (New-Object System.Net.WebClient).DownloadFile(“https://explorerplusplus.com/software/explorer++_1.3.5_x64.zip”, “C:\explorerplusplus.zip”)
+ps> Expand-Archive -LiteralPath C:\explorerplusplus.zip -DestinationPath C:\explorerplusplus
+
+
+:: Install Wireshark
+ps> (New-Object System.Net.WebClient).DownloadFile(“https://2.na.dl.wireshark.org/win64/Wireshark-win64-3.6.2.exe”, “C:\wireshark.exe”)
+
+:: Install Windows Firewall Control 
+ps> (New-Object System.Net.WebClient).DownloadFile(“https://www.binisoft.org/download/wfc6setup.exe”, “C:\winfwctrl.exe”)
+ps> .\winfwctrl.exe
+
+:: Lock windows firewall control with password
+:: Only allow rules created through windows firewall control
+
+:: Run firewall script
+cmd> .\firewall.bat
+
+:: Audit Host Information
+cmd> .\information.bat
+
+:: Sysmon Setup
+ps> (New-Object System.Net.WebClient).DownloadFile(“https://github.com/olafhartong/sysmon-modular/blob/master/sysmonconfig.xml”, “C:\sysmonconfig.xml”)
+ps> .\sysmon64.exe -i sysmonconfig.xml
+
+:: Logs are located in Event Viewer under Applications and Services Log > Microsoft > Windows > Sysmon > Operational
+:: https://www.blackhillsinfosec.com/a-sysmon-event-id-breakdown/ 
+
+:: Audit Network Services
+cmd> net start
+cmd> net stop <service_name>
+
+:: Audit Running Processes
+cmd> tasklist /svc /FO table
+cmd> taskkill /im <process_name> /f
+
+:: Audit scheduled tasks
+ps> get-scheduledtask
+cmd> schtasks /query
+cmd> schtasks /delete /tn *
+
+:: Use sysinternals autoruns.exe (boot safe mode to possibly see hidden things), procexp.exe and procmon.exe
+
+:: Netstat Audit
+cmd> netstat
+cmd> netstat -ab 
+cmd> netstat -ano
+cmd> netstat -ano | findstr LIST | findstr /V ::1 | findstr /V 127.0.0.1
+
+:: Enable Logging
+:: DNS server
+ps> dnscmd /config /loglevel 0x8000F301
+ps> dnscmd /config /logfilemaxsize 0xC800000
