@@ -42,7 +42,6 @@ https://download.sysinternals.com/files/Sigcheck.zip
 
 https://download.sysinternals.com/files/Sysmon.zip
 
-
 :: Install Explorer++ (for windows core boxes)
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://explorerplusplus.com/software/explorer++_1.3.5_x64.zip”, “C:\Program Files\WindowsPowershell\pickles\explorerplusplus.zip”)
 cmd> wget -o explorerplusplus.zip https://explorerplusplus.com/software/explorer++_1.3.5_x64.zip
@@ -60,7 +59,7 @@ cmd> wget -o winfwctrl.exe https://www.binisoft.org/download/wfc6setup.exe
 cmd> .\firewall.bat
 
 :: Open Windows Firewall Control
-ps> .\winfwctrl.exe
+cmd> .\winfwctrl.exe
 
 :: Lock windows firewall control with password
 :: Only allow rules created through windows firewall control
@@ -74,7 +73,7 @@ ps> (New-Object System.Net.WebClient).DownloadFile(“https://raw.githubusercont
 cmd> wget -o sysmonconfig.xml https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml
 cmd> wget -o sysmonconfig.xml https://raw.githubusercontent.com/SwiftOnSecurity/sysmon-config/master/sysmonconfig-export.xml
 
-ps> .\sysmon.exe -i sysmonconfig.xml
+cmd> .\sysmon.exe -i sysmonconfig.xml
 
 :: Logs are located in Event Viewer under Applications and Services Log > Microsoft > Windows > Sysmon > Operational
 :: https://www.blackhillsinfosec.com/a-sysmon-event-id-breakdown/ 
