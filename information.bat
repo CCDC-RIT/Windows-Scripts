@@ -27,7 +27,7 @@ echo:
 echo Groups:
 net localgroup
 echo:
-echo Administrators Users:
+echo Administrator Users:
 net localgroup "Administrators"
 
 ::looking for network shares
