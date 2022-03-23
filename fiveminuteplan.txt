@@ -155,5 +155,7 @@ cmd> icacls C:\Windows\System32\cmd.exe /q /c /reset
 cmd> icacls C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe /q /c /reset
 
 :: Check for Windows Defender file exclusions
+ps> Get-MpPreference | findstr /b Exclusion
+ps> Remove-MpPreference -ExclusionExtension "exe"
 
 :: Check for implants
