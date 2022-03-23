@@ -1,3 +1,8 @@
 @echo off
-for /L %a in (1,0,2) do @(set rand=%RANDOM% &amp; net user krbtgt %rand% &amp;
-net user krbtgt %rand%) &amp; timeout /t 120
+:g
+set rand=%RANDOM%
+net user krbtgt PASSWORD!@#%rand% > NUL
+net user krbtgt PASSWORD!@#%rand%
+timeout /t 120 > NUL
+cls
+goto g
