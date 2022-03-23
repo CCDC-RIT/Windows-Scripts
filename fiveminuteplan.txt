@@ -103,3 +103,10 @@ cmd> netstat -ano | findstr LIST | findstr /V ::1 | findstr /V 127.0.0.1
 :: DNS server
 ps> dnscmd /config /loglevel 0x8000F301
 ps> dnscmd /config /logfilemaxsize 0xC800000
+:: Powershell 
+cmd> mkdir C:\scrips
+cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging /t REG_DWORD /d 1 /f
+cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging\ModuleNames" /v * /t REG_SZ /d * /f
+cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" /v EnableScriptBlockLogging /t REG_DWORD /d 1 /f
+cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v EnableTranscripting /t REG_DWORD /d 1 /f
+cmd> reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v OutputDirectory /t REG_SZ /d C:\scrips /f
