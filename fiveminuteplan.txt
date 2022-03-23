@@ -15,6 +15,9 @@ cmd> net localgroup Administrators cucumber /add
 cmd> net user <username> /active:no
 cmd> net user <username> /delete
 
+:: Script to disable all users except Administrator
+cmd> for /f “tokens=5 delims=,” %a in (‘wmic useraccount list brief /FORMAT:CSV ^| findstr /V Administrator’) do @net user %a /active:no
+
 :: Create directory for downloads
 cmd> mkdir "C:\Program Files\WindowsPowershell\pickles"
 
@@ -103,9 +106,8 @@ cmd> schtasks /delete /tn *
 :: Use sysinternals autoruns.exe (boot safe mode to possibly see hidden things), procexp.exe and procmon.exe
 
 :: Netstat Audit
-cmd> netstat
-cmd> netstat -ab 
-cmd> netstat -ano
+cmd> netstat 
+cmd> netstat -bano
 cmd> netstat -ano | findstr LIST | findstr /V ::1 | findstr /V 127.0.0.1
 
 :: Enable Logging
