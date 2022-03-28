@@ -16,7 +16,6 @@
 (New-Object System.Net.WebClient).DownloadFile("https://1.na.dl.wireshark.org/win64/Wireshark-win64-latest.exe", "C:\Program Files\WindowsPowershell\cucumbers\wsinstall.exe")
 # Explorer++
 (New-Object System.Net.WebClient).DownloadFile(“https://explorerplusplus.com/software/explorer++_1.3.5_x64.zip”, “C:\Program Files\WindowsPowershell\cucumbers\epp.zip”)
-Expand-Archive -LiteralPath explorerplusplus.zip -DestinationPath explorerplusplus
 
 # Basic Sysmon config file
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml", "C:\Program Files\WindowsPowershell\pickles\sysmonconfig.xml")
@@ -29,5 +28,4 @@ Expand-Archive -LiteralPath "C:\Program Files\WindowsPowershell\pickles\pe.zip" 
 Expand-Archive -LiteralPath "C:\Program Files\WindowsPowershell\pickles\pm.zip" -DestinationPath "C:\Program Files\WindowsPowershell\pickles\pm"
 Expand-Archive -LiteralPath "C:\Program Files\WindowsPowershell\pickles\sc.zip" -DestinationPath "C:\Program Files\WindowsPowershell\pickles\sc"
 Expand-Archive -LiteralPath "C:\Program Files\WindowsPowershell\pickles\dll.zip" -DestinationPath "C:\Program Files\WindowsPowershell\pickles\dll"
-
 Expand-Archive -LiteralPath "C:\Program Files\WindowsPowershell\cucumbers\epp.zip" -DestinationPath "C:\Program Files\WindowsPowershell\cucumbers\epp"
