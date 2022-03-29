@@ -65,7 +65,7 @@ cmd> wget -o winfwctrl.exe https://www.binisoft.org/download/wfc6setup.exe
 cmd> .\firewall.bat
 
 :: Sliently install Windows Firewall Control
-cmd> .\winfwctrl.exe -i -r "C:\Program Files\WFC"
+cmd> .\winfwctrl.exe -i -r "C:\Program Files\WIndowsPowershell\pickles\WFC"
 
 :: Lock windows firewall control with password
 :: Only allow rules created through windows firewall control
