@@ -21,6 +21,10 @@ cmd> for /f “tokens=5 delims=,” %a in (‘wmic useraccount list brief /FORMA
 :: Create directory for downloads
 cmd> mkdir "C:\Program Files\WindowsPowershell\pickles"
 
+:: All downloads can also be done using the downloads.ps1 script
+:: Download github files
+ps>
+
 :: Download Sysinternals Suite
 ps> (New-Object System.Net.WebClient).DownloadFile(“https://download.sysinternals.com/files/SysinternalsSuite.zip”, “C:\Program Files\WindowsPowershell\pickles\sysinternals.zip”)
 cmd> wget -o sysinternals.zip https://download.sysinternals.com/files/SysinternalsSuite.zip
