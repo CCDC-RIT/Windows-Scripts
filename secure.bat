@@ -1,26 +1,34 @@
-:: Audit policy
-auditpol /set /category:* /success:enable /failure:enable
+@echo off
 
-:: Disable Guest user + rename
-net user Guest /active:no
-wmic useraccount where "name='Guest'" rename veggie
+:: Import secpol file here
+:: One secpol file for "domain policy" - not editing default domain policy but creating gpo to apply across domain 
+    :: This file will also serve as local secpol file
+    :: Will contain account and local policies
+set /p choice="Is this a domain controller (Y or N)? "
+if %choice%=="Y" (
+    echo:
+    echo Skipping import of secpol file...
+    echo: 
+    echo Please use the GUI to import the file into a GPO. Make sure to do gpupdate /force after!
+) else (
+    secedit /configure /db %windir%\security\local.sdb /cfg secpol.inf
+    gpupdate /force
+)
 
-:: Rename Administrator
-wmic useraccount where "name='Administrator'" rename pickle
+:: TODO: One secpol file for default domain controller policy (that contains user right assignments for DC's)
+
+:: Done through secpol file
+@REM :: Disable Guest user + rename
+@REM net user Guest /active:no
+@REM wmic useraccount where "name='Guest'" rename lettuce
+@REM :: Rename Administrator
+@REM wmic useraccount where "name='Administrator'" rename tomato
 
 :: Create backup admin(s)
 net user cucumber Passw0rd-123* /add
 net localgroup Administrators cucumber /add
 
-:: Powershell logging
-mkdir C:\scrips
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging /t REG_DWORD /d 1 /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging\ModuleNames" /v * /t REG_SZ /d * /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" /v EnableScriptBlockLogging /t REG_DWORD /d 1 /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v EnableTranscripting /t REG_DWORD /d 1 /f
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v OutputDirectory /t REG_SZ /d C:\scrips /f
-
-:: UAC
+:: UAC - idk if these sync up w/secpol, oh well
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v FilterAdministratorToken /t REG_DWORD /d 1 /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableUIADesktopToggle /t REG_DWORD /d 0 /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v ConsentPromptBehaviorAdmin /t REG_DWORD /d 1 /f
@@ -95,6 +103,9 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurePipeServers\winreg\AllowedP
 :: Not processing RunOnce List (located at HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce and in HKCU)
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisableLocalMachineRunOnce /t REG_DWORD /d 1 /f
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisableLocalMachineRunOnce /t REG_DWORD /d 1 /f
+
+:: Removing exclusions in Defender - trust me bro
+powershell -encodedCommand "RwBlAHQALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAHwAIABTAGUAbABlAGMAdAAtAE8AYgBqAGUAYwB0ACAALQBQAHIAbwBwAGUAcgB0AHkAIABFAHgAYwBsAHUAcwBpAG8AbgBFAHgAdABlAG4AcwBpAG8AbgAgAHwAIAAlACAAewAgAGkAZgAgACgAJABfAC4ARQB4AGMAbAB1AHMAaQBvAG4ARQB4AHQAZQBuAHMAaQBvAG4AIAAtAG4AZQAgACQAbgB1AGwAbAApACAAewBSAGUAbQBvAHYAZQAtAE0AcABQAHIAZQBmAGUAcgBlAG4AYwBlACAALQBFAHgAYwBsAHUAcwBpAG8AbgBFAHgAdABlAG4AcwBpAG8AbgAgACQAXwAuAEUAeABjAGwAdQBzAGkAbwBuAEUAeAB0AGUAbgBzAGkAbwBuAH0AfQA7AEcAZQB0AC0ATQBwAFAAcgBlAGYAZQByAGUAbgBjAGUAIAB8ACAAUwBlAGwAZQBjAHQALQBPAGIAagBlAGMAdAAgAC0AUAByAG8AcABlAHIAdAB5ACAARQB4AGMAbAB1AHMAaQBvAG4AUABhAHQAaAAgAHwAIAAlACAAewBpAGYAIAAoACQAXwAuAEUAeABjAGwAdQBzAGkAbwBuAFAAYQB0AGgAIAAtAG4AZQAgACQAbgB1AGwAbAApACAAewBSAGUAbQBvAHYAZQAtAE0AcABQAHIAZQBmAGUAcgBlAG4AYwBlACAALQBFAHgAYwBsAHUAcwBpAG8AbgBQAGEAdABoACAAJABfAC4ARQB4AGMAbAB1AHMAaQBvAG4AUABhAHQAaAB9AH0AOwBHAGUAdAAtAE0AcABQAHIAZQBmAGUAcgBlAG4AYwBlACAAfAAgAFMAZQBsAGUAYwB0AC0ATwBiAGoAZQBjAHQAIAAtAFAAcgBvAHAAZQByAHQAeQAgAEUAeABjAGwAdQBzAGkAbwBuAFAAcgBvAGMAZQBzAHMAIAB8ACAAJQAgAHsAaQBmACAAKAAkAF8ALgBFAHgAYwBsAHUAcwBpAG8AbgBQAHIAbwBjAGUAcwBzACAALQBuAGUAIAAkAG4AdQBsAGwAKQAgAHsAUgBlAG0AbwB2AGUALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAC0ARQB4AGMAbAB1AHMAaQBvAG4AUAByAG8AYwBlAHMAcwAgACQAXwAuAEUAeABjAGwAdQBzAGkAbwBuAFAAcgBvAGMAZQBzAHMAfQB9AA=="
 
 :: Yeeting things
 @REM net share admin$ /del

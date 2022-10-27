@@ -1,65 +1,38 @@
 @echo off
 
-call :sub >output.txt
+call :sub >system_audit.txt
 exit /b
 
 :sub
-::basic inventory
-echo Hostname:
-hostname
-echo:
-echo Ipconfig:
-ipconfig /all
-echo:
-echo Operating System:
-systeminfo | findstr OS
+:: Firewall status, settings, and rules
+netsh advfirewall show allprofiles
+netsh advfirewall firewall show rule name=all
 
-::check for listening ports
+:: processes
 echo:
-echo Listening Ports:
-netstat -ano | findstr LIST | findstr /V ::1 | findstr /V 127.0.0.1
+echo ----------- Processes -----------
+tasklist /svc /FO table
 
-::users and groups
+:: services
 echo:
-echo Users:
-net user
-echo:
-echo Groups:
-net localgroup
-echo:
-echo Administrator Users:
-net localgroup "Administrators"
-echo:
-echo Remote Desktop Users:
-net localgroup "Remote Desktop Users"
-echo:
-echo Remote Management Users:
-net localgroup "Remote Management Users"
+echo ----------- Services -----------
+net start
 
-::list of scheduled tasks
+:: hidden services?
+:: https://gist.github.com/joswr1ght/c5d9773a90a22478309e9e427073fd30 but base64 lol
+echo:
+echo ----------- Hidden Services -----------
+powershell -encodedCommand "QwBvAG0AcABhAHIAZQAtAE8AYgBqAGUAYwB0ACAALQBSAGUAZgBlAHIAZQBuAGMAZQBPAGIAagBlAGMAdAAgACgARwBlAHQALQBTAGUAcgB2AGkAYwBlACAAfAAgAFMAZQBsAGUAYwB0AC0ATwBiAGoAZQBjAHQAIAAtAEUAeABwAGEAbgBkAFAAcgBvAHAAZQByAHQAeQAgAE4AYQBtAGUAIAB8ACAAJQAgAHsAIAAkAF8AIAAtAHIAZQBwAGwAYQBjAGUAIAAiAF8AWwAwAC0AOQBhAC0AZgBdAHsAMgAsADgAfQAkACIAIAB9ACAAKQAgAC0ARABpAGYAZgBlAHIAZQBuAGMAZQBPAGIAagBlAGMAdAAgACgAZwBjAGkAIAAtAHAAYQB0AGgAIABoAGsAbABtADoAXABzAHkAcwB0AGUAbQBcAGMAdQByAHIAZQBuAHQAYwBvAG4AdAByAG8AbABzAGUAdABcAHMAZQByAHYAaQBjAGUAcwAgAHwAIAAlACAAewAgACQAXwAuAE4AYQBtAGUAIAAtAFIAZQBwAGwAYQBjAGUAIAAiAEgASwBFAFkAXwBMAE8AQwBBAEwAXwBNAEEAQwBIAEkATgBFAFwAXAAiACwAIgBIAEsATABNADoAXAAiACAAfQAgAHwAIAA/ACAAewAgAEcAZQB0AC0ASQB0AGUAbQBQAHIAbwBwAGUAcgB0AHkAIAAtAFAAYQB0AGgAIAAiACQAXwAiACAALQBuAGEAbQBlACAAbwBiAGoAZQBjAHQAbgBhAG0AZQAgAC0AZQByAHIAbwByAGEAYwB0AGkAbwBuACAAJwBpAGcAbgBvAHIAZQAnACAAfQAgAHwAIAAlACAAewAgACQAXwAuAHMAdQBiAHMAdAByAGkAbgBnACgANAAwACkAIAB9ACkAIAAtAFAAYQBzAHMAVABoAHIAdQAgAHwAIAA/AHsAJABfAC4AcwBpAGQAZQBJAG4AZABpAGMAYQB0AG8AcgAgAC0AZQBxACAAIgA9AD4AIgB9AA=="
+
+:: list of scheduled tasks
 echo: 
-echo Scheduled Tasks:
+echo ----------- Scheduled Tasks -----------
 schtasks /query
 powershell -Command "get-scheduledtask"
 
-::services
-echo:
-echo Services:
-net start
-
-::processes
-echo:
-echo Processes:
-tasklist /svc /FO table
-
-::looking for network shares
-echo:
-echo Network Shares:
-net share
-
 :: Check startup programs
 echo:
-echo Startup Programs (all users):
+echo ----------- Startup Programs (all users) -----------
 dir "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp"
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
@@ -70,14 +43,14 @@ reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
 
 :: Check for stuff running on boot
 echo:
-echo Boot Execution:
+echo ----------- Boot Execution Keys -----------
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "BootExecute"
 reg query "HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components" /v "StubPath"
 reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Active Setup\Installed Components" /v "StubPath"
 
 :: Check for startup services (include wow6432node?)
 echo:
-echo Startup Services:
+echo ----------- Startup Services Keys -----------
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServicesOnce"
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServices"
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce"
@@ -85,7 +58,7 @@ reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServices"
 
 :: Printing run keys
 echo:
-echo Run Keys:
+echo ----------- Run Keys -----------
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
 reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run"
@@ -99,43 +72,43 @@ reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"
 :: LSA
 :: Check password filters
 echo:
-echo Password Filters:
+echo ----------- Password filters -----------
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Notification Packages"
 :: Check authentication packages
 echo: 
-echo Authentication Packages:
+echo ----------- Authentication Packages -----------
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Authentication Packages"
 :: Check Security Support Providers
 echo:
-echo Security Packages:
+echo ----------- Security Packages -----------
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Security Packages" 
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa\OSConfig" /v "Security Packages"
 
 :: Network Provider
 echo:
-echo Network Providers:
+echo ----------- Network Provider Order -----------
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\NetworkProvider\Order" /v "ProviderOrder"
 
 :: bro you can load dlls into firewall
 echo: 
-echo netsh DLLs:
+echo ----------- netsh DLLs -----------
 reg query "HKLM\SOFTWARE\Microsoft\NetSh"
 reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\NetSh"
 
 :: Check custom DLLs
 echo:
-echo AppInit_DLLs:
+echo ----------- AppInit_DLLs -----------
 reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /v AppInit_DLLs
 reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows" /v AppInit_DLLs
 
 :: AppCert DLLs (doesn't exist natively)
 echo:
-echo AppCertDLLs:
+echo ----------- AppCertDLLs -----------
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\" /v AppCertDLLs
 
 :: Check for Custom DLLs in Winlogon
 echo:
-echo Winlogon DLLs:
+echo ----------- Winlogon DLLs -----------
 reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell
 reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Userinit
 reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Notify
@@ -143,8 +116,32 @@ reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogo
 reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Userinit
 reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Notify
 
+:: Check for Windows Defender exclusions 
+echo:
+echo ----------- Windows Defender Exclusions -----------
+powershell -Command "Get-MpPreference | findstr /b Exclusion"
+
+echo: 
+echo ----------- Injected Threads -----------
+powershell -Command ".\Get-InjectedThread.ps1"
+
+:: Sus directories
+echo:
+echo ----------- Random Directories -----------
+dir "C:\Intel"
+dir "C:\Temp"
+
+:: Export secpol file so we can take a look at it later
+echo ----------- Exporting Local Security Policy -----------
+secedit /export /cfg secpol.cfg
+
+:: Audit the current audit policy
+echo:
+echo ----------- Current Audit Policy -----------
+auditpol /get /category:*
+
 :: Check for unsigned files (run this in the same directory as sigcheck!)
 :: Might want to comment out to make script faster
 echo:
-echo Unsigned Files:
-sigcheck64 -u -e c:\windows\system32
+echo ----------- Unsigned Files -----------
+sigcheck64 -accepteula -u -e c:\windows\system32

@@ -1,4 +1,16 @@
 # Download other scripts
+
+# Deciding what user management tools to download
+$ad = Read-Host "Is this a Domain Controller (Y or N) ? "
+if ($ad -eq "Y") {
+    Write-Host "Downloading AD tools in addition to others..."
+    (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1", "C:\Program Files\WindowsPowershell\pickles\Get-InjectedThread.ps1")
+} else {
+
+}
+# TODO: Make directory a user-supplied input 
+# TODO: Shorten URLs, create reference page of links
+# TODO: Add more links lol
 (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1", "C:\Program Files\WindowsPowershell\pickles\Get-InjectedThread.ps1")
 
 # Sysinternals
