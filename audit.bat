@@ -43,6 +43,13 @@ reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\U
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
 
+:: startup scripts
+echo:
+echo ----------- Startup Scripts -----------
+reg query "HKLM\Software\Policies\Microsoft\Windows\System\Scripts" /s
+reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts" /s
+reg query "HKCU\Software\Policies\Microsoft\Windows\System\Scripts" /s
+
 :: Check for stuff running on boot
 echo:
 echo ----------- Boot Execution Keys -----------
@@ -91,14 +98,26 @@ reg query "HKCU\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\E
 reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run"
 reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Runonce"
 reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunonceEx"
+reg query "HKLM\System\CurrentControlSet\Control\Terminal Server\Wds\rdpwd\StartupPrograms"
 
-:: RDP/login screen keys
+:: RDP/Debugger persistence (honestly idk where to put this)
 echo:
-echo ----------- RDP/Ease of Use Persistence -----------
-reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\utilman.exe" /v "Debugger"
-reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\sethc.exe" /v "Debugger"
+echo ----------- RDP/Debugger Persistence -----------
+reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Accessibility\ATs" /s /v "StartExe"
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /s /v "Debugger"
+reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /s /v "Debugger"
 :: RDP enabled if 0, disabled if 1
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v "fDenyTSConnections"
+
+:: COM Hijacking stuff I guess
+echo:
+echo ----------- COM Hijacking -----------
+reg query "HKLM\Software\Classes\Protocols\Filter" /s
+reg query "HKLM\Software\Classes\Protocols\Handler" /s
+reg query "HKLM\Software\Classes\CLSID" /s /v "InprocServer32"
+reg query "HKLM\Software\Classes\CLSID" /s /v "LocalServer32"
+reg query "HKLM\Software\Classes\CLSID" /s /v "TreatAs"
+reg query "HKLM\Software\Classes\CLSID" /s /v "ProcID"
 
 :: LSA
 :: Check password filters
@@ -114,6 +133,12 @@ echo:
 echo ----------- Security Packages -----------
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Security Packages" 
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa\OSConfig" /v "Security Packages"
+
+:: Security Providers
+echo:
+echo ----------- Security Providers (including WDigest) -----------
+reg query "HKLM\System\CurrentControlSet\Control\SecurityProviders" /v SecurityProviders
+reg query "HKLM\System\CurrentControlSet\Control\SecurityProviders\WDigest"
 
 :: Network Provider
 echo:
@@ -135,7 +160,7 @@ reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows
 :: AppCert DLLs (doesn't exist natively)
 echo:
 echo ----------- AppCertDLLs -----------
-reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\" /v AppCertDLLs
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\AppCertDLLs"
 
 :: Check for Custom DLLs in Winlogon
 echo:
@@ -146,6 +171,11 @@ reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Notify
 reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell
 reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Userinit
 reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Notify
+
+:: Print Ports
+echo: 
+echo ----------- Print Monitor Ports -----------
+reg query "HKLM\System\CurrentControlSet\Control\Print\Monitors" /s
 
 :: Check for Windows Defender exclusions 
 echo:
