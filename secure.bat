@@ -28,6 +28,8 @@ if %choice%=="Y" (
 net user cucumber Passw0rd-123* /add
 net localgroup Administrators cucumber /add
 
+:: Most keys that exist in the SOFTWARE hive also exist under SOFTWARE\Wow6432Node but I am too lazy to add them
+
 :: UAC - idk if these sync up w/secpol, oh well
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v FilterAdministratorToken /t REG_DWORD /d 1 /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableUIADesktopToggle /t REG_DWORD /d 0 /f
@@ -96,6 +98,7 @@ icacls %windir%\system32\config\*.* /inheritance:e
 
 :: AppInit_DLLs
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /v LoadAppInit_DLLs /t REG_DWORD /d 0 /f
+reg add "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows" /v LoadAppInit_DLLs /t REG_DWORD /d 0 /f
 :: reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /v RequireSignedAppInit_DLLs /t REG_DWORD /d 1 /f
 
 :: Caching logons
@@ -105,9 +108,11 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v CachedLo
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurePipeServers\winreg\AllowedExactPaths" /v Machine /t REG_MULTI_SZ /d "" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurePipeServers\winreg\AllowedPaths" /v Machine /t REG_MULTI_SZ /d "" /f
 
-:: Not processing RunOnce List (located at HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce and in HKCU)
+:: Not processing RunOnce List (located at HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce, in HKCU, and Wow6432Node)
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisableLocalMachineRunOnce /t REG_DWORD /d 1 /f
+reg add "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisableLocalMachineRunOnce /t REG_DWORD /d 1 /f
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisableLocalMachineRunOnce /t REG_DWORD /d 1 /f
+reg add "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisableLocalMachineRunOnce /t REG_DWORD /d 1 /f
 
 :: Removing exclusions in Defender - trust me bro
 powershell -encodedCommand "RwBlAHQALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAHwAIABTAGUAbABlAGMAdAAtAE8AYgBqAGUAYwB0ACAALQBQAHIAbwBwAGUAcgB0AHkAIABFAHgAYwBsAHUAcwBpAG8AbgBFAHgAdABlAG4AcwBpAG8AbgAgAHwAIAAlACAAewAgAGkAZgAgACgAJABfAC4ARQB4AGMAbAB1AHMAaQBvAG4ARQB4AHQAZQBuAHMAaQBvAG4AIAAtAG4AZQAgACQAbgB1AGwAbAApACAAewBSAGUAbQBvAHYAZQAtAE0AcABQAHIAZQBmAGUAcgBlAG4AYwBlACAALQBFAHgAYwBsAHUAcwBpAG8AbgBFAHgAdABlAG4AcwBpAG8AbgAgACQAXwAuAEUAeABjAGwAdQBzAGkAbwBuAEUAeAB0AGUAbgBzAGkAbwBuAH0AfQA7AEcAZQB0AC0ATQBwAFAAcgBlAGYAZQByAGUAbgBjAGUAIAB8ACAAUwBlAGwAZQBjAHQALQBPAGIAagBlAGMAdAAgAC0AUAByAG8AcABlAHIAdAB5ACAARQB4AGMAbAB1AHMAaQBvAG4AUABhAHQAaAAgAHwAIAAlACAAewBpAGYAIAAoACQAXwAuAEUAeABjAGwAdQBzAGkAbwBuAFAAYQB0AGgAIAAtAG4AZQAgACQAbgB1AGwAbAApACAAewBSAGUAbQBvAHYAZQAtAE0AcABQAHIAZQBmAGUAcgBlAG4AYwBlACAALQBFAHgAYwBsAHUAcwBpAG8AbgBQAGEAdABoACAAJABfAC4ARQB4AGMAbAB1AHMAaQBvAG4AUABhAHQAaAB9AH0AOwBHAGUAdAAtAE0AcABQAHIAZQBmAGUAcgBlAG4AYwBlACAAfAAgAFMAZQBsAGUAYwB0AC0ATwBiAGoAZQBjAHQAIAAtAFAAcgBvAHAAZQByAHQAeQAgAEUAeABjAGwAdQBzAGkAbwBuAFAAcgBvAGMAZQBzAHMAIAB8ACAAJQAgAHsAaQBmACAAKAAkAF8ALgBFAHgAYwBsAHUAcwBpAG8AbgBQAHIAbwBjAGUAcwBzACAALQBuAGUAIAAkAG4AdQBsAGwAKQAgAHsAUgBlAG0AbwB2AGUALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAC0ARQB4AGMAbAB1AHMAaQBvAG4AUAByAG8AYwBlAHMAcwAgACQAXwAuAEUAeABjAGwAdQBzAGkAbwBuAFAAcgBvAGMAZQBzAHMAfQB9AA=="
