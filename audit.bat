@@ -1,5 +1,7 @@
 @echo off
 
+::TODO: WMI audit 
+
 call :sub >system_audit.txt
 exit /b
 
@@ -44,30 +46,59 @@ reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
 :: Check for stuff running on boot
 echo:
 echo ----------- Boot Execution Keys -----------
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot" /v "AlternateShell"
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "BootExecute"
-reg query "HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components" /v "StubPath"
-reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Active Setup\Installed Components" /v "StubPath"
+reg query "HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components" /s /v "StubPath"
+reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Active Setup\Installed Components" /s /v "StubPath"
+reg query "HKCU\SOFTWARE\Microsoft\Active Setup\Installed Components" /s /v "StubPath"
+reg query "HKCU\SOFTWARE\Wow6432Node\Microsoft\Active Setup\Installed Components" /s /v "StubPath"
 
-:: Check for startup services (include wow6432node?)
+:: Check for startup services
 echo:
 echo ----------- Startup Services Keys -----------
-reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServicesOnce"
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServices"
-reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce"
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServicesOnce"
+reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices"
+reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce"
+
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServices"
+reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce"
+reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices"
+reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce"
 
 :: Printing run keys
 echo:
 echo ----------- Run Keys -----------
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx"
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"
 reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run"
 reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce"
-reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"
-reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx"
+reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx"
+reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"
+
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run"
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx"
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"
+reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run"
+reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce"
+reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx"
+reg query "HKCU\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"
+
+:: Apparently there are run keys for Terminal Server
+reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run"
+reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Runonce"
+reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunonceEx"
+
+:: RDP/login screen keys
+echo:
+echo ----------- RDP/Ease of Use Persistence -----------
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\utilman.exe" /v "Debugger"
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\sethc.exe" /v "Debugger"
+:: RDP enabled if 0, disabled if 1
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v "fDenyTSConnections"
 
 :: LSA
 :: Check password filters
