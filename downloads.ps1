@@ -19,7 +19,6 @@ if ($core -eq "Y") {
 }
 
 # Other scripts/files
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/blum.bat", "C:\Program Files\WindowsPowershell\pickles\blum.bat")
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/audit.bat", "C:\Program Files\WindowsPowershell\pickles\audit.bat")
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/firewall.bat", "C:\Program Files\WindowsPowershell\pickles\firewall.bat")
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/inventory.bat", "C:\Program Files\WindowsPowershell\pickles\inventory.bat")
