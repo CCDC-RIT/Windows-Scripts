@@ -8,15 +8,10 @@
 # Deciding what user management tools to download
 mkdir scripts
 $ad = Read-Host "Is this a Domain Controller (Y or N)? "
-if ($ad -eq "Y") {
-    Write-Host "Downloading AD tools in addition to others..."
-    # dotnetfx35.exe /q /norestart
-    (New-Object System.Net.WebClient).DownloadFile("https://download.microsoft.com/download/2/0/E/20E90413-712F-438C-988E-FDAA79A8AC3D/dotnetfx35.exe", "C:\Program Files\WindowsPowershell\pickles\dotnetfx35.exe")
-    (New-Object System.Net.WebClient).DownloadFile("https://wisedataman.com/wp-content/uploads/2020/11/WiseSoftBulkADUsers.zip", "C:\Program Files\WindowsPowershell\pickles\badu.zip")
-    Expand-Archive -LiteralPath "C:\Program Files\WindowsPowershell\pickles\badu.zip" -DestinationPath "C:\Program Files\WindowsPowershell\pickles\badu"
-} else {
+if ($ad -eq "N") {
+    Write-Host "Downloading local user management script..."
     (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/blum.bat", "C:\Program Files\WindowsPowershell\pickles\scripts\blum.bat")
-}
+} 
 $core = Read-Host "Is this server a Core Server (Y or N)? "
 if ($core -eq "Y") {
     (New-Object System.Net.WebClient).DownloadFile("https://github.com/derceg/explorerplusplus/releases/download/version-1.4.0-beta-2/explorerpp_x64.zip", "C:\Program Files\WindowsPowershell\pickles\epp.zip")
