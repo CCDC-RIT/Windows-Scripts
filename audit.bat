@@ -122,7 +122,7 @@ reg query "HKLM\Software\Classes\CLSID" /s /v "ProcID"
 :: LSA
 :: Check password filters
 echo:
-echo ----------- Password filters -----------
+echo ----------- Password Filters -----------
 reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Notification Packages"
 :: Check authentication packages
 echo: 
@@ -200,6 +200,11 @@ secedit /export /cfg secpol.cfg
 echo:
 echo ----------- Current Audit Policy -----------
 auditpol /get /category:*
+
+echo:
+echo ----------- Programs in Registry -----------
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "DisplayName"
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "UninstallString"
 
 :: Check for unsigned files (run this in the same directory as sigcheck!)
 :: Might want to comment out to make script faster
