@@ -1,3 +1,4 @@
+# TODO: put config files and external tools in the same place as the scripts that call them
 # TODO: Make directory a user-supplied input 
 # TODO: create reference page of links, replace links in 5 min plan w/shortened versions
 
@@ -42,6 +43,7 @@ if ($core -eq "Y") {
 (New-Object System.Net.WebClient).DownloadFile("https://www.binisoft.org/download/wfc6setup.exe", "C:\Program Files\WindowsPowershell\pickles\wfwcsetup.exe")
 
 # Wireshark
+# (for now) TLS 1.2 link: https://wireshark.marwan.ma/download/win64/Wireshark-win64-latest.exe
 (New-Object System.Net.WebClient).DownloadFile("https://1.na.dl.wireshark.org/win64/Wireshark-win64-latest.exe", "C:\Program Files\WindowsPowershell\pickles\wsinstall.exe")
 
 # Basic Sysmon config file

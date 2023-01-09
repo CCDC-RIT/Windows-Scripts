@@ -7,7 +7,7 @@ WevtUtil sl Security /ms:1048576000
 WevtUtil sl "Windows PowerShell" /ms:512000000
 WevtUtil sl "Microsoft-Windows-PowerShell/Operational" /ms:512000000
 
-:: TODO: Audit policy
+:: TODO: Audit policy - some of the categories apparently don't exist or the formatting was incorrect
 auditpol /set /subcategory:"Credential Validation" /success:enable /failure:enable
 auditpol /set /subcategory:"Kerberos Authentication Service" /success:enable /failure:enable
 auditpol /set /subcategory:"Kerberos Service Ticket Operations" /success:enable /failure:enable
@@ -103,5 +103,7 @@ if %choice%=="Y" (
     dnscmd /config /loglevel 0x8000F301
     dnscmd /config /logfilemaxsize 0xC800000
 )
+
+:: TODO: DHCP logging
 
 :: RIP Wazuh configuration
