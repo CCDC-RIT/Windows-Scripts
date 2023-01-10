@@ -55,9 +55,8 @@ auditpol /set /subcategory:"File System" /success:disable /failure:enable
 auditpol /set /subcategory:"Filtering Platform Connection" /success:enable /failure:disable
 auditpol /set /subcategory:"Filtering Platform Packet Drop" /success:disable /failure:disable
 :: Turn on "Success" if want to track starting/stopping services (very noisy)
-auditpol /set /subcategory:"Handle Manipulation" /success:disable /failure:disable
+auditpol /set /subcategory:"Handle Manipulation" /success:enable /failure:disable
 auditpol /set /subcategory:"Kernel Object" /success:disable /failure:disable
-:: Very noisy if Bitlocker is on - generates a lot of 4662 events
 auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure:enable
 auditpol /set /subcategory:"Registry" /success:enable /failure:disable
 auditpol /set /subcategory:"Removable Storage" /success:enable /failure:enable
@@ -90,6 +89,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging"
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v EnableTranscripting /t REG_DWORD /d 1 /f
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v OutputDirectory /t REG_SZ /d C:\scrips /f
 :: Process Creation events (4688) include command line arguments
+:: If Windows 7 or Server 2008: KB3004375
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /v ProcessCreationIncludeCmdLine_Enabled /t REG_DWORD /d 1 /f
 
 :: Sysmon mode
@@ -103,6 +103,9 @@ if %choice%=="Y" (
     dnscmd /config /loglevel 0x8000F301
     dnscmd /config /logfilemaxsize 0xC800000
 )
+
+:: DNS Client Logging
+wevtutil sl Microsoft-Windows-DNSClient/Operational /e:true
 
 :: TODO: DHCP logging
 

@@ -19,6 +19,8 @@ tasklist /svc /FO table
 echo:
 echo ----------- Services -----------
 net start
+:: reg query "HKLM\System\CurrentControlSet\Services"
+:: sc query state= all
 
 :: hidden services?
 :: https://gist.github.com/joswr1ght/c5d9773a90a22478309e9e427073fd30 but base64 lol
