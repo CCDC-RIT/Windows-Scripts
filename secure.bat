@@ -12,7 +12,7 @@ if %choice%=="N" (
     echo:
     echo Skipping import of secpol file...
     echo: 
-    echo Please use the GUI to import the file into a GPO. Make sure to do gpupdate /force after!
+    echo Please use the Group Policy Management GUI to create a GPO and import the file into it. Make sure to do gpupdate /force after!
     timeout 5
 )
 

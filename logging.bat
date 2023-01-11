@@ -7,7 +7,7 @@ WevtUtil sl Security /ms:1048576000
 WevtUtil sl "Windows PowerShell" /ms:512000000
 WevtUtil sl "Microsoft-Windows-PowerShell/Operational" /ms:512000000
 
-:: TODO: Audit policy - some of the categories apparently don't exist or the formatting was incorrect
+:: Audit policy 
 auditpol /set /subcategory:"Credential Validation" /success:enable /failure:enable
 auditpol /set /subcategory:"Kerberos Authentication Service" /success:enable /failure:enable
 auditpol /set /subcategory:"Kerberos Service Ticket Operations" /success:enable /failure:enable
@@ -96,6 +96,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 cd ../tools/sys/sm
 sysmon64 -accepteula -i ../../../scripts/conf/sysmon.xml
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
+cd ../../../scripts
 
 set /p choice="Is this server a DNS server (Y or N)? "
 :: Attempt to enable DNS logging if this is a DNS server 
@@ -108,6 +109,10 @@ if %choice%=="Y" (
 :: DNS Client Logging
 wevtutil sl Microsoft-Windows-DNSClient/Operational /e:true
 
+set /p choice="Is this a domain controller (Y or N)? "
+if %choice%=="Y" (
+    echo Please use the Group Policy Management GUI to import the auditpol.csv file into the Advanced Audit Policy section of a GPO ^(ideally the same one as the secpol file^). Make sure to do gpupdate /force after!
+) 
 :: TODO: DHCP logging
 
 :: RIP Wazuh configuration
