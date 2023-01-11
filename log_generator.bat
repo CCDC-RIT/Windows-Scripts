@@ -32,18 +32,18 @@ WevtUtil qe Security /q:"*[System[(EventID=4698 or EventID=4702)]]" /c:5 /rd:tru
 WevtUtil qe Security /q:"*[System[(EventID=4672)]]" /c:5 /rd:true /f:text
 
 :: PowerShell executed
-WevtUtil qe “Windows PowerShell” /q:"*[System[(EventID=501)]]" /c:5 /rd:true /f:text >Parsed\%computername%_PS_Cmds_Executed_Win7.log
+WevtUtil qe "Windows PowerShell" /q:"*[System[(EventID=501)]]" /c:5 /rd:true /f:text >Parsed\%computername%_PS_Cmds_Executed_Win7.log
 
 :: Specific "Command Name" executed
-WevtUtil qe “Windows PowerShell” /q:"*[System[(EventID=500)]]" /c:5 /rd:true /f:text | find /I "CommandName" 
+WevtUtil qe "Windows PowerShell" /q:"*[System[(EventID=500)]]" /c:5 /rd:true /f:text | find /I "CommandName" 
 
 :: Specific "Command Line" executed
-WevtUtil qe “Windows PowerShell” /q:"*[System[(EventID=500)]]" /c:5 /rd:true /f:text | find /I "CommandLine"
+WevtUtil qe "Windows PowerShell" /q:"*[System[(EventID=500)]]" /c:5 /rd:true /f:text | find /I "CommandLine"
 
 :: Specifc Cmdlet and Scripts executed
 WevtUtil qe "Windows PowerShell" /q:"*[System[(EventID=501)]]" /c:1000 /rd:true /f:text | findstr "Logged CommandLine Cmdlet Script"
 
-:: PoverShell 4 and 5, Event ID 4104
+:: PowerShell 4 and 5, Event ID 4104
 :: Anything that is a "Get-" call
 WevtUtil qe "Microsoft-Windows-PowerShell/Operational" /q:"*[System[(EventID=4104)]]" /c:1000 /rd:true /f:text | findstr /i "Get-"
 
@@ -52,20 +52,3 @@ WevtUtil qe "Microsoft-WindowsPowerShell/Operational" /q:"*[System[(EventID=4104
 
 :: querying logs through powershell example
 :: get-eventlog -logname "Windows PowerShell" -computername <your_systemname> | where {$_.eventID -eq 400}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
