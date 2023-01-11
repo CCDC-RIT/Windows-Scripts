@@ -47,12 +47,13 @@ $ConfPath = Join-Path -Path $ScriptPath -ChildPath "conf"
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/logging.bat", (Join-Path -Path $ScriptPath -ChildPath "logging.bat"))
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/netstat.bat", (Join-Path -Path $ScriptPath -ChildPath "netstat.bat"))
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/secure.bat", (Join-Path -Path $ScriptPath -ChildPath "secure.bat"))
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/secpol.inf", (Join-Path -Path $ScriptPath -ChildPath "secpol.inf"))
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/folderintegrity.bat", (Join-Path -Path $ScriptPath -ChildPath "folderintegrity.bat"))
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/goldentickets.bat", (Join-Path -Path $ScriptPath -ChildPath "goldentickets.bat"))
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/log_generator.bat", (Join-Path -Path $ScriptPath -ChildPath "log_generator.bat"))
 # Get-InjectedThread
 (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1", (Join-Path -Path $ScriptPath -ChildPath "Get-InjectedThread.ps1"))
+# Security policy file
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/secpol.inf", (Join-Path -Path $ConfPath -ChildPath "secpol.inf"))
 # Basic Sysmon config file
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml", (Join-Path -Path $ConfPath -ChildPath "sysmon.xml"))
 # TODO: wazuh config file

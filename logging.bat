@@ -21,11 +21,11 @@ auditpol /set /subcategory:"Security Group Management" /success:enable /failure:
 auditpol /set /subcategory:"User Account Management" /success:enable /failure:enable
 
 auditpol /set /subcategory:"DPAPI Activity" /success:disable /failure:disable
-auditpol /set /subcategory:"PNP Activity" /success:enable /failure:disable
+auditpol /set /subcategory:"Plug and Play Events" /success:enable /failure:disable
 auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable
 auditpol /set /subcategory:"Process Termination" /success:enable /failure:disable
 auditpol /set /subcategory:"RPC Events" /success:enable /failure:enable
-auditpol /set /subcategory:"Token Right Adjusted" /success:enable /failure:disable
+auditpol /set /subcategory:"Token Right Adjusted Events" /success:enable /failure:disable
 
 auditpol /set /subcategory:"Detailed Directory Service Replication" /success:disable /failure:disable
 :: (applies to next line only) noisy if turned on, used to discover ad replication errors
@@ -61,7 +61,7 @@ auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure
 auditpol /set /subcategory:"Registry" /success:enable /failure:disable
 auditpol /set /subcategory:"Removable Storage" /success:enable /failure:enable
 auditpol /set /subcategory:"SAM" /success:enable /failure:disable
-auditpol /set /subcategory:"Central Access Policy Staging" /success:disable /failure:disable
+auditpol /set /subcategory:"Central Policy Staging" /success:disable /failure:disable
 
 auditpol /set /subcategory:"Audit Policy Change" /success:enable /failure:enable
 auditpol /set /subcategory:"Authentication Policy Change" /success:enable /failure:enable
@@ -94,7 +94,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 
 :: Sysmon mode
 cd ../tools/sys/sm
-sysmon64 -accepteula -i ../../../scripts/conf/sysmonconfig.xml
+sysmon64 -accepteula -i ../../../scripts/conf/sysmon.xml
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
 
 set /p choice="Is this server a DNS server (Y or N)? "
