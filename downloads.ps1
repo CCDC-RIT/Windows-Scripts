@@ -1,5 +1,3 @@
-# TODO: put config files and external tools in the same place as the scripts that call them
-# TODO: Make directory a user-supplied input 
 # TODO: create reference page of links, replace links in 5 min plan w/shortened versions
 
 # Workaround for older Windows Versions (need NET 4.5 or above)
