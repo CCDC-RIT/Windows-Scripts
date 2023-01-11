@@ -31,7 +31,7 @@ if (($ad -eq "N") -or ($ad -eq "n")) {
     (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/blum.bat", (Join-Path -Path $ScriptPath -ChildPath "blum.bat"))
 } 
 $core = Read-Host "Is this server a Core Server (Y or N)? "
-if (($core -eq "Y") -or ($ad -eq "y")) {
+if (($core -eq "Y") -or ($core -eq "y")) {
     (New-Object System.Net.WebClient).DownloadFile("https://github.com/derceg/explorerplusplus/releases/download/version-1.4.0-beta-2/explorerpp_x64.zip", (Join-Path -Path $UserPath -ChildPath "epp.zip"))
     Expand-Archive -LiteralPath (Join-Path -Path $UserPath -ChildPath "epp.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "epp")
 }

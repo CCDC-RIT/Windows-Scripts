@@ -196,7 +196,7 @@ dir "C:\Temp"
 
 :: Export secpol file so we can take a look at it later
 echo ----------- Exporting Local Security Policy -----------
-secedit /export /cfg secpol.cfg
+secedit /export /cfg results/old_secpol.cfg
 
 :: Audit the current audit policy
 echo:
