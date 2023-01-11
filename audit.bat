@@ -2,7 +2,7 @@
 
 ::TODO: WMI audit 
 
-call :sub >system_audit.txt
+call :sub >results/system_audit.txt
 exit /b
 
 :sub
@@ -26,7 +26,7 @@ net start
 :: https://gist.github.com/joswr1ght/c5d9773a90a22478309e9e427073fd30 but base64 lol
 echo:
 echo ----------- Hidden Services -----------
-powershell -encodedCommand "QwBvAG0AcABhAHIAZQAtAE8AYgBqAGUAYwB0ACAALQBSAGUAZgBlAHIAZQBuAGMAZQBPAGIAagBlAGMAdAAgACgARwBlAHQALQBTAGUAcgB2AGkAYwBlACAAfAAgAFMAZQBsAGUAYwB0AC0ATwBiAGoAZQBjAHQAIAAtAEUAeABwAGEAbgBkAFAAcgBvAHAAZQByAHQAeQAgAE4AYQBtAGUAIAB8ACAAJQAgAHsAIAAkAF8AIAAtAHIAZQBwAGwAYQBjAGUAIAAiAF8AWwAwAC0AOQBhAC0AZgBdAHsAMgAsADgAfQAkACIAIAB9ACAAKQAgAC0ARABpAGYAZgBlAHIAZQBuAGMAZQBPAGIAagBlAGMAdAAgACgAZwBjAGkAIAAtAHAAYQB0AGgAIABoAGsAbABtADoAXABzAHkAcwB0AGUAbQBcAGMAdQByAHIAZQBuAHQAYwBvAG4AdAByAG8AbABzAGUAdABcAHMAZQByAHYAaQBjAGUAcwAgAHwAIAAlACAAewAgACQAXwAuAE4AYQBtAGUAIAAtAFIAZQBwAGwAYQBjAGUAIAAiAEgASwBFAFkAXwBMAE8AQwBBAEwAXwBNAEEAQwBIAEkATgBFAFwAXAAiACwAIgBIAEsATABNADoAXAAiACAAfQAgAHwAIAA/ACAAewAgAEcAZQB0AC0ASQB0AGUAbQBQAHIAbwBwAGUAcgB0AHkAIAAtAFAAYQB0AGgAIAAiACQAXwAiACAALQBuAGEAbQBlACAAbwBiAGoAZQBjAHQAbgBhAG0AZQAgAC0AZQByAHIAbwByAGEAYwB0AGkAbwBuACAAJwBpAGcAbgBvAHIAZQAnACAAfQAgAHwAIAAlACAAewAgACQAXwAuAHMAdQBiAHMAdAByAGkAbgBnACgANAAwACkAIAB9ACkAIAAtAFAAYQBzAHMAVABoAHIAdQAgAHwAIAA/AHsAJABfAC4AcwBpAGQAZQBJAG4AZABpAGMAYQB0AG8AcgAgAC0AZQBxACAAIgA9AD4AIgB9AA=="
+powershell -Command "& {Compare-Object -ReferenceObject (Get-Service | Select-Object -ExpandProperty Name | % { $_ -replace ""_[0-9a-f]{2,8}$\"" }) -DifferenceObject (gci -path hklm:\system\currentcontrolset\services | % { $_.Name -Replace ""HKEY_LOCAL_MACHINE\\\\\"", ""HKLM:\\\"" } | ? { Get-ItemProperty -Path ""$_\"" -name objectname -erroraction 'ignore' } | % { $_.substring(40) }) -PassThru | ?{$_.sideIndicator -eq ""=>\""}}"
 
 :: list of scheduled tasks
 echo: 
@@ -212,4 +212,6 @@ reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "Unin
 :: Might want to comment out to make script faster
 echo:
 echo ----------- Unsigned Files -----------
+cd ../tools/sys/sc
 sigcheck64 -accepteula -u -e c:\windows\system32
+cd ../../../scripts

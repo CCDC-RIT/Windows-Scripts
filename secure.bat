@@ -5,15 +5,15 @@
     :: This file will also serve as local secpol file
     :: Will contain account and local policies
 set /p choice="Is this a domain controller (Y or N)? "
-if %choice%=="Y" (
+if %choice%=="N" (
+    secedit /configure /db %windir%\security\local.sdb /cfg conf/secpol.inf
+    gpupdate /force
+) else (
     echo:
     echo Skipping import of secpol file...
     echo: 
     echo Please use the GUI to import the file into a GPO. Make sure to do gpupdate /force after!
     timeout 5
-) else (
-    secedit /configure /db %windir%\security\local.sdb /cfg secpol.inf
-    gpupdate /force
 )
 
 :: Stopping "easy wins" for red team - following https://orange-cyberdefense.github.io/ocd-mindmaps/img/pentest_ad_dark_2022_11.svg
@@ -255,8 +255,8 @@ reg add "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\Exp
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisableLocalMachineRunOnce /t REG_DWORD /d 1 /f
 reg add "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v DisableLocalMachineRunOnce /t REG_DWORD /d 1 /f
 
-:: Removing exclusions in Defender - trust me bro
-powershell -encodedCommand "RwBlAHQALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAHwAIABTAGUAbABlAGMAdAAtAE8AYgBqAGUAYwB0ACAALQBQAHIAbwBwAGUAcgB0AHkAIABFAHgAYwBsAHUAcwBpAG8AbgBFAHgAdABlAG4AcwBpAG8AbgAgAHwAIAAlACAAewAgAGkAZgAgACgAJABfAC4ARQB4AGMAbAB1AHMAaQBvAG4ARQB4AHQAZQBuAHMAaQBvAG4AIAAtAG4AZQAgACQAbgB1AGwAbAApACAAewBSAGUAbQBvAHYAZQAtAE0AcABQAHIAZQBmAGUAcgBlAG4AYwBlACAALQBFAHgAYwBsAHUAcwBpAG8AbgBFAHgAdABlAG4AcwBpAG8AbgAgACQAXwAuAEUAeABjAGwAdQBzAGkAbwBuAEUAeAB0AGUAbgBzAGkAbwBuAH0AfQA7AEcAZQB0AC0ATQBwAFAAcgBlAGYAZQByAGUAbgBjAGUAIAB8ACAAUwBlAGwAZQBjAHQALQBPAGIAagBlAGMAdAAgAC0AUAByAG8AcABlAHIAdAB5ACAARQB4AGMAbAB1AHMAaQBvAG4AUABhAHQAaAAgAHwAIAAlACAAewBpAGYAIAAoACQAXwAuAEUAeABjAGwAdQBzAGkAbwBuAFAAYQB0AGgAIAAtAG4AZQAgACQAbgB1AGwAbAApACAAewBSAGUAbQBvAHYAZQAtAE0AcABQAHIAZQBmAGUAcgBlAG4AYwBlACAALQBFAHgAYwBsAHUAcwBpAG8AbgBQAGEAdABoACAAJABfAC4ARQB4AGMAbAB1AHMAaQBvAG4AUABhAHQAaAB9AH0AOwBHAGUAdAAtAE0AcABQAHIAZQBmAGUAcgBlAG4AYwBlACAAfAAgAFMAZQBsAGUAYwB0AC0ATwBiAGoAZQBjAHQAIAAtAFAAcgBvAHAAZQByAHQAeQAgAEUAeABjAGwAdQBzAGkAbwBuAFAAcgBvAGMAZQBzAHMAIAB8ACAAJQAgAHsAaQBmACAAKAAkAF8ALgBFAHgAYwBsAHUAcwBpAG8AbgBQAHIAbwBjAGUAcwBzACAALQBuAGUAIAAkAG4AdQBsAGwAKQAgAHsAUgBlAG0AbwB2AGUALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAC0ARQB4AGMAbAB1AHMAaQBvAG4AUAByAG8AYwBlAHMAcwAgACQAXwAuAEUAeABjAGwAdQBzAGkAbwBuAFAAcgBvAGMAZQBzAHMAfQB9AA=="
+:: Removing exclusions in Defender
+powershell -Command "& {Get-MpPreference | Select-Object -Property ExclusionExtension | % { if ($_.ExclusionExtension -ne $null) {Remove-MpPreference -ExclusionExtension $_.ExclusionExtension}};Get-MpPreference | Select-Object -Property ExclusionPath | % {if ($_.ExclusionPath -ne $null) {Remove-MpPreference -ExclusionPath $_.ExclusionPath}};Get-MpPreference | Select-Object -Property ExclusionProcess | % {if ($_.ExclusionProcess -ne $null) {Remove-MpPreference -ExclusionProcess $_.ExclusionProcess}}}"
 
 :: Yeeting things
 @REM net share admin$ /del

@@ -93,7 +93,8 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v O
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /v ProcessCreationIncludeCmdLine_Enabled /t REG_DWORD /d 1 /f
 
 :: Sysmon mode
-sysmon64 -accepteula -i sysmonconfig.xml
+cd ../tools/sys/sm
+sysmon64 -accepteula -i ../../../scripts/conf/sysmonconfig.xml
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
 
 set /p choice="Is this server a DNS server (Y or N)? "

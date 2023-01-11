@@ -1,6 +1,6 @@
 @echo off
 
-call :sub >inventory_info.txt
+call :sub >results/inventory_info.txt
 exit /b
 
 :sub
