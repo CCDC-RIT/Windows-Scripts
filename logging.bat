@@ -107,7 +107,7 @@ if %choice%=="Y" (
 )
 
 :: DNS Client Logging
-wevtutil sl Microsoft-Windows-DNSClient/Operational /e:true
+wevtutil sl Microsoft-Windows-DNS-Client/Operational /e:true
 
 set /p choice="Is this a domain controller (Y or N)? "
 if %choice%=="Y" (
