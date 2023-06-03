@@ -86,6 +86,8 @@ reg add "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v Dis
 ## Turning off SMB admin shares
 reg add "HKLM\System\CurrentControlSet\Services\LanmanServer\Parameters" /v AutoShareServer /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\System\CurrentControlSet\Services\LanmanServer\Parameters" /v AutoShareWks /t REG_DWORD /d 0 /f | Out-Null
+Set-SmbServerConfiguration -EncryptData $true -Force | Out-Null
+
 Write-Host "[INFO] SMB hardening in place"
 
 # DC security - put DNS under here?
@@ -107,7 +109,15 @@ if ($DC) {
     $ObjectPath = 'CN=Directory Service,CN=Windows NT,CN=Services,{0}' -f $RootDSE.ConfigurationNamingContext
     Set-ADObject -Identity $ObjectPath -Add @{ 'msDS-Other-Settings' = 'DenyUnauthenticatedBind=1'}
 
-    Write-Host "[INFO] AD hardening in place"
+    # DNS - SIGRed Workaround
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters" /v TcpReceivePacketSize /t REG_DWORD /d 0xFF00 /f | Out-Null
+    # CVE-2020-25705
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters" /v MaximumUdpPacketSize /t REG_DWORD /d 0x4C5 /f | Out-Null
+    Set-DnsServerRRL -Mode Enable -Force | Out-Null
+    Set-DnsServerResponseRateLimiting -ResetToDefault -Force | Out-Null
+    net stop DNS
+    net start DNS
+    Write-Host "[INFO] AD/DNS hardening in place"
 }
 
 # IIS security
