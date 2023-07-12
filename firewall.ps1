@@ -9,15 +9,19 @@ netsh advfirewall set allprofiles logging maxfilesize 32676
 netsh advfirewall set allprofiles logging droppedconnections enable
 netsh advfirewall set allprofiles logging allowedconnections enable
 
+# Logics
 $DC = $false
 if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType = "2")') {
     $DC = $true
     Write-Host "[INFO] Domain Controller detected"
 }
 
-# Common Scored Services
-## DNS 
+# Rules!
+# DNS client
 netsh adv f a r n=DNS-Client dir=out act=allow prof=any prot=udp remoteport=53
+Write-Host "[INFO] DNS Client firewall rule enabled"
+
+# Common Scored Services
 ## Domain Controller Rules (includes DNS server)
 if ($DC) {
     netsh adv f a r n=DC-TCP-In dir=in act=allow prof=any prot=tcp localport=88,135,389,445,636,3268
@@ -26,6 +30,8 @@ if ($DC) {
     netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp localport=rpc-epmap
 
     netsh adv f a r n=DNS-Server dir=in act=allow prof=any prot=udp localport=53
+
+    Write-Host "[INFO] Domain Controller firewall rules set" 
 }
 
 ## ICMP 
@@ -39,38 +45,6 @@ if ($DC) {
 ## HTTP(S)
 # netsh adv f a r n=HTTP-Server dir=in act=allow prof=any prot=tcp localport=80,443
 # netsh adv f a r n=HTTP-Client dir=out act=allow prof=any prot=tcp remoteport=80,443
-
-# Remoting Protocols
-## RDP
-# netsh adv f a r n=RDP-TCP-Client dir=out act=allow prof=any prot=tcp remoteport=3389 
-# netsh adv f a r n=RDP-UDP-Client dir=out act=allow prof=any prot=udp remoteport=3389 
-
-# netsh adv f a r n=RDP-TCP-Server dir=in act=allow prof=any prot=tcp localport=3389 
-# netsh adv f a r n=RDP-UDP-Server dir=in act=allow prof=any prot=udp localport=3389 
-
-## WinRM
-# netsh adv f a r n=WinRM-Client dir=out act=allow prof=any prot=tcp remoteport=5985,5986
-# netsh adv f a r n=WinRM-Server dir=in act=allow prof=any prot=tcp localport=5985,5986
-
-## SSH 
-# netsh adv f a r n=SSH-Client dir=out act=allow prof=any prot=tcp remoteport=22
-# netsh adv f a r n=SSH-Server dir=in act=allow prof=any prot=tcp localport=22
-
-# Uncommon Services
-## SMB
-# netsh adv f a r n=SMB-Client dir=out act=allow prof=any prot=tcp remoteport=445
-# netsh adv f a r n=SMB-Server dir=in act=allow prof=any prot=tcp localport=445
-
-## DHCP 
-# netsh adv f a r n=DHCP-Client dir=out act=allow prof=any prot=udp remoteport=67,68
-# netsh adv f a r n=DHCP-Server dir=in act=allow prof=any prot=udp localport=67,68
-
-## S(FTP)
-# netsh adv f a r n=FTP-Client dir=out act=allow prof=any prot=tcp remoteport=20,21
-# netsh adv f a r n=SFTP-Client dir=out act=allow prof=any prot=tcp remoteport=22
-
-# netsh adv f a r n=FTP-Server dir=in act=allow prof=any prot=tcp localport=20,21
-# netsh adv f a r n=SFTP-Server dir=in act=allow prof=any prot=tcp localport=22
 
 ## SMTP(S)
 # netsh adv f a r n=SMTP-Client dir=out act=allow prof=any prot=tcp remoteport=25
@@ -93,6 +67,43 @@ if ($DC) {
 # netsh adv f a r n=POP3-Server dir=in act=allow prof=any prot=tcp localport=110
 # netsh adv f a r n=POP3S-Server dir=in act=allow prof=any prot=tcp localport=995
 
+# Remoting Protocols
+
+## RDP
+# netsh adv f a r n=RDP-TCP-Client dir=out act=allow prof=any prot=tcp remoteport=3389 
+# netsh adv f a r n=RDP-UDP-Client dir=out act=allow prof=any prot=udp remoteport=3389 
+
+# netsh adv f a r n=RDP-TCP-Server dir=in act=allow prof=any prot=tcp localport=3389 
+# netsh adv f a r n=RDP-UDP-Server dir=in act=allow prof=any prot=udp localport=3389 
+
+## WinRM
+# netsh adv f a r n=WinRM-Client dir=out act=allow prof=any prot=tcp remoteport=5985,5986
+# netsh adv f a r n=WinRM-Server dir=in act=allow prof=any prot=tcp localport=5985,5986
+
+## SSH 
+# netsh adv f a r n=SSH-Client dir=out act=allow prof=any prot=tcp remoteport=22
+# netsh adv f a r n=SSH-Server dir=in act=allow prof=any prot=tcp localport=22
+
+# Uncommon Services
+## LDAP
+# netsh adv f a r n=LDAP-Client dir=out act=allow prof=any prot=tcp remoteport=389
+# netsh adv f a r n=LDAP-Server dir=in act=allow prof=any prot=tcp localport=389
+
+## SMB
+# netsh adv f a r n=SMB-Client dir=out act=allow prof=any prot=tcp remoteport=445
+# netsh adv f a r n=SMB-Server dir=in act=allow prof=any prot=tcp localport=445
+
+## DHCP 
+# netsh adv f a r n=DHCP-Client dir=out act=allow prof=any prot=udp remoteport=67,68
+# netsh adv f a r n=DHCP-Server dir=in act=allow prof=any prot=udp localport=67,68
+
+## S(FTP)
+# netsh adv f a r n=FTP-Client dir=out act=allow prof=any prot=tcp remoteport=20,21
+# netsh adv f a r n=SFTP-Client dir=out act=allow prof=any prot=tcp remoteport=22
+
+# netsh adv f a r n=FTP-Server dir=in act=allow prof=any prot=tcp localport=20,21
+# netsh adv f a r n=SFTP-Server dir=in act=allow prof=any prot=tcp localport=22
+
 ## OpenVPN
 # netsh adv f a r n=OpenVPN-Client-UDP dir=out act=allow prof=any prot=udp remoteport=1194
 # netsh adv f a r n=OpenVPN-Client-TCP dir=out act=allow prof=any prot=tcp remoteport=443
@@ -100,18 +111,57 @@ if ($DC) {
 # netsh adv f a r n=OpenVPN-Server-UDP dir=in act=allow prof=any prot=udp localport=1194
 # netsh adv f a r n=OpenVPN-Server-TCP dir=in act=allow prof=any prot=tcp localport=443
 
-# Hyper-V VM Console
+## Hyper-V VM Console
 # netsh adv f a r n=Hyper-V-Client dir=out act=allow prof=any prot=tcp remoteport=2179
 # netsh adv f a r n=Hyper-V-Server dir=in act=allow prof=any prot=tcp localport=2179
 
-## LDAP
-# netsh adv f a r n=LDAP-Client dir=out act=allow prof=any prot=tcp remoteport=389
-# netsh adv f a r n=LDAP-Server dir=in act=allow prof=any prot=tcp localport=389
+# Logging Protocols
+# Wazuh 
+netsh adv f a r n=Wazuh-Client dir=out act=allow prof=any prot=tcp remoteport=1514
+# TODO: add fw rule for agent enrollment service (TCP 1515)
 
-# Turn on firewall and default block - might have to set to allowoutbound
+# Test to see if we need this for client to operate
+netsh adv f a r n=Wazuh-Server dir=in act=allow prof=any prot=tcp localport=1514
+
+:: Pandora 
+netsh adv f a r n=Pandora-Client dir=out act=allow prof=any prot=tcp remoteport=41121
+
+netsh adv f a r n=Pandora-Server dir=in act=allow prof=any prot=tcp localport=41121
+
+:: Syslog
+netsh adv f a r n=Syslog-Client dir=out act=allow prof=any prot=udp remoteport=514
+
+netsh adv f a r n=Syslog-Server dir=in act=allow prof=any prot=udp localport=514
+
+:: Turn on firewall and default block
+netsh advfirewall set allprofiles state on
+netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound
+
+:: Lockout prevention
+timeout 5
+netsh advfirewall set allprofiles state off
+
+# Delete all rules
+netsh advfirewall set allprofiles state off
+netsh advfirewall set allprofiles firewallpolicy allowinbound,allowoutbound
+netsh advfirewall firewall delete rule name=all
+
+# Configure logging
+netsh advfirewall set allprofiles logging filename C:\Windows\fw.log
+netsh advfirewall set allprofiles logging maxfilesize 32676
+netsh advfirewall set allprofiles logging droppedconnections enable
+netsh advfirewall set allprofiles logging allowedconnections enable
+
+# Turn on firewall and default block
 netsh advfirewall set allprofiles state on
 netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound
 
 # Lockout prevention
 timeout 60
 netsh advfirewall set allprofiles state off
+
+# TODO: logic to add sockets to firewall
+
+# TODO: logic to add all fw rules to group for WFC
+
+# TODO: come up with a way to set fw rules for windows services that can be detected on the system
