@@ -1,0 +1,9 @@
+Reference list of commands because I hate typing
+
+AD dsquery account changing
+
+Backups
+
+Recon of listening and active connections:
+
+while ($true){Get-NetTCPConnection -State Listen,Established -ErrorAction "SilentlyContinue" | Sort-Object state,localport | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,@{'Name'='CommandLine';'Expression'={(Get-CimInstance -Class Win32_Process -Filter "ProcessId = $($_.OwningProcess)").CommandLine}} | Format-Table -AutoSize; sleep 10; clear}
