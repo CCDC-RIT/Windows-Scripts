@@ -198,7 +198,10 @@ Function Exporting-Sec-Policy{
 }
 
 Function Current-Audit-Policy{
-    auditpol /get /category:*
+    # Specify the path where you want to save the audit policy export
+    $exportFilePath = "C:\path\to\audit_policy_export.txt"
+    # Use auditpol to get the current audit policy settings and export them to a text file
+    auditpol /get /category:* | Out-File -FilePath $exportFilePath
 }
 
 Function Programs-Registry{
@@ -278,3 +281,55 @@ Function Ripper{
         Write-Host "No potentially suspicious services detected."
     }
 }
+#only if server 
+Function Windows-Features{
+    $featureList = Get-WindowsFeature | Where-Object Installed
+    Write-Host "Windows Features"
+    Write-Host "$(featureList)"
+}
+
+Function Uninstall-Keys{
+    $productNames = @("*google*")
+    $UninstallKeys = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+                        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall',
+                        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
+                        )
+    $results = foreach ($key in (Get-ChildItem $UninstallKeys) ) {
+        foreach ($product in $productNames) {
+            if ($key.GetValue("DisplayName") -like "$product") {
+                [pscustomobject]@{
+                    KeyName = $key.Name.split('\')[-1];
+                    DisplayName = $key.GetValue("DisplayName");
+                    UninstallString = $key.GetValue("UninstallString");
+                    Publisher = $key.GetValue("Publisher");
+                }
+            }
+        }
+    }
+    $results
+}
+
+# Get a list of all services
+$services = Get-Service
+
+# Iterate through each service and retrieve command line arguments
+foreach ($service in $services) {
+    $serviceName = $service.DisplayName
+    $serviceStatus = $service.Status
+    $serviceCommand = $null
+
+    try {
+        # Access the service's executable path which typically contains command line arguments
+        $serviceCommand = (Get-CimInstance Win32_Service | Where-Object { $_.Name -eq $serviceName }).PathName
+    }
+    catch {
+        $serviceCommand = "Error: Unable to retrieve command line arguments"
+    }
+
+    # Output service information
+    Write-Host "Service Name: $serviceName"
+    Write-Host "Service Status: $serviceStatus"
+    Write-Host "Command Line Arguments: $serviceCommand"
+    Write-Host "-----------------------------------"
+}
+
