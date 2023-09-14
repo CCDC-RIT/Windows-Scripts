@@ -211,3 +211,70 @@ Function Unsigned-Files{
     sigcheck64 -accepteula -u -e c:\windows\system32
     cd ../../../scripts
 }
+
+Function Ripper{
+    # Function to check if the service's binary path is suspicious
+    function IsSuspiciousPath($path) {
+        return ($path -like "C:\Users\*")
+    }
+
+    # Function to check if the service's binary is unsigned
+    function IsUnsigned($path) {
+        try {
+            $Signatures = Get-AuthenticodeSignature -FilePath $path
+            return ($Signatures.Status -ne "Valid")
+        }
+        catch {
+            return $true
+        }
+    }
+
+    # Function to check if the service has a suspicious file extension
+    function HasSuspiciousExtension($path) {
+        $suspiciousExtensions = @('.vbs', '.js', '.bat', '.cmd', '.scr')
+        $extension = [IO.Path]::GetExtension($path)
+        return ($suspiciousExtensions -contains $extension)
+    }
+
+    $AllServices = Get-WmiObject -Class Win32_Service
+    # Create an empty array to store detected suspicious services
+    $DetectedServices = New-Object System.Collections.ArrayList
+    foreach ($Service in $AllServices){
+        $BinaryPathName = $Service.PathName.Trim('"')
+        # Check for suspicious characteristics
+        $PathSuspicious = IsSuspiciousPath($BinaryPathName)
+        $LocalSystemAccount = ($Service.StartName -eq "LocalSystem")
+        $NoDescription = ([string]::IsNullOrEmpty($Service.Description))
+        $Unsigned = IsUnsigned($BinaryPathName)
+        $SuspiciousExtension = HasSuspiciousExtension($BinaryPathName)
+        if ($PathSuspicious -or $LocalSystemAccount -or $NoDescription -or $Unsigned -or $SuspiciousExtension){
+            $DetectedServices.Add($Service) | Out-Null
+        }
+    }
+    if ($DetectedServices.Count -gt 0) {
+        Write-Host "Potentially Suspicious Services Detected"
+        Write-Host "----------------------------------------"
+        foreach ($Service in $DetectedServices) {
+            Write-Host "Name: $($Service.Name) - Display Name: $($Service.DisplayName) - Status: $($Service.State) - StartName: $($Service.StartName) - Description: $($Service.Description) - Binary Path: $($Service.PathName.Trim('"'))"
+            # Output verbose information about each suspicious characteristic
+            if ($PathSuspicious) {
+                Write-Host "`t- Running from a potentially suspicious path"
+            }
+            if ($LocalSystemAccount) {
+                Write-Host "`t- Running with a LocalSystem account"
+            }
+            if ($NoDescription) {
+                Write-Host "`t- No description provided"
+            }
+            if ($Unsigned) {
+                Write-Host "`t- Unsigned executable"
+            }
+            if ($SuspiciousExtension) {
+                Write-Host "`t- Suspicious file extension"
+            }
+            Write-Host ""
+        }
+    } else {
+        Write-Host "No potentially suspicious services detected."
+    }
+}
