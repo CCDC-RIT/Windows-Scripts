@@ -2,7 +2,7 @@ $VerbosePreference = "SilentlyContinue"
 
 #split into different files
 
-Function Show-Firewall{
+Function Show-Firewall{#good
     function Get-FirewallProfiles {
         $profiles = Get-NetFirewallProfile | Select-Object -Property Name, Enabled
         return $profiles
@@ -32,25 +32,25 @@ Function Show-Firewall{
     }
 }
 
-Function Process-Audit{
+Function Process-Audit{#good
     $processList = Get-Process -IncludeUserName
     Write-Host "Process List with Usernames: "
     Write-Host "$($processList)"
 }
 
-Function Hidden-Services{
+Function Hidden-Services{#not good
     $hidden = Compare-Object -ReferenceObject (Get-Service | Select-Object -ExpandProperty Name | % { $_ -replace ""_[0-9a-f]{2,8}$\"" }) -DifferenceObject (gci -path hklm:\system\currentcontrolset\services | % { $_.Name -Replace ""HKEY_LOCAL_MACHINE\\\\\"", ""HKLM:\\\"" } | ? { Get-ItemProperty -Path ""$_\"" -name objectname -erroraction 'ignore' } | % { $_.substring(40) }) -PassThru | ?{$_.sideIndicator -eq ""=>\""}
     Write-Host "Hidden Service List: "
     Write-Host "$($hidden)"
 }
 
-Function Scheduled-Tasks{
+Function Scheduled-Tasks{#good
     $scheduled = Get-ScheduledTask
     Write-Host "Scheduled Task List: "
     Write-Host "$($scheduled)"
 }
 
-Function StartUp-Programs{
+Function StartUp-Programs{ #good
     $startup = Get-CimInstance -ClassName Win32_StartupCommand | Select-Object -Property Command, Description, User, Location
     Write-Host "$($startup)"
     Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
@@ -61,13 +61,13 @@ Function StartUp-Programs{
     Write-Host "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
 }
 
-Function StratUp-Scripts{
+Function StratUp-Scripts{#good cant find reg keys 
     Write-Host "$(reg query "HKLM\Software\Policies\Microsoft\Windows\System\Scripts" /s)"
     Write-Host "$(reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts" /s)"
     Write-Host "$(reg query "HKCU\Software\Policies\Microsoft\Windows\System\Scripts" /s)"
 }
 
-Function Boot-Keys{
+Function Boot-Keys{ #good
     Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot" /v "AlternateShell")"
     Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "BootExecute")"
     Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
@@ -76,7 +76,7 @@ Function Boot-Keys{
     Write-Host "$(reg query "HKCU\SOFTWARE\Wow6432Node\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
 }
 
-Function Startup-Services{
+Function Startup-Services{ #good can't find reg key
     Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServices")"
     Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
     Write-Host "$(reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices")"
@@ -87,7 +87,7 @@ Function Startup-Services{
     Write-Host "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
 }
 
-Function Run-Keys{
+Function Run-Keys{ #good - could not find smoe of the regs keys 
     Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run")"
     Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce")"
     Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx")"
