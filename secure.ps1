@@ -27,7 +27,11 @@ reg add "HKLM\Software\policies\Microsoft\Windows NT\DNSClient" /v EnableMultica
 # Countering poisoning via LLMNR/NBT-NS/MDNS - Disabling NBT-NS via registry for all interfaces (might break something)
 $regkey = "HKLM:SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\"
 Get-ChildItem $regkey | ForEach-Object { Set-ItemProperty -Path "$regkey\$($_.pschildname)" -Name NetbiosOptions -Value 2 -Verbose }
-Write-Host "[INFO] LLMNR and NBT-NS disabled"
+# Countering poisoning via LLMNR/NBT-NS/MDNS - Disabling mDNS
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" /v EnableMDNS /t REG_DWORD /d 0 /f | Out-Null
+# Disabling WPAD
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\WinHTTPAutoProxySvc" /v Start /t REG_DWORD /d 4 /f | Out-Null
+Write-Host "[INFO] LLMNR, NBT-NS, mDNS, WPAD disabled"
 
 # User Account Control (UAC)
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v FilterAdministratorToken /t REG_DWORD /d 1 /f | Out-Null
@@ -54,6 +58,8 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LMCompatibilityLevel /t R
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v SubmitControl /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v disabledomaincreds /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v everyoneincludesanonymous /t REG_DWORD /d 0 /f | Out-Null
+# Enabling Credential Guard depends on if the VM can support it
+# reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LsaCfgFlags /t REG_DWORD /d 2 /f | Out-Null
 ## Audit mode
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LSASS.exe" /v AuditLevel /t REG_DWORD /d 8 /f | Out-Null
 ## Disable plain text passwords stored in LSASS
@@ -201,6 +207,11 @@ bcdedit.exe /set "{current}" nx AlwaysOn
 reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoStartBanner /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\Triple DES 168" /v "Enabled" /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\control\CrashControl" /v "CrashDumpEnabled" /t REG_DWORD /d 0 /f | Out-Null
+# no alwaysinstallelevated
+reg add "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" /v AlwaysInstallElevated /t REG_DWORD /d 0 /f | Out-Null
+reg add "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer" /v AlwaysInstallElevated /t REG_DWORD /d 0 /f | Out-Null
+Write-Host "[INFO] Windows Installer set to not always install w/elevated privileges"
+
 # Stopping psexec with the power of svchost
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\PSEXESVC.exe" /v Debugger /t REG_SZ /d "svchost.exe" /f | Out-Null
 
@@ -251,6 +262,8 @@ reg add "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows" 
 
 # Caching logons
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v CachedLogonsCount /t REG_SZ /d 0 /f | Out-Null
+# Clear cached credentials [TEST]
+cmdkey /list | ForEach-Object{if($_ -like "*Target:*" -and $_ -like "*microsoft*"){cmdkey /del:($_ -replace " ","" -replace "Target:","")}}
 
 # Remote Registry Path Denial
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurePipeServers\winreg\AllowedExactPaths" /v Machine /t REG_MULTI_SZ /f | Out-Null
@@ -387,6 +400,10 @@ Write-Host "[INFO] UPnP disabled"
 # ----------- Constrained Language Mode ------------
 [System.Environment]::SetEnvironmentVariable('__PSLockDownPolicy','4','Machine')
 # TODO: Get rid of PowerShell v2 because you can bypass this by downgrading
+# TODO: Implement logic to get rid of powershell v2 on windows 10 vs windows server
+# TODO: code to remove features we know shouldn't be there?
+# Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root
+# Uninstall-WindowsFeature -Name PowerShell-V2
 
 # Report errors (TODO: change file path)
 $Error | Out-File $env:USERPROFILE\Desktop\hard.txt -Append -Encoding utf8
