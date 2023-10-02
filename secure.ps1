@@ -10,20 +10,45 @@ if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
 
 # IIS detection
 $IIS = $false
-if (Get-Service -Name W3SVC) {
+if (Get-Service -Name W3SVC 2>$null) {
     $IIS = $true
 }
 
 # CA detection
 $CA = $false
-if (Get-Service -Name CertSvc) {
+if (Get-Service -Name CertSvc 2>$null) {
     $CA = $true
 }
+
+# Securing RDP
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v SecurityLayer /t REG_DWORD /d 2 /f | Out-Null
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f | Out-Null
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v DisableRestrictedAdmin /t REG_DWORD /d 0 /f | Out-Null
+Write-Host "[INFO] RDP hardening in place"
+
+# Disabling RDP (only if not needed)
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 1 /f
+Write-Host "[INFO] RDP disabled"
+
+# Disabling WinRM
+Disable-PSRemoting -Force
+Stop-Service WinRM -PassThruSet-Service WinRM -StartupType Disabled
+Remove-Item -Path WSMan:\Localhost\listener\listener* -Recurse
+Write-Host "[INFO] WinRM disabled and listeners removed"
+
+# Uninstalling SSH
+Remove-WindowsCapability -Online -Name "OpenSSH.Client~~~~0.0.1.0"
+Remove-WindowsCapability -Online -Name "OpenSSH.Server~~~~0.0.1.0"
+Write-Host "[INFO] SSH Client and Server removed"
 
 # ----------- General system security ------------
 # Countering poisoning via LLMNR/NBT-NS/MDNS - Turning off LLMNR
 reg add "HKLM\Software\policies\Microsoft\Windows NT\DNSClient" /f | Out-Null
 reg add "HKLM\Software\policies\Microsoft\Windows NT\DNSClient" /v EnableMulticast /t REG_DWORD /d 0 /f | Out-Null
+
+reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v NoNameReleaseOnDemand /t REG_DWORD /d 1 /f | Out-Null
+reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v NodeType /t REG_DWORD /d 2 /f | Out-Null
+
 # Countering poisoning via LLMNR/NBT-NS/MDNS - Disabling NBT-NS via registry for all interfaces (might break something)
 $regkey = "HKLM:SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\"
 Get-ChildItem $regkey | ForEach-Object { Set-ItemProperty -Path "$regkey\$($_.pschildname)" -Name NetbiosOptions -Value 2 -Verbose }
@@ -32,6 +57,9 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" /v EnableMD
 # Disabling WPAD
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\WinHTTPAutoProxySvc" /v Start /t REG_DWORD /d 4 /f | Out-Null
 Write-Host "[INFO] LLMNR, NBT-NS, mDNS, WPAD disabled"
+
+ipconfig /flushdns
+Write-Host "[SUCCESS] DNS Cache flushed"
 
 # User Account Control (UAC)
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v FilterAdministratorToken /t REG_DWORD /d 1 /f | Out-Null
@@ -49,7 +77,6 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v Loca
 Write-Host "[INFO] UAC set up"
 
 # LSASS Protections
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v restrictanonymous /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v restrictanonymoussam /t REG_DWORD /d 1 /f | Out-Null
@@ -58,15 +85,24 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LMCompatibilityLevel /t R
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v SubmitControl /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v disabledomaincreds /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v everyoneincludesanonymous /t REG_DWORD /d 0 /f | Out-Null
-# Enabling Credential Guard depends on if the VM can support it
+## Enabling Credential Guard depends on if the VM can support it
 # reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LsaCfgFlags /t REG_DWORD /d 2 /f | Out-Null
+## LSASS Protection Mode
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL /t REG_DWORD /d 1 /f | Out-Null
 ## Audit mode
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LSASS.exe" /v AuditLevel /t REG_DWORD /d 8 /f | Out-Null
 ## Disable plain text passwords stored in LSASS
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v UseLogonCredential /t REG_DWORD /d 0 /f | Out-Null
 Write-Host "[INFO] LSASS protections in place"
 
+# I hate print spooler
+net stop spooler | Out-Null
+sc.exe config spooler start=disabled | Out-Null
+Write-Host "[INFO] Print Spooler shut down and disabled"
+# CVE-2021-1678
+reg add "HKLM\System\CurrentControlSet\Control\Print" /v RpcAuthnLevelPrivacyEnabled /t REG_DWORD /d 1 /f | Out-Null
 # CVE-2021-1675 / CVE-2021-42278 (PrintNightmare)
+reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v CopyFilesPolicy /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v RegisterSpoolerRemoteRpcEndPoint /t REG_DWORD /d 2 /f | Out-Null
 reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /f | Out-Null
 Write-Host "[INFO] PrintNightmare mitigations in place"
@@ -81,6 +117,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "HideExclusionsFr
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "PUAProtection" /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "ServiceKeepAlive" /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\MpEngine" /v "MpCloudBlockLevel" /t REG_DWORD /d 1 /f | Out-Null
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\MpEngine" /v "MpEnablePus" /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v "DisableBehaviorMonitoring" /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v "DisableRealtimeMonitoring" /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v "DisableIOAVProtection" /t REG_DWORD /d 0 /f | Out-Null
@@ -92,6 +129,14 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" /v "SubmitSam
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" /v "DisableBlockAtFirstSeen" /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Advanced Threat Protection" /v "ForceDefenderPassiveMode" /t REG_DWORD /d 0 /f | Out-Null
 Write-Host "[INFO] Windows Defender options set" 
+
+## Exploit Guard Settings
+try {
+    Set-ProcessMitigation -PolicyFilePath conf\defender-exploit-guard-settings.xml
+    Write-Output "[INFO] Exploit Guard settings set"
+} catch {
+    Write-Host "[INFO] Old defender version detected, skipping Exploit Guard settings" 
+}
 
 ## ASR rules
 try {
@@ -150,8 +195,11 @@ ForEach ($ex_ip in (Get-MpPreference).ExclusionIpAddress) {
 }
 Write-Host "[INFO] Defender exclusions removed"
 
+# update defender sigs in case they got yeeted
+MpCmdRun.exe -SignatureUpdate
+
 # doesn't work, access denied
-# reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Features" /v TamperProtection /t REG_DWORD /d 5 /f | Out-Null
+reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Features" /v TamperProtection /t REG_DWORD /d 5 /f | Out-Null
 Write-Host "[INFO] Windows Defender fully configured"
 
 # Misc settings
@@ -193,6 +241,16 @@ reg add "HKCU\Control Panel\Desktop" /v PreferredUILanguages /t REG_SZ /d en-US 
 reg add "HKLM\Software\Policies\Microsoft\MUI\Settings" /v PreferredUILanguages /t REG_SZ /d en-US /f | Out-Null
 Write-Host "[INFO] Font, Themes, and Languages set to default" 
 
+# funny file explorer keys
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoFolderOptions" /t REG_DWORD /d 0 /f | Out-Null
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Folder\Hidden\NOHIDDEN" /v "CheckedValue" /t REG_DWORD /d 2 /f | Out-Null
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Folder\Hidden\NOHIDDEN" /v "DefaultValue" /t REG_DWORD /d 2 /f | Out-Null
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Folder\Hidden\SHOWALL" /v "CheckedValue" /t REG_DWORD /d 1 /f | Out-Null
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Folder\Hidden\SHOWALL" /v "DefaultValue" /t REG_DWORD /d 2 /f | Out-Null
+reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Hidden" /t REG_DWORD /d 1 /f | Out-Null
+reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowSuperHidden" /t REG_DWORD /d 1 /f | Out-Null
+reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "HideFileExt" /t REG_DWORD /d 0 /f | Out-Null
+
 # resetting sdmanager sddl
 sc.exe sdset scmanager "D:(A;;CC;;;AU)(A;;CCLCRPRC;;;IU)(A;;CCLCRPRC;;;SU)(A;;CCLCRPWPRC;;;SY)(A;;KA;;;BA)(A;;CC;;;AC)S:(AU;FA;KA;;;WD)(AU;OIIOFA;GA;;;WD)" | Out-Null
 Write-Host "[INFO] scmanager SDDL reset"
@@ -221,6 +279,16 @@ reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hi
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v ShowSuperHidden /t REG_DWORD /d 1 /f | Out-Null
 # Disable offline files
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\CSC" /v Start /t REG_DWORD /d 4 /f | Out-Null
+
+# ICMP Redirect
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\tcpip\Parameters" /v EnableICMPRedirect /t REG_DWORD /d 0 /f | Out-Null
+
+# SYN attack protection level
+reg add "HKLM\System\CurrentControlSet\Services\Tcpip\Parameters" /v SynAttackProtect /t REG_DWORD /d 1 /f | Out-Null
+
+# Source Routing
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\tcpip\Parameters" /v DisableIPSourceRouting /t REG_DWORD /d 2 /f | Out-Null
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\tcpip6\Parameters" /v DisableIPSourceRouting /t REG_DWORD /d 2 /f | Out-Null
 
 # Disable ipv6
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\tcpip6\Parameters" /v DisabledComponents /t REG_DWORD /d 255 /f | Out-null
@@ -285,9 +353,13 @@ Write-Host "[INFO] Misc settings set"
 
 # ----------- Service security ------------
 # SMB protections
-## Disable SMBv1 (server and client)
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Services\LanmanServer\Parameters" /v SMB1 /t REG_DWORD /d 0 /f | Out-Null
+## Disable SMB1 client driver
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\MrxSmb10" /v Start /t REG_DWORD /d 4 /f | Out-Null
+## Update SMB client dependencies (removing SMB1)
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation" /v DependOnService /t REG_MULTI_SZ /d "Bowser","MRxSMB20","NSI"
+## Disabling SMB1 server-side processing
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Services\LanmanServer\Parameters" /v SMB1 /t REG_DWORD /d 0 /f | Out-Null
+## Yeeting SMB1 as a feature
 Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol
 ## Strengthen SMB
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v EnablePlainTextPassword /t REG_DWORD /d 0 /f | Out-Null
@@ -311,13 +383,9 @@ Set-SmbServerConfiguration -AuditSmb1Access $true | Out-Null
 
 Write-Host "[INFO] SMB hardening in place"
 
-# I hate print spooler
-net stop spooler | Out-Null
-sc.exe config spooler start=disabled | Out-Null
-Write-Host "[INFO] Print Spooler shut down and disabled"
-
 # Limiting BITS transfer
-reg add "HKLM\Software\Policies\Microsoft\Windows\BITS" /v EnableBITSMaxBandwidth /t REG_DWORD /d 0 /f | Out-Null
+reg add "HKLM\Software\Policies\Microsoft\Windows\BITS" /v EnableBITSMaxBandwidth /t REG_DWORD /d 1 /f | Out-Null
+reg add "HKLM\Software\Policies\Microsoft\Windows\BITS" /v MaxTransferRateOffSchedule /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\Software\Policies\Microsoft\Windows\BITS" /v MaxDownloadTime /t REG_DWORD /d 1 /f | Out-Null
 Write-Host "[INFO] BITS transfers limited" 
 
@@ -382,29 +450,18 @@ if ($CA) {
 
 }
 
-# Securing RDP
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v SecurityLayer /t REG_DWORD /d 2 /f | Out-Null
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f | Out-Null
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v DisableRestrictedAdmin /t REG_DWORD /d 0 /f | Out-Null
-Write-Host "[INFO] RDP hardening in place"
-
-# Disabling RDP (only if not needed)
-# reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 1 /f
-# reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v fLogonDisabled /t REG_DWORD /d 1 /f
-# Write-Host "[INFO] RDP disabled"
-
 # UPnP
 reg add "HKLM\SOFTWARE\Microsoft\DirectPlayNATHelp\DPNHUPnP" /v UPnPMode /t REG_DWORD /d 2 /f | Out-Null
 Write-Host "[INFO] UPnP disabled"
 
-# ----------- Constrained Language Mode ------------
-[System.Environment]::SetEnvironmentVariable('__PSLockDownPolicy','4','Machine')
-# TODO: Get rid of PowerShell v2 because you can bypass this by downgrading
-# TODO: Implement logic to get rid of powershell v2 on windows 10 vs windows server
-# TODO: code to remove features we know shouldn't be there?
-# Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root
-# Uninstall-WindowsFeature -Name PowerShell-V2
+# Restrict Internet Communication of several Windows features [TEST]
+# reg add "HKLM\SOFTWARE\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d 1 /f | Out-Null
 
+# Yeet Powershell v2
+Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root
+
+# ----------- Constrained Language Mode ------------
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "__PSLockDownPolicy" /t REG_SZ /d 4 /f
 # Report errors (TODO: change file path)
 $Error | Out-File $env:USERPROFILE\Desktop\hard.txt -Append -Encoding utf8
 
