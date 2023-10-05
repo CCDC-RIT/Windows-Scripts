@@ -111,6 +111,37 @@ Write-Host "[INFO] PrintNightmare mitigations in place"
 icacls $env:windir\system32\config\*.* /inheritance:e
 Write-Host "[INFO] HiveNightmare mitigations in place"
 
+# Reset Group Policies
+Copy-Item C:\Windows\System32\GroupPolicy* C:\gp -Recurse | Out-Null
+Remove-Item C:\Windows\System32\GroupPolicy* -Recurse -Force | Out-Null
+gpupdate /force
+Write-Output "[INFO] Local Group Policy reset" 
+
+# reset domain gpos
+if ($DC) { 
+    $DomainGPO = Get-GPO -All
+    foreach ($GPO in $DomainGPO) {
+        # Prompt user to decide which GPOs to disable
+        $Ans = Read-Host "Reset $($GPO.DisplayName) (y/N)?"
+        if ($Ans.ToLower() -eq "y") {
+            $GPO.gpostatus = "AllSettingsDisabled"
+        }
+    }
+
+    # apply dc security template
+
+    
+    # import GPO (DC)
+    
+    gpupdate /force
+} else {
+    # apply the security template automatically because certain services (like RDP and WinRM) won't be turned off, so you won't lock yourself out
+secedit /configure /db %windir%\security\local.sdb /cfg conf/secpol.inf
+gpupdate /force
+# import GPO (local)
+
+}
+
 # ----------- Defender settings ------------
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableAntiSpyware" /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "HideExclusionsFromLocalAdmins" /t REG_DWORD /d 0 /f | Out-Null

@@ -471,6 +471,41 @@ if (Get-CimInstance -Class Win32_OperatingSystem | Select-Object -ExpandProperty
 # Yeet Powershell v2
 Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root
 
+# Reset Group Policies
+Copy-Item C:\Windows\System32\GroupPolicy* C:\gp -Recurse | Out-Null
+Remove-Item C:\Windows\System32\GroupPolicy* -Recurse -Force | Out-Null
+gpupdate /force
+Write-Output "[INFO] Local Group Policy reset" 
+
+# reset domain gpos
+if ($DC) { 
+    $DomainGPO = Get-GPO -All
+    foreach ($GPO in $DomainGPO) {
+        # Prompt user to decide which GPOs to disable
+        $Ans = Read-Host "Reset $($GPO.DisplayName) (y/N)?"
+        if ($Ans.ToLower() -eq "y") {
+            $GPO.gpostatus = "AllSettingsDisabled"
+        }
+    }
+
+    # apply dc security template
+    secedit /configure /db %windir%\security\local.sdb /cfg conf/wc-dc-v1.inf
+
+    # import GPO (DC)
+    Import-GPO 
+
+    gpupdate /force
+} else {
+    # apply the security template automatically because certain services (like RDP and WinRM) won't be turned off, so you won't lock yourself out
+    secedit /configure /db %windir%\security\local.sdb /cfg conf/secpol.inf
+    # import GPO (local)
+    
+    gpupdate /force
+
+## convert GPO to policyrules file for easier storage? 
+
+}
+
 # ----------- Constrained Language Mode ------------
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "__PSLockDownPolicy" /t REG_SZ /d 4 /f
 # TODO: code to remove features we know shouldn't be there?
@@ -485,16 +520,13 @@ SOFTWARE\Classes\mscfile\shell\runasuser	SuppressionPolicy	REG_DWORD	4096
 # Report errors (TODO: change file path)
 $Error | Out-File $env:USERPROFILE\Desktop\hard.txt -Append -Encoding utf8
 
-# TODO: User Auditing
-
 # :: Import secpol file here
 # :: One secpol file for "domain policy" - not editing default domain policy but creating gpo to apply across domain 
 #     :: This file will also serve as local secpol file
 #     :: Will contain account and local policies
 # set /p choice="Is this a domain controller (Y or N)? "
 # if %choice%=="N" (
-#     secedit /configure /db %windir%\security\local.sdb /cfg conf/secpol.inf
-#     gpupdate /force
+#    
 # ) else (
 #     echo:
 #     echo Skipping import of secpol file...
@@ -503,25 +535,7 @@ $Error | Out-File $env:USERPROFILE\Desktop\hard.txt -Append -Encoding utf8
 #     timeout 5
 # )
 
-######### Reset Policies #########
-# Copy-Item C:\Windows\System32\GroupPolicy* C:\gp -Recurse | Out-Null
-# Remove-Item C:\Windows\System32\GroupPolicy* -Recurse -Force | Out-Null
-# gpupdate /force
-# Write-Output "$Env:ComputerName [INFO] Group Policy reset" 
 
-# # Create report
-# Get-GPOReport -All -ReportType Html -Path "C:\All-GPOs.html"
-
-# reset domain gpos
-# # Prompt user to decide which GPOs to disalbe
-# $DomainGPO = Get-GPO -All
-# foreach ($GPO in $DomainGPO) {
-#     $Ans = Read-Host "Reset $($GPO.DisplayName) (y/N)?"
-#     if ($Ans.ToLower() -eq "y") {
-#         $GPO.gpostatus = "AllSettingsDisabled"
-#     }
-# }
-# gpupdate.exe /force
 
 # :: Stopping "easy wins" for red team - following https://orange-cyberdefense.github.io/ocd-mindmaps/img/pentest_ad_dark_2022_11.svg
 
