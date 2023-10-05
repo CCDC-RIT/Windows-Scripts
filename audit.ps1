@@ -197,11 +197,9 @@ Function Exporting-Sec-Policy{
     SecEdit /export /cfg c:/old_secpol.cfg
 }
 
-Function Current-Audit-Policy{
-    # Specify the path where you want to save the audit policy export
-    $exportFilePath = "C:\path\to\audit_policy_export.txt"
-    # Use auditpol to get the current audit policy settings and export them to a text file
-    auditpol /get /category:* | Out-File -FilePath $exportFilePath
+Function Current-local-gpo{
+    # Use auditpol to get the current local gpo
+    gpresult /h LocalGrpPolReport.html
 }
 
 Function Programs-Registry{
@@ -333,3 +331,187 @@ foreach ($service in $services) {
     Write-Host "-----------------------------------"
 }
 
+Function UnquotedServicePathCheck {
+    Write-Host "Fetching the list of services, this may take a while...";
+    $services = Get-WmiObject -Class Win32_Service | Where-Object { $_.PathName -inotmatch "`"" -and $_.PathName -inotmatch ":\\Windows\\" -and ($_.StartMode -eq "Auto" -or $_.StartMode -eq "Manual") -and ($_.State -eq "Running" -or $_.State -eq "Stopped") };
+    if ($($services | Measure-Object).Count -lt 1) {
+    Write-Host "No unquoted service paths were found";
+    }
+    else {
+        $services | ForEach-Object {
+            Write-Host "Unquoted Service Path found!" -ForegroundColor red
+            Write-Host Name: $_.Name
+            Write-Host PathName: $_.PathName
+            Write-Host StartName: $_.StartName 
+            Write-Host StartMode: $_.StartMode
+            Write-Host Running: $_.State
+        } 
+    }
+}
+
+Function Recently-Run-Commands{
+    Get-ChildItem HKU:\ -ErrorAction SilentlyContinue | ForEach-Object {
+        # get the SID from output
+        $HKUSID = $_.Name.Replace('HKEY_USERS\', "")
+        $property = (Get-Item "HKU:\$_\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" -ErrorAction SilentlyContinue).Property
+        $HKUSID | ForEach-Object {
+            if (Test-Path "HKU:\$_\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU") {
+                Write-Host -ForegroundColor Blue "=========||HKU Recently Run Commands"
+                foreach ($p in $property) {
+                    Write-Host "$((Get-Item "HKU:\$_\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU"-ErrorAction SilentlyContinue).getValue($p))" 
+                }
+            }
+        }
+    }
+}
+
+function Get-ConsoleHostHistory {
+    $historyFilePath = "$env:APPDATA\Microsoft\Windows\PowerShell\consolehost-history.txt"
+    if (Test-Path $historyFilePath) {
+        try {
+            $historyContent = Get-Content -Path $historyFilePath
+            Write-Host "Console Host Command History:"
+            Write-Host "-----------------------------"
+            foreach ($command in $historyContent) {
+                Write-Host $command
+            }
+        }
+        catch {
+            Write-Error "Error occurred while reading the console host history: $_"
+        }
+    }
+    else {
+        Write-Warning "Console host history file not found."
+    }
+}
+
+function Get-Installed{
+    Get-CimInstance -class win32_Product | Select-Object Name, Version | 
+    ForEach-Object {
+        Write-Host $("{0} : {1}" -f $_.Name, $_.Version)  
+    }
+}
+
+Function Start-ACLCheck {
+    param(
+        $Target, $ServiceName)
+    # Gather ACL of object
+    if ($null -ne $target) {
+        try {
+            $ACLObject = Get-Acl $target -ErrorAction SilentlyContinue
+        }
+        catch { $null }
+        
+        # If Found, Evaluate Permissions
+        if ($ACLObject) { 
+            $Identity = @()
+            $Identity += "$env:COMPUTERNAME\$env:USERNAME"
+            if ($ACLObject.Owner -like $Identity ) { Write-Host "$Identity has ownership of $Target" -ForegroundColor Red }
+            whoami.exe /groups /fo csv | ConvertFrom-Csv | Select-Object -ExpandProperty 'group name' | ForEach-Object { $Identity += $_ }
+            $IdentityFound = $false
+            foreach ($i in $Identity) {
+                $permission = $ACLObject.Access | Where-Object { $_.IdentityReference -like $i }
+                $UserPermission = ""
+                switch -WildCard ($Permission.FileSystemRights) {
+                    "FullControl" { $userPermission = "FullControl"; $IdentityFound = $true }
+                    "Write*" { $userPermission = "Write"; $IdentityFound = $true }
+                    "Modify" { $userPermission = "Modify"; $IdentityFound = $true }
+                }
+                Switch ($permission.RegistryRights) {
+                    "FullControl" { $userPermission = "FullControl"; $IdentityFound = $true }
+                }
+                if ($UserPermission) {
+                    if ($ServiceName) { Write-Host "$ServiceName found with permissions issue:" -ForegroundColor Red }
+                    Write-Host -ForegroundColor red  "Identity $($permission.IdentityReference) has '$userPermission' perms for $Target"
+                }
+            }    
+            # Identity Found Check - If False, loop through and stop at root of drive
+            if ($IdentityFound -eq $false) {
+                if ($Target.Length -gt 3) {
+                    $Target = Split-Path $Target
+                    Start-ACLCheck $Target -ServiceName $ServiceName
+                }
+            }
+        }
+        else {
+        # If not found, split path one level and Check again
+            $Target = Split-Path $Target
+            Start-ACLCheck $Target $ServiceName
+        }
+    }
+}
+
+Function Get-Process-ACL{
+    Get-Process | Select-Object Path -Unique | ForEach-Object { Start-ACLCheck -Target $_.path }
+}
+
+Function Get-Registry-ACL{
+    Get-ChildItem 'HKLM:\System\CurrentControlSet\services\' | ForEach-Object {
+        $target = $_.Name.Replace("HKEY_LOCAL_MACHINE", "hklm:")
+        Start-aclcheck -Target $target
+    }
+}
+
+Function Get-ScheduledTask-ACL{
+    if (Get-ChildItem "c:\windows\system32\tasks" -ErrorAction SilentlyContinue) {
+        Write-Host "Access confirmed, may need futher investigation"
+        Get-ChildItem "c:\windows\system32\tasks"
+    }
+    else {
+        Write-Host "No admin access to scheduled tasks folder."
+        Get-ScheduledTask | Where-Object { $_.TaskPath -notlike "\Microsoft*" } | ForEach-Object {
+            $Actions = $_.Actions.Execute
+            if ($Actions -ne $null) {
+                foreach ($a in $actions) {
+                    if ($a -like "%windir%*") { $a = $a.replace("%windir%", $Env:windir) }
+                    elseif ($a -like "%SystemRoot%*") { $a = $a.replace("%SystemRoot%", $Env:windir) }
+                    elseif ($a -like "%localappdata%*") { $a = $a.replace("%localappdata%", "$env:UserProfile\appdata\local") }
+                    elseif ($a -like "%appdata%*") { $a = $a.replace("%localappdata%", $env:Appdata) }
+                    $a = $a.Replace('"', '')
+                    Start-ACLCheck -Target $a
+                    Write-Host "`n"
+                    Write-Host "TaskName: $($_.TaskName)"
+                    Write-Host "-------------"
+                    [pscustomobject]@{
+                        LastResult = $(($_ | Get-ScheduledTaskInfo).LastTaskResult)
+                        NextRun    = $(($_ | Get-ScheduledTaskInfo).NextRunTime)
+                        Status     = $_.State
+                        Command    = $_.Actions.execute
+                        Arguments  = $_.Actions.Arguments 
+                    } | Write-Host
+                } 
+            }
+        }
+    }
+}
+
+Function Get-Startup-ACL{
+    @("C:\Documents and Settings\All Users\Start Menu\Programs\Startup",
+    "C:\Documents and Settings\$env:Username\Start Menu\Programs\Startup", 
+    "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup", 
+    "$env:Appdata\Microsoft\Windows\Start Menu\Programs\Startup") | ForEach-Object {
+        if (Test-Path $_) {
+            # CheckACL of each top folder then each sub folder/file
+            Start-ACLCheck $_
+            Get-ChildItem -Recurse -Force -Path $_ | ForEach-Object {
+                $SubItem = $_.FullName
+                if (Test-Path $SubItem) { 
+                    Start-ACLCheck -Target $SubItem
+                }
+            }
+        }
+    }
+    @("registry::HKLM\Software\Microsoft\Windows\CurrentVersion\Run",
+    "registry::HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce",
+    "registry::HKCU\Software\Microsoft\Windows\CurrentVersion\Run",
+    "registry::HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce") | ForEach-Object {
+    # CheckACL of each Property Value found
+        $ROPath = $_
+        (Get-Item $_) | ForEach-Object {
+            $ROProperty = $_.property
+            $ROProperty | ForEach-Object {
+                Start-ACLCheck ((Get-ItemProperty -Path $ROPath).$_ -split '(?<=\.exe\b)')[0].Trim('"')
+            }
+        }
+    }
+}
