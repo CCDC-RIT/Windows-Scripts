@@ -129,17 +129,20 @@ if ($DC) {
     }
 
     # apply dc security template
+    secedit /configure /db %windir%\security\local.sdb /cfg 'conf\wc-dc-secpol.inf'
 
-    
     # import GPO (DC)
-    
+    Import-GPO -BackupId "C697CBFC-C192-45CF-8873-6BD96F5A8AE1" -TargetName "secure-gpo" -path "conf" -CreateIfNeeded
+
     gpupdate /force
 } else {
-    # apply the security template automatically because certain services (like RDP and WinRM) won't be turned off, so you won't lock yourself out
-secedit /configure /db %windir%\security\local.sdb /cfg conf/secpol.inf
-gpupdate /force
-# import GPO (local)
-
+    # apply the security template automatically
+    secedit /configure /db %windir%\security\local.sdb /cfg 'conf\wc-mc-secpol.inf'
+    
+    # import GPO (local)
+    ..\tools\LGPO.exe /g "conf\{4BB1406C-78CC-44D0-B229-A1B9F6753187}" 
+    
+    gpupdate /force
 }
 
 # ----------- Defender settings ------------
