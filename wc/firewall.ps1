@@ -40,8 +40,8 @@ if ($DC) {
     Write-Host "[INFO] Domain Controller firewall rules set" 
 } else {
     ## If not a DC it's probably domain-joined so add client rules
-    netsh adv f a r n=DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteport=88,135,389,445,636,3268
-    netsh adv f a r n=DC-UDP-Out dir=out act=allow prof=any prot=udp remoteport=88,123,135,389,445,636
+    # netsh adv f a r n=DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteport=88,135,389,445,636,3268
+    # netsh adv f a r n=DC-UDP-Out dir=out act=allow prof=any prot=udp remoteport=88,123,135,389,445,636
 }
 
 ## ICMP/Ping
@@ -52,8 +52,10 @@ if ($DC) {
 # netsh adv f a r n=CA-Server dir=in act=allow prof=any prot=tcp localport=135
 # netsh adv f a r n=CA-Client dir=out act=allow prof=any prot=tcp remoteport=135
 
-## HTTP(S) (open server for CA)
+## HTTP(S) (open server port for CA)
 # netsh adv f a r n=HTTP-Server dir=in act=allow prof=any prot=tcp localport=80,443
+
+# Needed for scoring
 netsh adv f a r n=HTTP-Client dir=out act=allow prof=any prot=tcp remoteport=80,443
 
 # Remoting Protocols
@@ -128,5 +130,3 @@ netsh advfirewall set allprofiles firewallpolicy blockinbound,allowoutbound
 # Lockout prevention
 timeout 60
 netsh advfirewall set allprofiles state off
-
-# TODO: come up with a way to set fw rules for windows services that can be detected on the system

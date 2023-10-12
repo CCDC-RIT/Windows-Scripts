@@ -42,8 +42,11 @@ function Get-Inventory {
     Get-DnsClientServerAddress -InterfaceIndex (Get-NetAdapter | Select-Object -expand ifindex) | Format-Table InterfaceAlias, ServerAddresses 
 
     # Network connections/listening ports
-    Write-Output "----------- Network Connections -----------"
-    Get-NetTCPConnection -State Listen,Established -ErrorAction "SilentlyContinue" | Sort-Object state,localport | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,@{'Name'='CommandLine';'Expression'={(Get-CimInstance -Class Win32_Process -Filter "ProcessId = $($_.OwningProcess)").CommandLine}} | Format-Table -AutoSize
+    Write-Output "----------- TCP Network Connections -----------"
+    Get-NetTCPConnection -State Listen,Established -ErrorAction "SilentlyContinue" | Sort-Object state,localport | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,OwningProcess,@{Name="Process";Expression={(Get-Process -Id $_.OwningProcess).ProcessName}},@{'Name'='CommandLine';'Expression'={(Get-CimInstance -Class Win32_Process -Filter "ProcessId = $($_.OwningProcess)").CommandLine}} | Format-Table -AutoSize
+    
+    Write-Output "----------- UDP Network Connections -----------"
+    Get-NetUDPEndpoint | Sort-Object localport | Select-Object LocalAddress,LocalPort,OwningProcess,@{Name="Process";Expression={(Get-Process -Id $_.OwningProcess).ProcessName}},@{'Name'='CommandLine';'Expression'={(Get-CimInstance -Class Win32_Process -Filter "ProcessId = $($_.OwningProcess)").CommandLine}} | Format-Table -AutoSize
 
     # Listing all users
     Write-Output "----------- All Users -----------"
@@ -78,6 +81,9 @@ function Get-Inventory {
             }
         }
     }
+
+    Write-Output "----------- SMB Shares -----------"
+    net share
 
     # TODO: TEST
     # If IIS, site bindings

@@ -304,25 +304,25 @@ reg add "HKCU\Control Panel\Accessibility\Keyboard Response" /v Flags /t REG_SZ 
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI" /v ShowTabletKeyboard /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SOFTWARE\Microsoft\Windows Embedded\EmbeddedLogon" /v BrandingNeutral /t REG_DWORD /d 8 /f | Out-Null
 
-# TAKEOWN /F C:\Windows\System32\sethc.exe /A | Out-Null
-# ICACLS C:\Windows\System32\sethc.exe /grant administrators:F | Out-Null
-# Remove-Item C:\Windows\System32\sethc.exe -Force | Out-Null
+TAKEOWN /F C:\Windows\System32\sethc.exe /A | Out-Null
+ICACLS C:\Windows\System32\sethc.exe /grant administrators:F | Out-Null
+Remove-Item C:\Windows\System32\sethc.exe -Force | Out-Null
 
-# TAKEOWN /F C:\Windows\System32\Utilman.exe /A | Out-Null
-# ICACLS C:\Windows\System32\Utilman.exe /grant administrators:F | Out-Null
-# Remove-Item C:\Windows\System32\Utilman.exe -Force | Out-Null
+TAKEOWN /F C:\Windows\System32\Utilman.exe /A | Out-Null
+ICACLS C:\Windows\System32\Utilman.exe /grant administrators:F | Out-Null
+Remove-Item C:\Windows\System32\Utilman.exe -Force | Out-Null
 
-# TAKEOWN /F C:\Windows\System32\osk.exe /A | Out-Null
-# ICACLS C:\Windows\System32\osk.exe /grant administrators:F | Out-Null
-# Remove-Item C:\Windows\System32\osk.exe -Force | Out-Null
+TAKEOWN /F C:\Windows\System32\osk.exe /A | Out-Null
+ICACLS C:\Windows\System32\osk.exe /grant administrators:F | Out-Null
+Remove-Item C:\Windows\System32\osk.exe -Force | Out-Null
 
-# TAKEOWN /F C:\Windows\System32\Narrator.exe /A | Out-Null
-# ICACLS C:\Windows\System32\Narrator.exe /grant administrators:F | Out-Null
-# Remove-Item C:\Windows\System32\Narrator.exe -Force | Out-Null
+TAKEOWN /F C:\Windows\System32\Narrator.exe /A | Out-Null
+ICACLS C:\Windows\System32\Narrator.exe /grant administrators:F | Out-Null
+Remove-Item C:\Windows\System32\Narrator.exe -Force | Out-Null
 
-# TAKEOWN /F C:\Windows\System32\Magnify.exe /A | Out-Null
-# ICACLS C:\Windows\System32\Magnify.exe /grant administrators:F | Out-Null
-# Remove-Item C:\Windows\System32\Magnify.exe -Force | Out-Null
+TAKEOWN /F C:\Windows\System32\Magnify.exe /A | Out-Null
+ICACLS C:\Windows\System32\Magnify.exe /grant administrators:F | Out-Null
+Remove-Item C:\Windows\System32\Magnify.exe -Force | Out-Null
 
 # AppInit_DLLs
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /v LoadAppInit_DLLs /t REG_DWORD /d 0 /f | Out-Null
@@ -403,10 +403,13 @@ if ($DC) {
     # DSRM
     reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v DsrmAdminLogonBehavior /t REG_DWORD /d 1 /f | Out-Null
 
-    # Disable anonymous LDAP 
+    # Disable unauthenticated LDAP 
     $RootDSE = Get-ADRootDSE
     $ObjectPath = 'CN=Directory Service,CN=Windows NT,CN=Services,{0}' -f $RootDSE.ConfigurationNamingContext
     Set-ADObject -Identity $ObjectPath -Add @{ 'msDS-Other-Settings' = 'DenyUnauthenticatedBind=1'}
+
+    # Resetting NTDS folder permissions
+    icacls C:\Windows\NTDS\*.* /reset
 
     # Prevent insecure encryption suites for Kerberos (need to test)
     # reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Kerberos\Parameters" /v "SupportedEncryptionTypes" /t REG /d 2147483640 | Out-Null
@@ -489,21 +492,20 @@ if ($DC) {
     }
 
     # apply dc security template
-    secedit /configure /db %windir%\security\local.sdb /cfg conf/wc-dc-v1.inf
+    secedit /configure /db %windir%\security\local.sdb /cfg 'conf\wc-dc-secpol.inf'
 
     # import GPO (DC)
     Import-GPO 
 
     gpupdate /force
 } else {
-    # apply the security template automatically because certain services (like RDP and WinRM) won't be turned off, so you won't lock yourself out
-    secedit /configure /db %windir%\security\local.sdb /cfg conf/secpol.inf
+    # apply the security template automatically
+    secedit /configure /db %windir%\security\local.sdb /cfg 'conf\wc-mc-secpol.inf'
+    
     # import GPO (local)
+    ..\tools\LGPO.exe /g "conf\{4BB1406C-78CC-44D0-B229-A1B9F6753187}" 
     
     gpupdate /force
-
-## convert GPO to policyrules file for easier storage? 
-
 }
 
 # ----------- Constrained Language Mode ------------
@@ -520,20 +522,6 @@ SOFTWARE\Classes\mscfile\shell\runasuser	SuppressionPolicy	REG_DWORD	4096
 # Report errors (TODO: change file path)
 $Error | Out-File $env:USERPROFILE\Desktop\hard.txt -Append -Encoding utf8
 
-# :: Import secpol file here
-# :: One secpol file for "domain policy" - not editing default domain policy but creating gpo to apply across domain 
-#     :: This file will also serve as local secpol file
-#     :: Will contain account and local policies
-# set /p choice="Is this a domain controller (Y or N)? "
-# if %choice%=="N" (
-#    
-# ) else (
-#     echo:
-#     echo Skipping import of secpol file...
-#     echo: 
-#     echo Please use the Group Policy Management GUI to create a GPO and import the file into it. Make sure to do gpupdate /force after!
-#     timeout 5
-# )
 
 
 
