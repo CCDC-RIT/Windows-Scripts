@@ -1,5 +1,11 @@
 $VerbosePreference = "SilentlyContinue"
-
+$currentDir = Get-Location
+$firewallPath = Join-Path -Path $currentDir -ChildPath 'results\firewallaudit.txt'
+$registryPath = Join-Path -Path $currentDir -ChildPath 'results\registryaudit.txt'
+$processPath = Join-Path -Path $currentDir -ChildPath 'results\processaudit.txt'
+$thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\threathuntingaudit.txt'
+$windowsPath = Join-Path -Path $currentDir -ChildPath 'results\windowsaudit.txt'
+$aclPath = Join-Path -Path $currentDir -ChildPath 'results\aclaudit.txt'
 #split into different files
 
 Function Show-Firewall{#good
@@ -16,170 +22,170 @@ Function Show-Firewall{#good
     }
     $firewallProfiles = Get-FirewallProfiles
     foreach ($profile in $firewallProfiles){
-        Write-Host "Firewall Profile: $($profile.Name)"
-        Write-Host "Enabled: $($profile.Enabled)"
+        Write-Output "Firewall Profile: $($profile.Name)"
+        Write-Output "Enabled: $($profile.Enabled)"
         $profileName = $profile.Name
         $rules = Get-FirewallRulesForProfile -ProfileName $profileName
-        Write-Host "========================================================="
+        Write-Output "========================================================="
         foreach ($rule in $rules){
-            Write-Host "Rule Name: $($rule.Name)"
-            Write-Host "Display Name: $($rule.DisplayName)"
-            Write-Host "Direction: $($rule.Direction)"
-            Write-Host "Action: $($rule.Action)"
-            Write-Host "Enabled: $($rule.Enabled)"
+            Write-Output "Rule Name: $($rule.Name)"
+            Write-Output "Display Name: $($rule.DisplayName)"
+            Write-Output "Direction: $($rule.Direction)"
+            Write-Output "Action: $($rule.Action)"
+            Write-Output "Enabled: $($rule.Enabled)"
         }
-        Write-Host "End Profile : $($profile.Name)"
+        Write-Output "End Profile : $($profile.Name)"
     }
 }
 
 Function Process-Audit{#good
     $processList = Get-Process -IncludeUserName
-    Write-Host "Process List with Usernames: "
-    Write-Host "$($processList)"
+    Write-Output "Process List with Usernames: "
+    Write-Output "$($processList)"
 }
 
 Function Hidden-Services{#not good
     $hidden = Compare-Object -ReferenceObject (Get-Service | Select-Object -ExpandProperty Name | % { $_ -replace ""_[0-9a-f]{2,8}$\"" }) -DifferenceObject (gci -path hklm:\system\currentcontrolset\services | % { $_.Name -Replace ""HKEY_LOCAL_MACHINE\\\\\"", ""HKLM:\\\"" } | ? { Get-ItemProperty -Path ""$_\"" -name objectname -erroraction 'ignore' } | % { $_.substring(40) }) -PassThru | ?{$_.sideIndicator -eq ""=>\""}
-    Write-Host "Hidden Service List: "
-    Write-Host "$($hidden)"
+    Write-Output "Hidden Service List: "
+    Write-Output "$($hidden)"
 }
 
 Function Scheduled-Tasks{#good
     $scheduled = Get-ScheduledTask
-    Write-Host "Scheduled Task List: "
-    Write-Host "$($scheduled)"
+    Write-Output "Scheduled Task List: "
+    Write-Output "$($scheduled)"
 }
 
 Function StartUp-Programs{ #good
     $startup = Get-CimInstance -ClassName Win32_StartupCommand | Select-Object -Property Command, Description, User, Location
-    Write-Host "$($startup)"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")"
-    Write-Host "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")"
-    Write-Host "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
+    Write-Output "$($startup)"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")"
+    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")"
+    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
 }
 
 Function StratUp-Scripts{#good cant find reg keys 
-    Write-Host "$(reg query "HKLM\Software\Policies\Microsoft\Windows\System\Scripts" /s)"
-    Write-Host "$(reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts" /s)"
-    Write-Host "$(reg query "HKCU\Software\Policies\Microsoft\Windows\System\Scripts" /s)"
+    Write-Output "$(reg query "HKLM\Software\Policies\Microsoft\Windows\System\Scripts" /s)"
+    Write-Output "$(reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts" /s)"
+    Write-Output "$(reg query "HKCU\Software\Policies\Microsoft\Windows\System\Scripts" /s)"
 }
 
 Function Boot-Keys{ #good
-    Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot" /v "AlternateShell")"
-    Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "BootExecute")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
-    Write-Host "$(reg query "HKCU\SOFTWARE\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
-    Write-Host "$(reg query "HKCU\SOFTWARE\Wow6432Node\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
+    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot" /v "AlternateShell")"
+    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "BootExecute")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
+    Write-Output "$(reg query "HKCU\SOFTWARE\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
+    Write-Output "$(reg query "HKCU\SOFTWARE\Wow6432Node\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
 }
 
 Function Startup-Services{ #good can't find reg key
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServices")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
-    Write-Host "$(reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices")"
-    Write-Host "$(reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
-    Write-Host "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServices")"
-    Write-Host "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
-    Write-Host "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices")"
-    Write-Host "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServices")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
+    Write-Output "$(reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices")"
+    Write-Output "$(reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
+    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServices")"
+    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
+    Write-Output "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices")"
+    Write-Output "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
 }
 
 Function Run-Keys{ #good - could not find smoe of the regs keys 
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce")"
-    Write-Host "$(reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
-    Write-Host "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run")"
-    Write-Host "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce")"
-    Write-Host "$(reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx")"
-    Write-Host "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
-    Write-Host "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run")"
-    Write-Host "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce")"
-    Write-Host "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx")"
-    Write-Host "$(reg query "HKCU\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
-    Write-Host "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run")"
-    Write-Host "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Runonce")"
-    Write-Host "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunonceEx")"
-    Write-Host "$(reg query "HKLM\System\CurrentControlSet\Control\Terminal Server\Wds\rdpwd\StartupPrograms")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce")"
+    Write-Output "$(reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
+    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run")"
+    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce")"
+    Write-Output "$(reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx")"
+    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
+    Write-Output "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run")"
+    Write-Output "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce")"
+    Write-Output "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx")"
+    Write-Output "$(reg query "HKCU\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
+    Write-Output "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run")"
+    Write-Output "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Runonce")"
+    Write-Output "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunonceEx")"
+    Write-Output "$(reg query "HKLM\System\CurrentControlSet\Control\Terminal Server\Wds\rdpwd\StartupPrograms")"
 }
 
 Function RDP-Debugger-Persistance{
-    Write-Host "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Accessibility\ATs" /s /v "StartExe")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /s /v "Debugger")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /s /v "Debugger")"
-    Write-Host "RDP enabled if 0, disabled if 1"
-    Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v "fDenyTSConnections")"
+    Write-Output "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Accessibility\ATs" /s /v "StartExe")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /s /v "Debugger")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /s /v "Debugger")"
+    Write-Output "RDP enabled if 0, disabled if 1"
+    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v "fDenyTSConnections")"
 }
 
 Function COM-Hijacking{
-    Write-Host "$(reg query "HKLM\Software\Classes\Protocols\Filter" /s)"
-    Write-Host "$(reg query "HKLM\Software\Classes\Protocols\Handler" /s)"
-    Write-Host "$(reg query "HKLM\Software\Classes\CLSID" /s /v "InprocServer32")"
-    Write-Host "$(reg query "HKLM\Software\Classes\CLSID" /s /v "LocalServer32")"
-    Write-Host "$(reg query "HKLM\Software\Classes\CLSID" /s /v "TreatAs")"
-    Write-Host "$(reg query "HKLM\Software\Classes\CLSID" /s /v "ProcID")"
+    Write-Output "$(reg query "HKLM\Software\Classes\Protocols\Filter" /s)"
+    Write-Output "$(reg query "HKLM\Software\Classes\Protocols\Handler" /s)"
+    Write-Output "$(reg query "HKLM\Software\Classes\CLSID" /s /v "InprocServer32")"
+    Write-Output "$(reg query "HKLM\Software\Classes\CLSID" /s /v "LocalServer32")"
+    Write-Output "$(reg query "HKLM\Software\Classes\CLSID" /s /v "TreatAs")"
+    Write-Output "$(reg query "HKLM\Software\Classes\CLSID" /s /v "ProcID")"
 }
 
 Function Password-Filter{
-    Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Notification Packages")"
+    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Notification Packages")"
 }
 
 Function Authentication-Packages{
-    Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Authentication Packages")"
+    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Authentication Packages")"
 }
 
 Function Security-Packages{
-    Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Security Packages" )"
-    Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa\OSConfig" /v "Security Packages")"
+    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Security Packages" )"
+    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa\OSConfig" /v "Security Packages")"
 }
 
 Function Security-Providers{
-    Write-Host "Including WDigest"
-    Write-Host "$(reg query "HKLM\System\CurrentControlSet\Control\SecurityProviders" /v SecurityProviders)"
-    Write-Host "$(reg query "HKLM\System\CurrentControlSet\Control\SecurityProviders\WDigest")"
+    Write-Output "Including WDigest"
+    Write-Output "$(reg query "HKLM\System\CurrentControlSet\Control\SecurityProviders" /v SecurityProviders)"
+    Write-Output "$(reg query "HKLM\System\CurrentControlSet\Control\SecurityProviders\WDigest")"
 }
 
 Function Networker-Provider-Order{
-    Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\NetworkProvider\Order" /v "ProviderOrder")"
+    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\NetworkProvider\Order" /v "ProviderOrder")"
 }
 
 Function Netsh-DLL{
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\NetSh")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\NetSh")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\NetSh")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\NetSh")"
 }
 
 Function AppInit-DLL{
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /v AppInit_DLLs)"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows" /v AppInit_DLLs)"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /v AppInit_DLLs)"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows" /v AppInit_DLLs)"
 }
 
 Function AppCert-DLL{
-    Write-Host "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\AppCertDLLs")"
+    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\AppCertDLLs")"
 }
 
 Function Winlogon-DLL{
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell)"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Userinit)"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Notify)"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell)"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Userinit)"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Notify)"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell)"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Userinit)"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Notify)"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell)"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Userinit)"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Notify)"
 }
 
 Function Print-Monitor-Ports{
-    Write-Host "$(reg query "HKLM\System\CurrentControlSet\Control\Print\Monitors" /s)"
+    Write-Output "$(reg query "HKLM\System\CurrentControlSet\Control\Print\Monitors" /s)"
 }
 
 Function Windows-Defender-Exclusions{
     $exclusions = Get-MpPreference | findstr /b Exclusion
-    Write-Host "$($exclusions)"
+    Write-Output "$($exclusions)"
 }
 
 Function Injected-Threads{
@@ -189,7 +195,7 @@ Function Injected-Threads{
 Function Random-Directories{
     $sus = ["C:\Intel", "C:\Temp"]
     foreach ($directory in $sus){
-        Write-Host "$(Get-ChildItem $directory)"
+        Write-Output "$(Get-ChildItem $directory)"
     }
 }
 
@@ -203,8 +209,8 @@ Function Current-local-gpo{
 }
 
 Function Programs-Registry{
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "DisplayName")"
-    Write-Host "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "UninstallString")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "DisplayName")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "UninstallString")"
 }
 
 Function Unsigned-Files{
@@ -253,37 +259,37 @@ Function Ripper{
         }
     }
     if ($DetectedServices.Count -gt 0) {
-        Write-Host "Potentially Suspicious Services Detected"
-        Write-Host "----------------------------------------"
+        Write-Output "Potentially Suspicious Services Detected"
+        Write-Output "----------------------------------------"
         foreach ($Service in $DetectedServices) {
-            Write-Host "Name: $($Service.Name) - Display Name: $($Service.DisplayName) - Status: $($Service.State) - StartName: $($Service.StartName) - Description: $($Service.Description) - Binary Path: $($Service.PathName.Trim('"'))"
+            Write-Output "Name: $($Service.Name) - Display Name: $($Service.DisplayName) - Status: $($Service.State) - StartName: $($Service.StartName) - Description: $($Service.Description) - Binary Path: $($Service.PathName.Trim('"'))"
             # Output verbose information about each suspicious characteristic
             if ($PathSuspicious) {
-                Write-Host "`t- Running from a potentially suspicious path"
+                Write-Output "`t- Running from a potentially suspicious path"
             }
             if ($LocalSystemAccount) {
-                Write-Host "`t- Running with a LocalSystem account"
+                Write-Output "`t- Running with a LocalSystem account"
             }
             if ($NoDescription) {
-                Write-Host "`t- No description provided"
+                Write-Output "`t- No description provided"
             }
             if ($Unsigned) {
-                Write-Host "`t- Unsigned executable"
+                Write-Output "`t- Unsigned executable"
             }
             if ($SuspiciousExtension) {
-                Write-Host "`t- Suspicious file extension"
+                Write-Output "`t- Suspicious file extension"
             }
-            Write-Host ""
+            Write-Output ""
         }
     } else {
-        Write-Host "No potentially suspicious services detected."
+        Write-Output "No potentially suspicious services detected."
     }
 }
 #only if server 
 Function Windows-Features{
     $featureList = Get-WindowsFeature | Where-Object Installed
-    Write-Host "Windows Features"
-    Write-Host "$(featureList)"
+    Write-Output "Windows Features"
+    Write-Output "$(featureList)"
 }
 
 Function Uninstall-Keys{
@@ -307,44 +313,46 @@ Function Uninstall-Keys{
     $results
 }
 
-# Get a list of all services
-$services = Get-Service
+Function Service-CMD-Line{
+    # Get a list of all services
+    $services = Get-Service
 
-# Iterate through each service and retrieve command line arguments
-foreach ($service in $services) {
-    $serviceName = $service.DisplayName
-    $serviceStatus = $service.Status
-    $serviceCommand = $null
+    # Iterate through each service and retrieve command line arguments
+    foreach ($service in $services) {
+        $serviceName = $service.DisplayName
+        $serviceStatus = $service.Status
+        $serviceCommand = $null
 
-    try {
-        # Access the service's executable path which typically contains command line arguments
-        $serviceCommand = (Get-CimInstance Win32_Service | Where-Object { $_.Name -eq $serviceName }).PathName
+        try {
+            # Access the service's executable path which typically contains command line arguments
+            $serviceCommand = (Get-CimInstance Win32_Service | Where-Object { $_.Name -eq $serviceName }).PathName
+        }
+        catch {
+            $serviceCommand = "Error: Unable to retrieve command line arguments"
+        }
+
+        # Output service information
+        Write-Output "Service Name: $serviceName"
+        Write-Output "Service Status: $serviceStatus"
+        Write-Output "Command Line Arguments: $serviceCommand"
+        Write-Output "-----------------------------------"
     }
-    catch {
-        $serviceCommand = "Error: Unable to retrieve command line arguments"
-    }
-
-    # Output service information
-    Write-Host "Service Name: $serviceName"
-    Write-Host "Service Status: $serviceStatus"
-    Write-Host "Command Line Arguments: $serviceCommand"
-    Write-Host "-----------------------------------"
 }
 
 Function UnquotedServicePathCheck {
-    Write-Host "Fetching the list of services, this may take a while...";
+    Write-Output "Fetching the list of services, this may take a while...";
     $services = Get-WmiObject -Class Win32_Service | Where-Object { $_.PathName -inotmatch "`"" -and $_.PathName -inotmatch ":\\Windows\\" -and ($_.StartMode -eq "Auto" -or $_.StartMode -eq "Manual") -and ($_.State -eq "Running" -or $_.State -eq "Stopped") };
     if ($($services | Measure-Object).Count -lt 1) {
-    Write-Host "No unquoted service paths were found";
+    Write-Output "No unquoted service paths were found";
     }
     else {
         $services | ForEach-Object {
-            Write-Host "Unquoted Service Path found!" -ForegroundColor red
-            Write-Host Name: $_.Name
-            Write-Host PathName: $_.PathName
-            Write-Host StartName: $_.StartName 
-            Write-Host StartMode: $_.StartMode
-            Write-Host Running: $_.State
+            Write-Output "Unquoted Service Path found!" -ForegroundColor red
+            Write-Output Name: $_.Name
+            Write-Output PathName: $_.PathName
+            Write-Output StartName: $_.StartName 
+            Write-Output StartMode: $_.StartMode
+            Write-Output Running: $_.State
         } 
     }
 }
@@ -356,9 +364,9 @@ Function Recently-Run-Commands{
         $property = (Get-Item "HKU:\$_\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" -ErrorAction SilentlyContinue).Property
         $HKUSID | ForEach-Object {
             if (Test-Path "HKU:\$_\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU") {
-                Write-Host -ForegroundColor Blue "=========||HKU Recently Run Commands"
+                Write-Output -ForegroundColor Blue "=========||HKU Recently Run Commands"
                 foreach ($p in $property) {
-                    Write-Host "$((Get-Item "HKU:\$_\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU"-ErrorAction SilentlyContinue).getValue($p))" 
+                    Write-Output "$((Get-Item "HKU:\$_\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU"-ErrorAction SilentlyContinue).getValue($p))" 
                 }
             }
         }
@@ -370,10 +378,10 @@ function Get-ConsoleHostHistory {
     if (Test-Path $historyFilePath) {
         try {
             $historyContent = Get-Content -Path $historyFilePath
-            Write-Host "Console Host Command History:"
-            Write-Host "-----------------------------"
+            Write-Output "Console Host Command History:"
+            Write-Output "-----------------------------"
             foreach ($command in $historyContent) {
-                Write-Host $command
+                Write-Output $command
             }
         }
         catch {
@@ -388,7 +396,7 @@ function Get-ConsoleHostHistory {
 function Get-Installed{
     Get-CimInstance -class win32_Product | Select-Object Name, Version | 
     ForEach-Object {
-        Write-Host $("{0} : {1}" -f $_.Name, $_.Version)  
+        Write-Output $("{0} : {1}" -f $_.Name, $_.Version)  
     }
 }
 
@@ -406,7 +414,7 @@ Function Start-ACLCheck {
         if ($ACLObject) { 
             $Identity = @()
             $Identity += "$env:COMPUTERNAME\$env:USERNAME"
-            if ($ACLObject.Owner -like $Identity ) { Write-Host "$Identity has ownership of $Target" -ForegroundColor Red }
+            if ($ACLObject.Owner -like $Identity ) { Write-Output "$Identity has ownership of $Target" -ForegroundColor Red }
             whoami.exe /groups /fo csv | ConvertFrom-Csv | Select-Object -ExpandProperty 'group name' | ForEach-Object { $Identity += $_ }
             $IdentityFound = $false
             foreach ($i in $Identity) {
@@ -421,8 +429,8 @@ Function Start-ACLCheck {
                     "FullControl" { $userPermission = "FullControl"; $IdentityFound = $true }
                 }
                 if ($UserPermission) {
-                    if ($ServiceName) { Write-Host "$ServiceName found with permissions issue:" -ForegroundColor Red }
-                    Write-Host -ForegroundColor red  "Identity $($permission.IdentityReference) has '$userPermission' perms for $Target"
+                    if ($ServiceName) { Write-Output "$ServiceName found with permissions issue:" -ForegroundColor Red }
+                    Write-Output -ForegroundColor red  "Identity $($permission.IdentityReference) has '$userPermission' perms for $Target"
                 }
             }    
             # Identity Found Check - If False, loop through and stop at root of drive
@@ -454,11 +462,11 @@ Function Get-Registry-ACL{
 
 Function Get-ScheduledTask-ACL{
     if (Get-ChildItem "c:\windows\system32\tasks" -ErrorAction SilentlyContinue) {
-        Write-Host "Access confirmed, may need futher investigation"
+        Write-Output "Access confirmed, may need futher investigation"
         Get-ChildItem "c:\windows\system32\tasks"
     }
     else {
-        Write-Host "No admin access to scheduled tasks folder."
+        Write-Output "No admin access to scheduled tasks folder."
         Get-ScheduledTask | Where-Object { $_.TaskPath -notlike "\Microsoft*" } | ForEach-Object {
             $Actions = $_.Actions.Execute
             if ($Actions -ne $null) {
@@ -469,16 +477,16 @@ Function Get-ScheduledTask-ACL{
                     elseif ($a -like "%appdata%*") { $a = $a.replace("%localappdata%", $env:Appdata) }
                     $a = $a.Replace('"', '')
                     Start-ACLCheck -Target $a
-                    Write-Host "`n"
-                    Write-Host "TaskName: $($_.TaskName)"
-                    Write-Host "-------------"
+                    Write-Output "`n"
+                    Write-Output "TaskName: $($_.TaskName)"
+                    Write-Output "-------------"
                     [pscustomobject]@{
                         LastResult = $(($_ | Get-ScheduledTaskInfo).LastTaskResult)
                         NextRun    = $(($_ | Get-ScheduledTaskInfo).NextRunTime)
                         Status     = $_.State
                         Command    = $_.Actions.execute
                         Arguments  = $_.Actions.Arguments 
-                    } | Write-Host
+                    } | Write-Output
                 } 
             }
         }
@@ -515,3 +523,52 @@ Function Get-Startup-ACL{
         }
     }
 }
+
+$firewallfunction = Show-Firewall
+$firewallfunction | Out-File -FilePath $firewallPath
+
+$registryfunction = StartUp-Programs
+$registryfunction += StratUp-Scripts
+$registryfunction += Boot-Keys
+$registryfunction += Startup-Services
+$registryfunction += Run-Keys
+$registryfunction += RDP-Debugger-Persistance
+$registryfunction += COM-Hijacking
+$registryfunction += Password-Filter
+$registryfunction += Authentication-Packages
+$registryfunction += Security-Packages
+$registryfunction += Security-Providers
+$registryfunction += Networker-Provider-Order
+$registryfunction += Netsh-DLL
+$registryfunction += AppInit-DLL
+$registryfunction += AppCert-DLL
+$registryfunction += Winlogon-DLL
+$registryfunction += Print-Monitor-Ports
+$registryfunction += Programs-Registry
+$registryfunction += Uninstall-Keys
+$registryfunction | Out-File -FilePath $registryPath
+
+$processfunction = Process-Audit
+$processfunction += Hidden-Services
+$processfunction += Scheduled-Tasks
+$processfunction | Out-File -FilePath $processPath
+
+$thruntingfunction = Windows-Defender-Exclusions
+$thruntingfunction += Random-Directories
+$thruntingfunction += Unsigned-Files
+$thruntingfunction += Ripper 
+$thruntingfunction += UnquotedServicePathCheck
+$thruntingfunction += Recently-Run-Commands
+$thruntingfunction += Get-ConsoleHostHistory
+$thruntingfunction | Out-File -FilePath $thruntingPath
+
+$windowsfunction = Get-Installed
+$windowsfunction += Current-local-gpo
+$windowsfunction += Windows-Features
+$windowsfunction | Out-File -FilePath $windowsPath
+
+$aclfunction = Get-Process-ACL
+$aclfunction = Get-Registry-ACL
+$aclfunction = Get-ScheduledTask-ACL
+$aclfunction = Get-Startup-ACL
+$aclfunction | Out-File -FilePath $aclPath
