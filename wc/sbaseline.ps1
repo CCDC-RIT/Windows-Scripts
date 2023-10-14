@@ -32,9 +32,9 @@ Write-Host "[INFO] RDP disabled"
 
 # Disabling WinRM
 Disable-PSRemoting -Force
+Remove-Item -Path WSMan:\Localhost\listener\listener* -Recurse
 Stop-Service WinRM -PassThru
 Set-Service WinRM -StartupType Disabled -PassThru
-Remove-Item -Path WSMan:\Localhost\listener\listener* -Recurse
 Write-Host "[INFO] WinRM disabled and listeners removed"
 
 # Uninstalling SSH
@@ -241,7 +241,7 @@ if ($DC) {
     secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\wc-dc-secpol.inf'
 
     # import GPO (DC)
-    Import-GPO -BackupId "C697CBFC-C192-45CF-8873-6BD96F5A8AE1" -TargetName "secure-gpo" -path "conf" -CreateIfNeeded
+    Import-GPO -BackupId "3B08545D-C4F0-4257-AAE6-4CB64523ECCA" -TargetName "secure-gpo" -path "conf" -CreateIfNeeded
 
     gpupdate /force
 } else {

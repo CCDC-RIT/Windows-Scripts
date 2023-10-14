@@ -39,12 +39,11 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # DC detection
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Domain Controller detected" -ForegroundColor white
-    # TODO: links to downloading the DC-specific GPO and security template
     (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/wc/dc/wc-dc-v1.inf", (Join-Path -Path $ConfPath -ChildPath "wc-dc-secpol.inf"))
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/wc/dc/%7BC697CBFC-C192-45CF-8873-6BD96F5A8AE1%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{C697CBFC-C192-45CF-8873-6BD96F5A8AE1}.zip"))
+    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/wc/dc/%7B3B08545D-C4F0-4257-AAE6-4CB64523ECCA%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{3B08545D-C4F0-4257-AAE6-4CB64523ECCA}.zip"))
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DC GPO and security template downloaded" -ForegroundColor white
 
-    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{C697CBFC-C192-45CF-8873-6BD96F5A8AE1}.zip") -DestinationPath (Join-Path -Path $ConfPath -ChildPath "{C697CBFC-C192-45CF-8873-6BD96F5A8AE1}")
+    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{3B08545D-C4F0-4257-AAE6-4CB64523ECCA}.zip") -DestinationPath (Join-Path -Path $ConfPath -ChildPath "{3B08545D-C4F0-4257-AAE6-4CB64523ECCA}")
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DC GPO extracted" -ForegroundColor white
 } else {
     (New-Object System.Net.WebClient).DownloadFile("https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip", (Join-Path -Path $InputPath -ChildPath "lg.zip"))
