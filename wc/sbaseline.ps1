@@ -321,7 +321,7 @@ reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint" 
 Write-Host "[INFO] PrintNightmare mitigations in place"
 
 # CVE-2021-36934 (HiveNightmare/SeriousSAM) - workaround (patch at https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-36934)
-icacls $env:windir\system32\config\*.* /inheritance:e
+icacls $env:windir\system32\config\*.* /inheritance:e /Q
 Write-Host "[INFO] HiveNightmare mitigations in place"
 
 # ----------- Defender settings ------------
@@ -345,7 +345,7 @@ Write-Host "[INFO] Windows Defender options set"
 
 ## Exploit Guard Settings
 try {
-    Set-ProcessMitigation -PolicyFilePath conf\defender-exploit-guard-settings.xml
+    Set-ProcessMitigation -PolicyFilePath "$PWD\conf\def-eg-settings.xml"
     Write-Output "[INFO] Exploit Guard settings set"
 } catch {
     Write-Host "[INFO] Old defender version detected, skipping Exploit Guard settings" 
