@@ -32,7 +32,7 @@ Write-Host "[INFO] RDP disabled"
 
 # Disabling WinRM
 Disable-PSRemoting -Force
-Stop-Service WinRM -PassThruSet-Service WinRM -StartupType Disabled
+Stop-Service WinRM -PassThruSet-Service WinRM -StartupType Disabled -PassThru
 Remove-Item -Path WSMan:\Localhost\listener\listener* -Recurse
 Write-Host "[INFO] WinRM disabled and listeners removed"
 
@@ -585,7 +585,7 @@ if ($DC) {
     }
 
     # apply dc security template
-    secedit /configure /db %windir%\security\local.sdb /cfg 'conf\wc-dc-secpol.inf'
+    secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\wc-dc-secpol.inf'
 
     # import GPO (DC)
     Import-GPO -BackupId "C697CBFC-C192-45CF-8873-6BD96F5A8AE1" -TargetName "secure-gpo" -path "conf" -CreateIfNeeded
@@ -593,10 +593,10 @@ if ($DC) {
     gpupdate /force
 } else {
     # apply the security template automatically
-    secedit /configure /db %windir%\security\local.sdb /cfg 'conf\wc-mc-secpol.inf'
+    secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\wc-mc-secpol.inf'
     
     # import GPO (local)
-    ..\tools\LGPO.exe /g "conf\{4BB1406C-78CC-44D0-B229-A1B9F6753187}" 
+    ..\tools\LGPO_30\LGPO.exe /g "conf\{4BB1406C-78CC-44D0-B229-A1B9F6753187}" 
     
     gpupdate /force
 }
