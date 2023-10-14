@@ -32,7 +32,8 @@ Write-Host "[INFO] RDP disabled"
 
 # Disabling WinRM
 Disable-PSRemoting -Force
-Stop-Service WinRM -PassThruSet-Service WinRM -StartupType Disabled -PassThru
+Stop-Service WinRM -PassThru
+Set-Service WinRM -StartupType Disabled -PassThru
 Remove-Item -Path WSMan:\Localhost\listener\listener* -Recurse
 Write-Host "[INFO] WinRM disabled and listeners removed"
 
@@ -571,7 +572,7 @@ Write-Host "[INFO] Misc settings set"
 ## Disable SMB1 client driver
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\MrxSmb10" /v Start /t REG_DWORD /d 4 /f | Out-Null
 ## Update SMB client dependencies (removing SMB1)
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation" /v DependOnService /t REG_MULTI_SZ /d "Bowser","MRxSMB20","NSI"
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation" /v DependOnService /t REG_MULTI_SZ /d "Bowser","MRxSMB20","NSI" /f | Out-Null
 ## Disabling SMB1 server-side processing
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Services\LanmanServer\Parameters" /v SMB1 /t REG_DWORD /d 0 /f | Out-Null
 ## Yeeting SMB1 as a feature
@@ -594,7 +595,7 @@ reg add "HKLM\System\CurrentControlSet\Services\LanmanServer\Parameters" /v Auto
 Set-SmbServerConfiguration -EncryptData $true -Force | Out-Null
 
 # Microsoft-Windows-SMBServer\Audit event 3000 shows attempted connections [TEST]
-Set-SmbServerConfiguration -AuditSmb1Access $true | Out-Null
+Set-SmbServerConfiguration -AuditSmb1Access $true -Force | Out-Null
 
 Write-Host "[INFO] SMB hardening in place"
 
@@ -846,4 +847,4 @@ Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "__PSLockDownPolicy" /t REG_SZ /d 4 /f
 
 # Report errors (TODO: change file path)
-$Error | Out-File $env:USERPROFILE\Desktop\hard.txt -Append -Encoding utf8
+$Error | Out-File 'results\hardenlog.txt' -Append -Encoding utf8
