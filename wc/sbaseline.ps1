@@ -219,6 +219,40 @@ Function New-RIDManagerAuditRuleSet {
     Write-Output -InputObject $Rules
 }
 
+# Reset Group Policies
+Copy-Item C:\Windows\System32\GroupPolicy* C:\gp -Recurse | Out-Null
+Remove-Item C:\Windows\System32\GroupPolicy* -Recurse -Force | Out-Null
+gpupdate /force
+Write-Output "[INFO] Local Group Policy reset" 
+
+# reset domain gpos
+if ($DC) { 
+    $DomainGPO = Get-GPO -All
+    foreach ($GPO in $DomainGPO) {
+        # Prompt user to decide which GPOs to disable
+        $Ans = Read-Host "Reset $($GPO.DisplayName) (y/N)?"
+        if ($Ans.ToLower() -eq "y") {
+            $GPO.gpostatus = "AllSettingsDisabled"
+        }
+    }
+
+    # apply dc security template
+    secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\wc-dc-secpol.inf'
+
+    # import GPO (DC)
+    Import-GPO -BackupId "C697CBFC-C192-45CF-8873-6BD96F5A8AE1" -TargetName "secure-gpo" -path "conf" -CreateIfNeeded
+
+    gpupdate /force
+} else {
+    # apply the security template automatically
+    secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\wc-mc-secpol.inf'
+    
+    # import GPO (local)
+    ..\tools\LGPO_30\LGPO.exe /g "conf\{4BB1406C-78CC-44D0-B229-A1B9F6753187}" 
+    
+    gpupdate /force
+}
+
 # ----------- General system security ------------
 # Countering poisoning via LLMNR/NBT-NS/MDNS - Turning off LLMNR
 reg add "HKLM\Software\policies\Microsoft\Windows NT\DNSClient" /f | Out-Null
@@ -315,7 +349,6 @@ try {
 } catch {
     Write-Host "[INFO] Old defender version detected, skipping Exploit Guard settings" 
 }
-
 
 ## ASR rules
 try {
@@ -430,6 +463,13 @@ reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "H
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowSuperHidden" /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "HideFileExt" /t REG_DWORD /d 0 /f | Out-Null
 
+# Remove "Run As Different User" from context menus
+# SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer	NoStartBanner	REG_DWORD	1
+# SOFTWARE\Classes\batfile\shell\runasuser	SuppressionPolicy	REG_DWORD	4096
+# SOFTWARE\Classes\cmdfile\shell\runasuser	SuppressionPolicy	REG_DWORD	4096
+# SOFTWARE\Classes\exefile\shell\runasuser	SuppressionPolicy	REG_DWORD	4096
+# SOFTWARE\Classes\mscfile\shell\runasuser	SuppressionPolicy	REG_DWORD	4096
+
 # resetting sdmanager sddl
 sc.exe sdset scmanager "D:(A;;CC;;;AU)(A;;CCLCRPRC;;;IU)(A;;CCLCRPRC;;;SU)(A;;CCLCRPWPRC;;;SY)(A;;KA;;;BA)(A;;CC;;;AC)S:(AU;FA;KA;;;WD)(AU;OIIOFA;GA;;;WD)" | Out-Null
 Write-Host "[INFO] scmanager SDDL reset"
@@ -452,10 +492,6 @@ Write-Host "[INFO] Windows Installer set to not always install w/elevated privil
 # Stopping psexec with the power of svchost
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\PSEXESVC.exe" /v Debugger /t REG_SZ /d "svchost.exe" /f | Out-Null
 
-# File explorer options
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 1 /f | Out-Null
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 0 /f | Out-Null
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v ShowSuperHidden /t REG_DWORD /d 1 /f | Out-Null
 # Disable offline files
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\CSC" /v Start /t REG_DWORD /d 4 /f | Out-Null
 
@@ -566,40 +602,6 @@ Write-Host "[INFO] SMB hardening in place"
 reg add "HKLM\Software\Policies\Microsoft\Windows\BITS" /v EnableBITSMaxBandwidth /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\Software\Policies\Microsoft\Windows\BITS" /v MaxDownloadTime /t REG_DWORD /d 54000 /f | Out-Null
 Write-Host "[INFO] BITS transfer settings reset" 
-
-# Reset Group Policies
-Copy-Item C:\Windows\System32\GroupPolicy* C:\gp -Recurse | Out-Null
-Remove-Item C:\Windows\System32\GroupPolicy* -Recurse -Force | Out-Null
-gpupdate /force
-Write-Output "[INFO] Local Group Policy reset" 
-
-# reset domain gpos
-if ($DC) { 
-    $DomainGPO = Get-GPO -All
-    foreach ($GPO in $DomainGPO) {
-        # Prompt user to decide which GPOs to disable
-        $Ans = Read-Host "Reset $($GPO.DisplayName) (y/N)?"
-        if ($Ans.ToLower() -eq "y") {
-            $GPO.gpostatus = "AllSettingsDisabled"
-        }
-    }
-
-    # apply dc security template
-    secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\wc-dc-secpol.inf'
-
-    # import GPO (DC)
-    Import-GPO -BackupId "C697CBFC-C192-45CF-8873-6BD96F5A8AE1" -TargetName "secure-gpo" -path "conf" -CreateIfNeeded
-
-    gpupdate /force
-} else {
-    # apply the security template automatically
-    secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\wc-mc-secpol.inf'
-    
-    # import GPO (local)
-    ..\tools\LGPO_30\LGPO.exe /g "conf\{4BB1406C-78CC-44D0-B229-A1B9F6753187}" 
-    
-    gpupdate /force
-}
 
 # DC security - put DNS under here?
 if ($DC) {
@@ -842,13 +844,6 @@ Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2
 
 # Constrained Language Mode
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "__PSLockDownPolicy" /t REG_SZ /d 4 /f
-
-# Remove "Run As Different User" from context menus
-# SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer	NoStartBanner	REG_DWORD	1
-# SOFTWARE\Classes\batfile\shell\runasuser	SuppressionPolicy	REG_DWORD	4096
-# SOFTWARE\Classes\cmdfile\shell\runasuser	SuppressionPolicy	REG_DWORD	4096
-# SOFTWARE\Classes\exefile\shell\runasuser	SuppressionPolicy	REG_DWORD	4096
-# SOFTWARE\Classes\mscfile\shell\runasuser	SuppressionPolicy	REG_DWORD	4096
 
 # Report errors (TODO: change file path)
 $Error | Out-File $env:USERPROFILE\Desktop\hard.txt -Append -Encoding utf8
