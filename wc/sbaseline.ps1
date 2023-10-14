@@ -241,7 +241,7 @@ if ($DC) {
     secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\wc-dc-secpol.inf'
 
     # import GPO (DC)
-    Import-GPO -BackupId "3B08545D-C4F0-4257-AAE6-4CB64523ECCA" -TargetName "secure-gpo" -path "conf" -CreateIfNeeded
+    Import-GPO -BackupId "3B08545D-C4F0-4257-AAE6-4CB64523ECCA" -TargetName "secure-gpo" -path "conf\{3B08545D-C4F0-4257-AAE6-4CB64523ECCA}" -CreateIfNeeded
 
     gpupdate /force
 } else {
