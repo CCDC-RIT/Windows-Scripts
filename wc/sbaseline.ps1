@@ -409,7 +409,9 @@ ForEach ($ex_ip in (Get-MpPreference).ExclusionIpAddress) {
 Write-Host "[INFO] Defender exclusions removed"
 
 # update defender sigs in case they got yeeted
+& 'C:\Program Files\Windows Defender\MpCmdRun.exe' -RemoveDefinitions -All
 Update-MpSignature
+Write-Host "[INFO] Defender signatures updated"
 
 # doesn't work, access denied
 reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Features" /v TamperProtection /t REG_DWORD /d 5 /f | Out-Null
