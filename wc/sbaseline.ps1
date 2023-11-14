@@ -43,182 +43,226 @@ Remove-WindowsCapability -Online -Name "OpenSSH.Server~~~~0.0.1.0"
 Write-Host "[INFO] SSH Client and Server removed"
 
 # Functions for AD hardening
-Function Set-Auditing {
-    Param (
-        [Parameter(Position=0,Mandatory=$true)]
-        [string]$Domain,
-
-        [Parameter(Position=1,Mandatory=$true)]
-        [AllowEmptyString()]
-        [String]$ObjectCN,
-
-        [Parameter(Position=2,Mandatory=$true)]
-        [System.DirectoryServices.ActiveDirectoryAuditRule[]]$Rules 
-    )
-
-    $DN = (Get-ADDomain -Identity $Domain).DistinguishedName
-
-    if ($ObjectCN -eq "") {
-        $ObjectDN = $DN
-    } else {
-        $ObjectDN = $ObjectCN + "," + $DN
-    }
-
-    $ObjectToChange = Get-ADObject -Identity $ObjectDN -Server $Domain
-    $Path = $ObjectToChange.DistinguishedName
-
-    try {
-        $Acl = Get-Acl -Path $Path -Audit
-
-        if ($Acl -ne $null) {
-            foreach ($Rule in $Rules) {
-                $Acl.AddAuditRule($Rule)
-            }
-
-            Set-Acl -Path $Path -AclObject $Acl
-            Write-Results -Path $Path -Domain $Domain
+Function Write-Results {
+    Param
+        (
+            [Parameter(Position=0,Mandatory=$true)]
+            [string]$Path,
+    
+            [Parameter(Position=1,Mandatory=$true)]
+            [string]$Domain
+        )
+         $Acl = Get-Acl -Path $Path 
+            Write-Host $Domain -ForegroundColor DarkRed -BackgroundColor White
+            Write-Host ($Path.Substring($Path.IndexOf(":") + 1)) -ForegroundColor DarkRed -BackgroundColor White
+            Write-Output -InputObject $Acl.Access
+         }
+    
+    Function Set-Auditing {
+        Param (
+            [Parameter(Position=0,Mandatory=$true)]
+            [string]$Domain,
+    
+            [Parameter(Position=1,Mandatory=$true)]
+            [AllowEmptyString()]
+            [String]$ObjectCN,
+    
+            [Parameter(Position=2,Mandatory=$true)]
+            [System.DirectoryServices.ActiveDirectoryAuditRule[]]$Rules 
+        )
+    
+        $DN = (Get-ADDomain -Identity $Domain).DistinguishedName
+        [String[]]$Drives = Get-PSDrive | Select-Object -ExpandProperty Name
+    
+        $TempDrive = "tempdrive"
+    
+                    if ($Drives.Contains($TempDrive))
+                    {
+                        Write-Host "An existing PSDrive exists with name $TempDrive, temporarily removing" -ForegroundColor Yellow
+                        $OldDrive = Get-PSDrive -Name $TempDrive
+                        Remove-PSDrive -Name $TempDrive
+                    }
+    
+                    $Drive = New-PSDrive -Name $TempDrive -Root "" -PSProvider ActiveDirectory -Server $Domain
+                    Push-Location -Path "$Drive`:\"
+    
+    
+    
+    
+        if ($ObjectCN -eq "") {
+            $ObjectDN = $DN
         } else {
-            Write-Warning "Could not retrieve the ACL for $Path"
+            $ObjectDN = $ObjectCN + "," + $DN
         }
-    } catch [System.Exception] {
-        Write-Warning $_.ToString()
+    
+        $ObjectToChange = Get-ADObject -Identity $ObjectDN -Server $Domain
+        $Path = $ObjectToChange.DistinguishedName
+    
+        try {
+            $Acl = Get-Acl -Path $Path -Audit
+    
+            if ($Acl -ne $null) {
+                foreach ($Rule in $Rules) {
+                    $Acl.AddAuditRule($Rule)
+                }
+    
+                Set-Acl -Path $Path -AclObject $Acl
+                Write-Results -Path $Path -Domain $Domain
+            } else {
+                Write-Warning "Could not retrieve the ACL for $Path"
+            }
+        } catch [System.Exception] {
+            Write-Warning $_.ToString()
+        }
+    
+        Pop-Location
+    
+                    Remove-PSDrive $Drive
+    
+                    if ($OldDrive -ne $null)
+                    {
+                        Write-Host "Recreating original PSDrive" -ForegroundColor Yellow
+                        New-PSDrive -Name $OldDrive.Name -PSProvider $OldDrive.Provider -Root $OldDrive.Root | Out-Null
+                        $OldDrive = $null
+                    }
+    
     }
-}
-Function New-EveryoneAuditRuleSet {
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll, 
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
-        @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty, 
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl, 
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteOwner),
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    Function New-EveryoneAuditRuleSet {
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll, 
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
+            @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty, 
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl, 
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteOwner),
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+            
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    Function New-DomainControllersAuditRuleSet {
         
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
-
-    Write-Output -InputObject $Rules
-}
-Function New-DomainControllersAuditRuleSet {
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
     
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $EveryoneWriteDaclSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl, 
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $EveryoneWritePropertySuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteProperty, 
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All)
-
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneWriteDaclSuccess, $EveryoneWritePropertySuccess)
-
-    Write-Output -InputObject $Rules
-}
-Function New-InfrastructureObjectAuditRuleSet {
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    #$objectguid = "cc17b1fb-33d9-11d2-97d4-00c04fd8d5cd" #Guid for change infrastructure master extended right if it was needed
-    $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
-        [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight),
-        [System.Security.AccessControl.AuditFlags]::Success,
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
-
-    Write-Output -InputObject $Rules
-}
-Function New-PolicyContainerAuditRuleSet {
-
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All)
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
     
-    $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl),
-        [System.Security.AccessControl.AuditFlags]::Success,
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::Descendents)
-
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
-
-    Write-Output -InputObject $Rules
-}
-Function New-DomainAuditRuleSet {
-    Param (
-        [Parameter(Position=0,ValueFromPipeline=$true,Mandatory=$true)]
-        [System.Security.Principal.SecurityIdentifier]$DomainSID    
-    )
-
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-    $DomainUsers = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::AccountDomainUsersSid, $DomainSID)
-    $Administrators = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $DomainSID)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $DomainUsersSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($DomainUsers, 
-        [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight, 
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $AdministratorsSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Administrators, 
-        [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight, 
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
-        @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl,
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteOwner), 
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $DomainUsersSuccess, $AdministratorsSuccess, $EveryoneSuccess)
-
-    Write-Output -InputObject $Rules
-}
-
-Function New-RIDManagerAuditRuleSet {
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
-        [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight),
-        [System.Security.AccessControl.AuditFlags]::Success,
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
-
-    Write-Output -InputObject $Rules
-}
+        $EveryoneWriteDaclSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl, 
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $EveryoneWritePropertySuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteProperty, 
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All)
+    
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneWriteDaclSuccess, $EveryoneWritePropertySuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    Function New-InfrastructureObjectAuditRuleSet {
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        #$objectguid = "cc17b1fb-33d9-11d2-97d4-00c04fd8d5cd" #Guid for change infrastructure master extended right if it was needed
+        $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
+            [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight),
+            [System.Security.AccessControl.AuditFlags]::Success,
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    Function New-PolicyContainerAuditRuleSet {
+    
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All)
+        
+        $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl),
+            [System.Security.AccessControl.AuditFlags]::Success,
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::Descendents)
+    
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    Function New-DomainAuditRuleSet {
+        Param (
+            [Parameter(Position=0,ValueFromPipeline=$true,Mandatory=$true)]
+            [System.Security.Principal.SecurityIdentifier]$DomainSID    
+        )
+    
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+        $DomainUsers = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::AccountDomainUsersSid, $DomainSID)
+        $Administrators = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $DomainSID)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $DomainUsersSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($DomainUsers, 
+            [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight, 
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $AdministratorsSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Administrators, 
+            [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight, 
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
+            @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl,
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteOwner), 
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $DomainUsersSuccess, $AdministratorsSuccess, $EveryoneSuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    
+    Function New-RIDManagerAuditRuleSet {
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
+            [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight),
+            [System.Security.AccessControl.AuditFlags]::Success,
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    
 
 # Reset Group Policies
 Copy-Item C:\Windows\System32\GroupPolicy* C:\gp -Recurse | Out-Null
@@ -620,168 +664,169 @@ if ($DC) {
     # DSRM
     reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v DsrmAdminLogonBehavior /t REG_DWORD /d 1 /f | Out-Null
 
-    # Disable unauthenticated LDAP 
-    $RootDSE = Get-ADRootDSE
-    $ObjectPath = 'CN=Directory Service,CN=Windows NT,CN=Services,{0}' -f $RootDSE.ConfigurationNamingContext
-    Set-ADObject -Identity $ObjectPath -Add @{ 'msDS-Other-Settings' = 'DenyUnauthenticatedBind=1'}
+   # Disable unauthenticated LDAP 
+   $RootDSE = Get-ADRootDSE
+   $ObjectPath = 'CN=Directory Service,CN=Windows NT,CN=Services,{0}' -f $RootDSE.ConfigurationNamingContext
+   Set-ADObject -Identity $ObjectPath -Add @{ 'msDS-Other-Settings' = 'DenyUnauthenticatedBind=1'}
 
-    # setting max connection time 
-    [string]$DomainDN = Get-ADDomain -Identity (Get-ADForest -Current LoggedOnUser -Server $env:COMPUTERNAME).RootDomain -Server $env:COMPUTERNAME | Select-Object -ExpandProperty DistinguishedName
-    [System.Int32]$MaxConnIdleTime = 180
-    [string]$SearchBase = "CN=Query-Policies,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration," + $DomainDN
-	[Microsoft.ActiveDirectory.Management.ADEntity]$Policies = get-adobject -SearchBase $SearchBase -Filter 'ObjectClass -eq "queryPolicy" -and Name -eq "Default Query Policy"' -Properties *
-	$AdminLimits = [Microsoft.ActiveDirectory.Management.ADPropertyValueCollection]$Policies.lDAPAdminLimits
+   # setting max connection time 
+   [string]$DomainDN = Get-ADDomain -Identity (Get-ADForest -Current LoggedOnUser -Server $env:COMPUTERNAME).RootDomain -Server $env:COMPUTERNAME | Select-Object -ExpandProperty DistinguishedName
+   [System.Int32]$MaxConnIdleTime = 180
+   [string]$SearchBase = "CN=Query-Policies,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration," + $DomainDN
+   [Microsoft.ActiveDirectory.Management.ADEntity]$Policies = get-adobject -SearchBase $SearchBase -Filter 'ObjectClass -eq "queryPolicy" -and Name -eq "Default Query Policy"' -Properties *
+   $AdminLimits = [Microsoft.ActiveDirectory.Management.ADPropertyValueCollection]$Policies.lDAPAdminLimits
 
-    for ($i = 0; $i -lt $AdminLimits.Count; $i++) {
-		if ($AdminLimits[$i] -match "MaxConnIdleTime=*") {
-			break
-		}
-	}   
-    if ($i -lt $AdminLimits.Count) {
-		$AdminLimits[$i] = "MaxConnIdleTime=$MaxConnIdleTime" 
-	} else {
-		$AdminLimits.Add("MaxConnIdleTime=$MaxConnIdleTime")
-	}
-    Set-ADObject -Identity $Policies -Clear lDAPAdminLimits
-    foreach ($Limit in $AdminLimits) {
-		Set-ADObject -Identity $Policies -Add @{lDAPAdminLimits=$Limit}
-	}
-    Write-Output -InputObject (Get-ADObject -Identity $Policies -Properties * | Select-Object -ExpandProperty lDAPAdminLimits | Where-Object {$_ -match "MaxConnIdleTime=*"})
+   for ($i = 0; $i -lt $AdminLimits.Count; $i++) {
+       if ($AdminLimits[$i] -match "MaxConnIdleTime=*") {
+           break
+       }
+   }   
+   if ($i -lt $AdminLimits.Count) {
+       $AdminLimits[$i] = "MaxConnIdleTime=$MaxConnIdleTime" 
+   } else {
+       $AdminLimits.Add("MaxConnIdleTime=$MaxConnIdleTime")
+   }
+   Set-ADObject -Identity $Policies -Clear lDAPAdminLimits
+   foreach ($Limit in $AdminLimits) {
+       Set-ADObject -Identity $Policies -Add @{lDAPAdminLimits=$Limit}
+   }
+   Write-Output -InputObject (Get-ADObject -Identity $Policies -Properties * | Select-Object -ExpandProperty lDAPAdminLimits | Where-Object {$_ -match "MaxConnIdleTime=*"})
 
-    # Setting dsHeuristics (disable anon LDAP)
-    $DN = ("CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration," + (Get-ADDomain -Identity (Get-ADForest -Current LocalComputer).RootDomain).DistinguishedName)
-    $DirectoryService = Get-ADObject -Identity $DN -Properties dsHeuristics
-    [string]$Heuristic = $DirectoryService.dsHeuristics
+   # Setting dsHeuristics (disable anon LDAP)
+   $DN = ("CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration," + (Get-ADDomain -Identity (Get-ADForest -Current LocalComputer).RootDomain).DistinguishedName)
+   $DirectoryService = Get-ADObject -Identity $DN -Properties dsHeuristics
+   [string]$Heuristic = $DirectoryService.dsHeuristics
 
-    [array]$Array = @()
-    if (($Heuristic -ne $null) -and ($Heuristic -ne [System.String]::Empty) -and ($Heuristic.Length -ge 7)) {
-        $Array = $Heuristic.ToCharArray()
-        $Array[6] = "0";
-    } else {
-        $Array = "0000000"
-    }
+   [array]$Array = @()
+   if (($Heuristic -ne $null) -and ($Heuristic -ne [System.String]::Empty) -and ($Heuristic.Length -ge 7)) {
+       $Array = $Heuristic.ToCharArray()
+       $Array[6] = "0";
+   } else {
+       $Array = "0000000"
+   }
 
-    [string]$Heuristic = "$Array".Replace(" ", [System.String]::Empty)
-    if ($Heuristic -ne $null -and $Heuristic -ne [System.String]::Empty) {
-        Set-ADObject -Identity $DirectoryService -Replace @{dsHeuristics = $Heuristic}
-    }
-    $Result = Get-ADObject -Identity $DirectoryService -Properties dsHeuristics | Select-Object -ExpandProperty dsHeuristics
-    if ($Result -ne $null) {
-        Write-Output ("dsHeuristics: " + $Result)
-    } else {
-        Write-Warning "dsHeuristics is not set"
-    }
+   [string]$Heuristic = "$Array".Replace(" ", [System.String]::Empty)
+   if ($Heuristic -ne $null -and $Heuristic -ne [System.String]::Empty) {
+       Set-ADObject -Identity $DirectoryService -Replace @{dsHeuristics = $Heuristic}
+   }
+   $Result = Get-ADObject -Identity $DirectoryService -Properties dsHeuristics | Select-Object -ExpandProperty dsHeuristics
+   if ($Result -ne $null) {
+       Write-Output ("dsHeuristics: " + $Result)
+   } else {
+       Write-Warning "dsHeuristics is not set"
+   }
 
-    # Resetting NTDS folder and file permissions
-    $BuiltinAdministrators = New-Object Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $null)
-    $System = New-Object Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::LocalSystemSid, $null)
-    $CreatorOwner = New-Object Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::CreatorOwnerSid, $null)
-    $LocalService = New-Object Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::LocalServiceSid, $null)
+   # Resetting NTDS folder and file permissions
+   $BuiltinAdministrators = New-Object Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $null)
+   $System = New-Object Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::LocalSystemSid, $null)
+   $CreatorOwner = New-Object Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::CreatorOwnerSid, $null)
+   $LocalService = New-Object Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::LocalServiceSid, $null)
 
-    $AdministratorAce = New-Object System.Security.AccessControl.FileSystemAccessRule($BuiltinAdministrators,
-        [System.Security.AccessControl.FileSystemRights]::FullControl,
-        @([System.Security.AccessControl.InheritanceFlags]::ObjectInherit, [System.Security.AccessControl.InheritanceFlags]::ContainerInherit),
-        [System.Security.AccessControl.PropagationFlags]::None,
-        [System.Security.AccessControl.AccessControlType]::Allow       
-    )
+   $AdministratorAce = New-Object System.Security.AccessControl.FileSystemAccessRule($BuiltinAdministrators,
+       [System.Security.AccessControl.FileSystemRights]::FullControl,
+       @([System.Security.AccessControl.InheritanceFlags]::ObjectInherit, [System.Security.AccessControl.InheritanceFlags]::ContainerInherit),
+       [System.Security.AccessControl.PropagationFlags]::None,
+       [System.Security.AccessControl.AccessControlType]::Allow       
+   )
 
-    $SystemAce = New-Object System.Security.AccessControl.FileSystemAccessRule($System,
-        [System.Security.AccessControl.FileSystemRights]::FullControl,
-        @([System.Security.AccessControl.InheritanceFlags]::ObjectInherit, [System.Security.AccessControl.InheritanceFlags]::ContainerInherit),
-        [System.Security.AccessControl.PropagationFlags]::None,
-        [System.Security.AccessControl.AccessControlType]::Allow
-    )
+   $SystemAce = New-Object System.Security.AccessControl.FileSystemAccessRule($System,
+       [System.Security.AccessControl.FileSystemRights]::FullControl,
+       @([System.Security.AccessControl.InheritanceFlags]::ObjectInherit, [System.Security.AccessControl.InheritanceFlags]::ContainerInherit),
+       [System.Security.AccessControl.PropagationFlags]::None,
+       [System.Security.AccessControl.AccessControlType]::Allow
+   )
 
-    $CreatorOwnerAce = New-Object System.Security.AccessControl.FileSystemAccessRule($CreatorOwner,
-        [System.Security.AccessControl.FileSystemRights]::FullControl,
-        @([System.Security.AccessControl.InheritanceFlags]::ObjectInherit, [System.Security.AccessControl.InheritanceFlags]::ContainerInherit),
-        [System.Security.AccessControl.PropagationFlags]::None,
-        [System.Security.AccessControl.AccessControlType]::Allow
-    )
+   $CreatorOwnerAce = New-Object System.Security.AccessControl.FileSystemAccessRule($CreatorOwner,
+       [System.Security.AccessControl.FileSystemRights]::FullControl,
+       @([System.Security.AccessControl.InheritanceFlags]::ObjectInherit, [System.Security.AccessControl.InheritanceFlags]::ContainerInherit),
+       [System.Security.AccessControl.PropagationFlags]::None,
+       [System.Security.AccessControl.AccessControlType]::Allow
+   )
 
-    $LocalServiceAce = New-Object System.Security.AccessControl.FileSystemAccessRule($LocalService,
-        @([System.Security.AccessControl.FileSystemRights]::AppendData, [System.Security.AccessControl.FileSystemRights]::CreateDirectories),
-        [System.Security.AccessControl.InheritanceFlags]::ContainerInherit,
-        [System.Security.AccessControl.PropagationFlags]::None,
-        [System.Security.AccessControl.AccessControlType]::Allow
-    )
+   $LocalServiceAce = New-Object System.Security.AccessControl.FileSystemAccessRule($LocalService,
+       @([System.Security.AccessControl.FileSystemRights]::AppendData, [System.Security.AccessControl.FileSystemRights]::CreateDirectories),
+       [System.Security.AccessControl.InheritanceFlags]::ContainerInherit,
+       [System.Security.AccessControl.PropagationFlags]::None,
+       [System.Security.AccessControl.AccessControlType]::Allow
+   )
 
-    $NTDS = Get-ItemProperty -Path "HKLM:\\System\\CurrentControlSet\\Services\\NTDS\\Parameters"
-    $DSA = $NTDS.'DSA Database File'
-    $Logs = $NTDS.'Database log files path'
-    $DSA = $DSA.Substring(0, $DSA.LastIndexOf("\"))
-    
-    $ACL1 = Get-Acl -Path $DSA
-    foreach ($Rule in $ACL1.Access) {
-        $ACL1.RemoveAccessRule($Rule) | Out-Null
-    }
-    $ACL1.AddAccessRule($AdministratorAce)
-    $ACL1.AddAccessRule($SystemAce)
+   $NTDS = Get-ItemProperty -Path "HKLM:\\System\\CurrentControlSet\\Services\\NTDS\\Parameters"
+   $DSA = $NTDS.'DSA Database File'
+   $Logs = $NTDS.'Database log files path'
+   $DSA = $DSA.Substring(0, $DSA.LastIndexOf("\"))
+   
+   $ACL1 = Get-Acl -Path $DSA
+   foreach ($Rule in $ACL1.Access) {
+       $ACL1.RemoveAccessRule($Rule) | Out-Null
+   }
+   $ACL1.AddAccessRule($AdministratorAce)
+   $ACL1.AddAccessRule($SystemAce)
 
-    Write-Host "[INFO] Setting $DSA ACL"
+   Write-Host "[INFO] Setting $DSA ACL"
 
-    # need to change perms on folder to set file perms correctly
-    Set-Acl -Path $DSA -AclObject $ACL1
-    Get-ChildItem -Path $DSA | ForEach-Object {
-        $Acl = Get-Acl -Path $_.FullName
-        foreach ($Rule in $Acl.Access) {
-            if (-not $Rule.IsInherited) {
-                $Acl.RemoveAccessRule($Rule) | Out-Null
-            }
-        }
-        Set-Acl -Path $_.FullName -AclObject $Acl
-    }
+   # need to change perms on folder to set file perms correctly
+   Set-Acl -Path $DSA -AclObject $ACL1
+   Get-ChildItem -Path $DSA | ForEach-Object {
+       $Acl = Get-Acl -Path $_.FullName
+       foreach ($Rule in $Acl.Access) {
+           if (-not $Rule.IsInherited) {
+               $Acl.RemoveAccessRule($Rule) | Out-Null
+           }
+       }
+       Set-Acl -Path $_.FullName -AclObject $Acl
+   }
 
-    # $Logs = path to the NTDS folder, so this fixes perms on that
-    $ACL2 = Get-Acl -Path $Logs
-    foreach ($Rule in $ACL2.Access) {
-        $ACL2.RemoveAccessRule($Rule) | Out-Null
-    }
-    $ACL2.AddAccessRule($AdministratorAce)
-    $ACL2.AddAccessRule($SystemAce)
-    $ACL2.AddAccessRule($LocalServiceAce)
-    $ACL2.AddAccessRule($CreatorOwnerAce)
+   # $Logs = path to the NTDS folder, so this fixes perms on that
+   $ACL2 = Get-Acl -Path $Logs
+   foreach ($Rule in $ACL2.Access) {
+       $ACL2.RemoveAccessRule($Rule) | Out-Null
+   }
+   $ACL2.AddAccessRule($AdministratorAce)
+   $ACL2.AddAccessRule($SystemAce)
+   $ACL2.AddAccessRule($LocalServiceAce)
+   $ACL2.AddAccessRule($CreatorOwnerAce)
 
-    Write-Host "[INFO] Setting $Logs ACL"
+   Write-Host "[INFO] Setting $Logs ACL"
 
-    Set-Acl -Path $Logs -AclObject $ACL2
-    Get-ChildItem -Path $Logs | ForEach-Object {
-        $Acl = Get-Acl -Path $_.FullName
-        foreach ($Rule in $Acl.Access) {
-            if (-not $Rule.IsInherited) {
-                $Acl.RemoveAccessRule($Rule) | Out-Null
-            }
-        }
-        Set-Acl -Path $_.FullName -AclObject $Acl
-    }
+   Set-Acl -Path $Logs -AclObject $ACL2
+   Get-ChildItem -Path $Logs | ForEach-Object {
+       $Acl = Get-Acl -Path $_.FullName
+       foreach ($Rule in $Acl.Access) {
+           if (-not $Rule.IsInherited) {
+               $Acl.RemoveAccessRule($Rule) | Out-Null
+           }
+       }
+       Set-Acl -Path $_.FullName -AclObject $Acl
+   }
 
-    # surely this will not break things
-    $Domain = (Get-ADDomain -Current LocalComputer).DNSRoot
+   # surely this will not break things
+   $Domain = (Get-ADDomain -Current LocalComputer).DNSRoot
 
-    # Set RID Manager Auditing
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-RIDManagerAuditRuleSet
-    Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "CN=RID Manager$,CN=System"
-    Write-Host "[INFO] RID Manager Auditing Set"
+   # Set RID Manager Auditing
+   [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-RIDManagerAuditRuleSet
+   Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "CN=RID Manager$,CN=System"
+   Write-Host "[INFO] RID Manager Auditing Set"
 
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-PolicyContainerAuditRuleSet
-    Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "CN=Policies,CN=System"
-    Write-Host "[INFO] GPO Auditing set"
+   [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-PolicyContainerAuditRuleSet
+   Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "CN=Policies,CN=System"
+   Write-Host "[INFO] GPO Auditing set"
 
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-DomainAuditRuleSet -DomainSID (Get-ADDomain -Identity $Domain | Select-Object -ExpandProperty DomainSID)
-    Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN ""
-    Write-Host "[INFO] Domain Object Auditing Set"
+   [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-DomainAuditRuleSet -DomainSID (Get-ADDomain -Identity $Domain | Select-Object -ExpandProperty DomainSID)
+   Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN ""
+   Write-Host "[INFO] Domain Object Auditing Set"
 
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-InfrastructureObjectAuditRuleSet
-    Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "CN=Infrastructure"
-    Write-Host "[INFO] Infrastructure Object Auditing Set"
+   [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-InfrastructureObjectAuditRuleSet
+   Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "CN=Infrastructure"
+   Write-Host "[INFO] Infrastructure Object Auditing Set"
 
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-DomainControllersAuditRuleSet
-    Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "OU=Domain Controllers"
-    Write-Host "[INFO] Domain Controller OU Object Auditing Set"
+   [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-DomainControllersAuditRuleSet
+   Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "OU=Domain Controllers"
+   Write-Host "[INFO] Domain Controller OU Object Auditing Set"
 
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-EveryoneAuditRuleSet
-    Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "CN=AdminSDHolder,CN=System"
-    Write-Host "[INFO] AdminSDHolder Object Auditing Set"
+   [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-EveryoneAuditRuleSet
+   Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "CN=AdminSDHolder,CN=System"
+   Write-Host "[INFO] AdminSDHolder Object Auditing Set"
+
 
     ## TODO: Split DNS secure settings into own category
     # DNS - SIGRed Workaround
