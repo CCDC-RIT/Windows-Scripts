@@ -41,34 +41,72 @@ $SysPath = Join-Path -Path $ToolsPath -ChildPath "sys"
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Directories created" -ForegroundColor white
 
+# Custom tooling downloads
+# Audit script
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/audit.ps1", (Join-Path -Path $ScriptPath -ChildPath "audit.ps1"))
+# Audit policy file
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/auditpol.csv", (Join-Path -Path $ConfPath -ChildPath "auditpol.csv"))
+# Backups script
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/backup.ps1", (Join-Path -Path $ScriptPath -ChildPath "backup.ps1"))
+# Command runbook
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/command_runbook.txt", (Join-Path -Path $ScriptPath -ChildPath "command_runbook.txt"))
+# Defender exploit guard settings
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/defender-exploit-guard-settings.xml", (Join-Path -Path $ConfPath -ChildPath "def-eg-settings.xml"))  
+# Firewall script
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/firewall.ps1", (Join-Path -Path $ScriptPath -ChildPath "firewall.ps1"))
+# Inventory script
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/inventory.ps1", (Join-Path -Path $ScriptPath -ChildPath "inventory.ps1"))
+# Logging script
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/logging.ps1", (Join-Path -Path $ScriptPath -ChildPath "logging.ps1"))
+# Secure baseline script
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/secure.ps1", (Join-Path -Path $ScriptPath -ChildPath "sbaseline.ps1"))
+# Wazuh agent config file
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Logging-Scripts/master/agent_windows.conf", (Join-Path -Path $ConfPath -ChildPath "agent_windows.conf"))
+# User Management script
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/usermgmt.ps1", (Join-Path -Path $ScriptPath -ChildPath "usermgmt.ps1"))
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] System scripts and config files downloaded" -ForegroundColor white
+
+# Service tooling 
+if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') { # DC detection
+    # GPO and security template
+    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/dc/dc-secpol.inf", (Join-Path -Path $ConfPath -ChildPath "dc-secpol.inf"))
+    (New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/Windows-Scripts/master/dc/%7BF4A70563-32A9-4B5F-83B2-9DBE866D54FC%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{F4A70563-32A9-4B5F-83B2-9DBE866D54FC}.zip"))
+    # Reset-KrbtgtKeyInteractive script
+    (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/mubix/fd0c89ec021f70023695/raw/02e3f0df13aa86da41f1587ad798ad3c5e7b3711/Reset-KrbtgtKeyInteractive.ps1", (Join-Path -Path $ScriptPath -ChildPath "Reset-KrbtgtKeyInteractive.ps1"))
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Domain Controller tools downloaded" -ForegroundColor white
+} else { # Member server/client tools
+    # GPO and security template 
+    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/web/web-secpol.inf", (Join-Path -Path $ConfPath -ChildPath "web-secpol.inf"))
+    (New-Object System.Net.WebClient).DownloadFile("https://github.com/RIT-CyberForce/Windows-Scripts/raw/main/web/%7B8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147}.zip"))
+    # LGPO tool
+    (New-Object System.Net.WebClient).DownloadFile("https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip", (Join-Path -Path $InputPath -ChildPath "lg.zip"))
+
+}
+
+# Get-InjectedThread
+(New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1", (Join-Path -Path $ScriptPath -ChildPath "Get-InjectedThread.ps1"))
+# Wazuh agent
+(New-Object System.Net.WebClient).DownloadFile("https://packages.wazuh.com/4.x/windows/wazuh-agent-4.5.4-1.msi", (Join-Path -Path $SetupPath -ChildPath "wazuhagent.msi"))
+# Basic Sysmon conf file
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml", (Join-Path -Path $ConfPath -ChildPath "sysmon.xml"))
+
+
+
+
+
+
 # Wireshark
 # (for now) TLS 1.2 link: https://wireshark.marwan.ma/download/win64/Wireshark-win64-latest.exe
-(New-Object System.Net.WebClient).DownloadFile("https://1.na.dl.wireshark.org/win64/Wireshark-win64-latest.exe", (Join-Path -Path $SetupPath -ChildPath "wsinstall.exe"))
+(New-Object System.Net.WebClient).DownloadFile("https://1.na.dl.wireshark.org/win64/Wireshark-latest-x64.exe", (Join-Path -Path $SetupPath -ChildPath "wsinstall.exe"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wireshark installer downloaded" -ForegroundColor white
 # VSCode
 # (New-Object System.Net.WebClient).DownloadFile("https://code.visualstudio.com/sha/download?build=stable&os=win32-x64-user", (Join-Path -Path $SetupPath -ChildPath "vscodesetup.exe"))
 # Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] VSCode installer downloaded" -ForegroundColor white
 
 # Notepad++
-(New-Object System.Net.WebClient).DownloadFile("    https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.5.8/npp.8.5.8.Installer.x64.exe", (Join-Path -Path $SetupPath -ChildPath "notepadp_installer.exe"))
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.5.8/npp.8.5.8.Installer.x64.exe", (Join-Path -Path $SetupPath -ChildPath "notepadp_installer.exe"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Notepad++ installer downloaded" -ForegroundColor white
 
-# Get-InjectedThread
-(New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1", (Join-Path -Path $ScriptPath -ChildPath "Get-InjectedThread.ps1"))
-# Audit policy file
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/auditpol.csv", (Join-Path -Path $ConfPath -ChildPath "auditpol.csv"))
-# Wazuh agent
-(New-Object System.Net.WebClient).DownloadFile("https://packages.wazuh.com/4.x/windows/wazuh-agent-4.5.4-1.msi", (Join-Path -Path $SetupPath -ChildPath "wazuhagent.msi"))
-# Wazuh agent conf file
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Logging-Scripts/main/ossec_windows.conf", (Join-Path -Path $ConfPath -ChildPath "ossec_windows.conf"))
-# Basic Sysmon conf file
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml", (Join-Path -Path $ConfPath -ChildPath "sysmon.xml"))
-# TODO: insert audit script and backup script
-# (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/Colin-Dev/audit.ps1", (Join-Path -Path $ScriptPath -ChildPath "audit.ps1"))
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/backup.ps1", (Join-Path -Path $ScriptPath -ChildPath "backup.ps1"))
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/logging.ps1", (Join-Path -Path $ScriptPath -ChildPath "logging.ps1"))
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/inventory.ps1", (Join-Path -Path $ScriptPath -ChildPath "inventory.ps1"))
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Monitoring scripts, config files, and Wazuh files downloaded" -ForegroundColor white
 
 # everyone needs sysinternals
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/Autoruns.zip", (Join-Path -Path $InputPath -ChildPath "ar.zip"))
@@ -81,46 +119,25 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/Sysmon.zip", (Join-Path -Path $InputPath -ChildPath "sm.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SysInternals tools downloaded" -ForegroundColor white
 
-# Command playbook
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/command_runbook.txt", (Join-Path -Path $ScriptPath -ChildPath "command_runbook.txt"))
 
 
 
 if ($boxName -ne $boxes[2]) { # trad infra tools only
     # Windows Firewall Control, Malwarebytes, PatchMyPC
     (New-Object System.Net.WebClient).DownloadFile("https://www.binisoft.org/download/wfc6setup.exe", (Join-Path -Path $SetupPath -ChildPath "wfcsetup.exe"))
-    (New-Object System.Net.WebClient).DownloadFile("https://www.malwarebytes.com/api/downloads/mb-windows?filename=MBSetup.exe", (Join-Path -Path $SetupPath -ChildPath "MBSetup.exe"))
-    (New-Object System.Net.WebClient).DownloadFile("https://patchmypc.com/freeupdater/PatchMyPC.exe", (Join-Path -Path $ToolsPath -ChildPath "PatchMyPC.exe"))
-    # Defender exploit guard settings
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/defender-exploit-guard-settings.xml", (Join-Path -Path $ConfPath -ChildPath "def-eg-settings.xml"))  
-    # user management script
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/usermgmt.ps1", (Join-Path -Path $ScriptPath -ChildPath "usermgmt.ps1"))
-    # secure baseline script
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/secure.ps1", (Join-Path -Path $ScriptPath -ChildPath "sbaseline.ps1"))
 
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Traditional infra tooling downloaded" -ForegroundColor white
     
     # specific tooling for boxes
     if ($boxName -eq $boxes[0]) { # AD/DNS
         # Downloading GPO and security template
-        (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/dc/dc-secpol.inf", (Join-Path -Path $ConfPath -ChildPath "dc-secpol.inf"))
-        (New-Object System.Net.WebClient).DownloadFile("https://github.com/RIT-CyberForce/Windows-Scripts/raw/main/dc/%7BF4A70563-32A9-4B5F-83B2-9DBE866D54FC%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{F4A70563-32A9-4B5F-83B2-9DBE866D54FC}.zip"))
-        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DC GPO and security template downloaded" -ForegroundColor white
-
+        
         Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{3B08545D-C4F0-4257-AAE6-4CB64523ECCA}.zip") -DestinationPath (Join-Path -Path $ConfPath -ChildPath "{F4A70563-32A9-4B5F-83B2-9DBE866D54FC}")
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DC GPO extracted" -ForegroundColor white
         
-        (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/dc/fw_dns.ps1", (Join-Path -Path $ScriptPath -ChildPath "firewall.ps1"))
-        (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/mubix/fd0c89ec021f70023695/raw/02e3f0df13aa86da41f1587ad798ad3c5e7b3711/Reset-KrbtgtKeyInteractive.ps1", (Join-Path -Path $ScriptPath -ChildPath "Reset-KrbtgtKeyInteractive.ps1"))
-        
     } else { # Task box
-        (New-Object System.Net.WebClient).DownloadFile("https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip", (Join-Path -Path $InputPath -ChildPath "lg.zip"))
-        # Downloading GPO and security template 
-        (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/web/web-secpol.inf", (Join-Path -Path $ConfPath -ChildPath "web-secpol.inf"))
-        (New-Object System.Net.WebClient).DownloadFile("https://github.com/RIT-CyberForce/Windows-Scripts/raw/main/web/%7B8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147}.zip"))
-        
-        (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/RIT-CyberForce/Windows-Scripts/main/web/fw_task.ps1", (Join-Path -Path $ScriptPath -ChildPath "firewall.ps1"))
-
+                
+       
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Non-DC GPO, security template, and LGPO downloaded" -ForegroundColor white
 
         Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "lg.zip") -DestinationPath $ToolsPath
