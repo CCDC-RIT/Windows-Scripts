@@ -22,9 +22,9 @@ if (Get-Service -Name CertSvc 2>$null) {
 
 # Securing RDP
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v SecurityLayer /t REG_DWORD /d 2 /f | Out-Null
-# setting this to 1 triggers credssp error
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v DisableRestrictedAdmin /t REG_DWORD /d 0 /f | Out-Null
+# TODO: add additional keys
 Write-Host "[INFO] RDP hardening in place"
 
 # Disabling RDP (only if not needed)
@@ -38,95 +38,87 @@ Write-Host "[INFO] RDP hardening in place"
 # Set-Service WinRM -StartupType Disabled -PassThru
 # Write-Host "[INFO] WinRM disabled and listeners removed"
 
-# Uninstalling SSH? 
-# Remove-WindowsCapability -Online -Name "OpenSSH.Client~~~~0.0.1.0"
-# Remove-WindowsCapability -Online -Name "OpenSSH.Server~~~~0.0.1.0"
-# Write-Host "[INFO] SSH Client and Server removed"
+# Uninstalling SSH
+Remove-WindowsCapability -Online -Name "OpenSSH.Client~~~~0.0.1.0"
+Remove-WindowsCapability -Online -Name "OpenSSH.Server~~~~0.0.1.0"
+Write-Host "[INFO] SSH Client and Server removed"
 
 Function Write-Results {
-    Param
-        (
-            [Parameter(Position=0,Mandatory=$true)]
-            [string]$Path,
+Param (
+        [Parameter(Position=0,Mandatory=$true)]
+        [string]$Path,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [string]$Domain
+    )
+
+    $Acl = Get-Acl -Path $Path 
+    Write-Host $Domain -ForegroundColor DarkRed -BackgroundColor White
+    Write-Host ($Path.Substring($Path.IndexOf(":") + 1)) -ForegroundColor DarkRed -BackgroundColor White
+    Write-Output -InputObject $Acl.Access
+}
+
+Function Set-Auditing {
+    Param (
+        [Parameter(Position=0,Mandatory=$true)]
+        [string]$Domain,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [AllowEmptyString()]
+        [String]$ObjectCN,
+
+        [Parameter(Position=2,Mandatory=$true)]
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]]$Rules 
+    )
     
-            [Parameter(Position=1,Mandatory=$true)]
-            [string]$Domain
-        )
-         $Acl = Get-Acl -Path $Path 
-            Write-Host $Domain -ForegroundColor DarkRed -BackgroundColor White
-            Write-Host ($Path.Substring($Path.IndexOf(":") + 1)) -ForegroundColor DarkRed -BackgroundColor White
-            Write-Output -InputObject $Acl.Access
-         }
-    
-    Function Set-Auditing {
-        Param (
-            [Parameter(Position=0,Mandatory=$true)]
-            [string]$Domain,
-    
-            [Parameter(Position=1,Mandatory=$true)]
-            [AllowEmptyString()]
-            [String]$ObjectCN,
-    
-            [Parameter(Position=2,Mandatory=$true)]
-            [System.DirectoryServices.ActiveDirectoryAuditRule[]]$Rules 
-        )
-    
-        $DN = (Get-ADDomain -Identity $Domain).DistinguishedName
-        [String[]]$Drives = Get-PSDrive | Select-Object -ExpandProperty Name
-    
-        $TempDrive = "tempdrive"
-    
-                    if ($Drives.Contains($TempDrive))
-                    {
-                        Write-Host "An existing PSDrive exists with name $TempDrive, temporarily removing" -ForegroundColor Yellow
-                        $OldDrive = Get-PSDrive -Name $TempDrive
-                        Remove-PSDrive -Name $TempDrive
-                    }
-    
-                    $Drive = New-PSDrive -Name $TempDrive -Root "" -PSProvider ActiveDirectory -Server $Domain
-                    Push-Location -Path "$Drive`:\"
-    
-    
-    
-    
-        if ($ObjectCN -eq "") {
-            $ObjectDN = $DN
-        } else {
-            $ObjectDN = $ObjectCN + "," + $DN
-        }
-    
-        $ObjectToChange = Get-ADObject -Identity $ObjectDN -Server $Domain
-        $Path = $ObjectToChange.DistinguishedName
-    
-        try {
-            $Acl = Get-Acl -Path $Path -Audit
-    
-            if ($Acl -ne $null) {
-                foreach ($Rule in $Rules) {
-                    $Acl.AddAuditRule($Rule)
-                }
-    
-                Set-Acl -Path $Path -AclObject $Acl
-                # Write-Results -Path $Path -Domain $Domain
-            } else {
-                Write-Warning "Could not retrieve the ACL for $Path"
-            }
-        } catch [System.Exception] {
-            Write-Warning $_.ToString()
-        }
-    
-        Pop-Location
-    
-                    Remove-PSDrive $Drive
-    
-                    if ($OldDrive -ne $null)
-                    {
-                        Write-Host "Recreating original PSDrive" -ForegroundColor Yellow
-                        New-PSDrive -Name $OldDrive.Name -PSProvider $OldDrive.Provider -Root $OldDrive.Root | Out-Null
-                        $OldDrive = $null
-                    }
-    
+    $DN = (Get-ADDomain -Identity $Domain).DistinguishedName
+    [String[]]$Drives = Get-PSDrive | Select-Object -ExpandProperty Name
+
+    $TempDrive = "tempdrive"
+
+    if ($Drives.Contains($TempDrive)) {
+        Write-Host "An existing PSDrive exists with name $TempDrive, temporarily removing" -ForegroundColor Yellow
+        $OldDrive = Get-PSDrive -Name $TempDrive
+        Remove-PSDrive -Name $TempDrive
     }
+
+    $Drive = New-PSDrive -Name $TempDrive -Root "" -PSProvider ActiveDirectory -Server $Domain
+    Push-Location -Path "$Drive`:\"
+    
+    if ($ObjectCN -eq "") {
+        $ObjectDN = $DN
+    } else {
+        $ObjectDN = $ObjectCN + "," + $DN
+    }
+    
+    $ObjectToChange = Get-ADObject -Identity $ObjectDN -Server $Domain
+    $Path = $ObjectToChange.DistinguishedName
+
+    try {
+        $Acl = Get-Acl -Path $Path -Audit
+
+        if ($Acl -ne $null) {
+            foreach ($Rule in $Rules) {
+                $Acl.AddAuditRule($Rule)
+            }
+            Set-Acl -Path $Path -AclObject $Acl
+            # Write-Results -Path $Path -Domain $Domain
+        } else {
+            Write-Warning "Could not retrieve the ACL for $Path"
+        }
+    } catch [System.Exception] {
+        Write-Warning $_.ToString()
+    }
+    Pop-Location
+    
+    Remove-PSDrive $Drive
+
+    if ($OldDrive -ne $null) {
+        Write-Host "Recreating original PSDrive" -ForegroundColor Yellow
+        New-PSDrive -Name $OldDrive.Name -PSProvider $OldDrive.Provider -Root $OldDrive.Root | Out-Null
+        $OldDrive = $null
+    }
+}
 Function New-EveryoneAuditRuleSet {
     $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
 
@@ -147,7 +139,6 @@ Function New-EveryoneAuditRuleSet {
     Write-Output -InputObject $Rules
 }
 Function New-DomainControllersAuditRuleSet {
-    
     $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
 
     $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
@@ -189,7 +180,6 @@ Function New-InfrastructureObjectAuditRuleSet {
     Write-Output -InputObject $Rules
 }
 Function New-PolicyContainerAuditRuleSet {
-
     $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
 
     $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
@@ -263,12 +253,13 @@ Function New-RIDManagerAuditRuleSet {
     Write-Output -InputObject $Rules
 }
 
+# Reset local group policy
 Copy-Item C:\Windows\System32\GroupPolicy* C:\gp -Recurse | Out-Null
 Remove-Item C:\Windows\System32\GroupPolicy* -Recurse -Force | Out-Null
 gpupdate /force
 Write-Output "[INFO] Local Group Policy reset" 
 
-# reset domain gpos
+# Reset domain GPOs
 if ($DC) { 
     $DomainGPO = Get-GPO -All
     foreach ($GPO in $DomainGPO) {
@@ -282,36 +273,46 @@ if ($DC) {
     # apply dc security template
     secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\dc-secpol.inf'
 
-    # import GPO (DC)
+    # import DC GPO
     Import-GPO -BackupId "F4A70563-32A9-4B5F-83B2-9DBE866D54FC" -TargetName "secure-gpo" -path "conf\{F4A70563-32A9-4B5F-83B2-9DBE866D54FC}" -CreateIfNeeded
 
     gpupdate /force
 } else {
-    # apply the security template automatically
+    # apply client/member server security template
     secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\web-secpol.inf'
     
-    # import GPO (local)
+    # import local GPO
     ..\tools\LGPO_30\LGPO.exe /g "conf\{8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147}" 
     
     gpupdate /force
 }
 
-# ----------- General system security ------------
-# Countering poisoning via LLMNR/NBT-NS/MDNS - Turning off LLMNR
+# T1557.001 - Countering poisoning via LLMNR/NBT-NS/MDNS
+## Disabling LLMNR
 reg add "HKLM\Software\policies\Microsoft\Windows NT\DNSClient" /f | Out-Null
 reg add "HKLM\Software\policies\Microsoft\Windows NT\DNSClient" /v EnableMulticast /t REG_DWORD /d 0 /f | Out-Null
-
-reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v NoNameReleaseOnDemand /t REG_DWORD /d 1 /f | Out-Null
-reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v NodeType /t REG_DWORD /d 2 /f | Out-Null
-
-# Countering poisoning via LLMNR/NBT-NS/MDNS - Disabling NBT-NS via registry for all interfaces (might break something)
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LLMNR disabled" -ForegroundColor white 
+## Disabling NBT-NS via registry for all interfaces (might break something)
 $regkey = "HKLM:SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\"
 Get-ChildItem $regkey | ForEach-Object { Set-ItemProperty -Path "$regkey\$($_.pschildname)" -Name NetbiosOptions -Value 2 -Verbose }
-# Countering poisoning via LLMNR/NBT-NS/MDNS - Disabling mDNS
+## Disabling NetBIOS broadcast-based name resolution
+reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v NodeType /t REG_DWORD /d 2 /f | Out-Null
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] NBT-NS disabled" -ForegroundColor white 
+## Disabling mDNS
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" /v EnableMDNS /t REG_DWORD /d 0 /f | Out-Null
-# Disabling WPAD
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\WinHTTPAutoProxySvc" /v Start /t REG_DWORD /d 4 /f | Out-Null
-Write-Host "[INFO] LLMNR, NBT-NS, mDNS, WPAD disabled"
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] mDNS disabled" -ForegroundColor white 
+
+# T1557 - Countering poisoning via WPAD - Disabling WPAD
+# reg add "HKLM\SYSTEM\CurrentControlSet\Services\WinHTTPAutoProxySvc" /v Start /t REG_DWORD /d 4 /f | Out-Null
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\WinHttp" /v DisableWpad /t REG_DWORD /d 1 /f | Out-Null
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WPAD disabled" -ForegroundColor white 
+
+# MSS (Legacy) Settings
+reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v NoNameReleaseOnDemand /t REG_DWORD /d 1 /f | Out-Null
+
+
+
+
 
 ipconfig /flushdns
 Write-Host "[SUCCESS] DNS Cache flushed"
@@ -630,7 +631,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v Enab
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v RequireSecuritySignature /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v EnableSecuritySignature /t REG_DWORD /d 1 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" /v RequireSecuritySignature /t REG_DWORD /d 1 /f | Out-Null
-## Disable SMB compression (CVE-2020-0796)
+## Disable SMB compression (CVE-2020-0796 - SMBGhost)
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v DisableCompression /t REG_DWORD /d 1 /f | Out-Null
 ## Turning off SMB admin shares
 reg add "HKLM\System\CurrentControlSet\Services\LanmanServer\Parameters" /v AutoShareServer /t REG_DWORD /d 0 /f | Out-Null
