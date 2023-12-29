@@ -310,9 +310,22 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # MSS (Legacy) Settings
 reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v NoNameReleaseOnDemand /t REG_DWORD /d 1 /f | Out-Null
 
+# PrintNightmare NIGHTMARE NIGHTMARE NIGHTMARE
+## I hate print spooler
+net stop spooler | Out-Null
+sc.exe config spooler start=disabled | Out-Null
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Print Spooler service shut down and disabled" -ForegroundColor white 
+## Mitigating CVE-2021-1675 and CVE 2021-34527 (PrintNightmare)
+reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v CopyFilesPolicy /t REG_DWORD /d 1 /f | Out-Null
+reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v RegisterSpoolerRemoteRpcEndPoint /t REG_DWORD /d 2 /f | Out-Null
+reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /f | Out-Null
+## Mitigating CVE-2021-1678
+reg add "HKLM\System\CurrentControlSet\Control\Print" /v RpcAuthnLevelPrivacyEnabled /t REG_DWORD /d 1 /f | Out-Null
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] PrintNightmare mitigations in place" -ForegroundColor white 
 
-
-
+# CVE-2021-36934 (HiveNightmare/SeriousSAM) - workaround (patch at https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-36934)
+icacls $env:windir\system32\config\*.* /inheritance:e
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] HiveNightmare mitigations in place" -ForegroundColor white 
 
 ipconfig /flushdns
 Write-Host "[SUCCESS] DNS Cache flushed"
@@ -351,21 +364,9 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution 
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v UseLogonCredential /t REG_DWORD /d 0 /f | Out-Null
 Write-Host "[INFO] LSASS protections in place"
 
-# I hate print spooler
-net stop spooler | Out-Null
-sc.exe config spooler start=disabled | Out-Null
-Write-Host "[INFO] Print Spooler shut down and disabled"
-# CVE-2021-1678
-reg add "HKLM\System\CurrentControlSet\Control\Print" /v RpcAuthnLevelPrivacyEnabled /t REG_DWORD /d 1 /f | Out-Null
-# CVE-2021-1675 / CVE-2021-42278 (PrintNightmare)
-reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v CopyFilesPolicy /t REG_DWORD /d 1 /f | Out-Null
-reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v RegisterSpoolerRemoteRpcEndPoint /t REG_DWORD /d 2 /f | Out-Null
-reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint" /f | Out-Null
-Write-Host "[INFO] PrintNightmare mitigations in place"
 
-# CVE-2021-36934 (HiveNightmare/SeriousSAM) - workaround (patch at https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-36934)
-icacls $env:windir\system32\config\*.* /inheritance:e
-Write-Host "[INFO] HiveNightmare mitigations in place"
+
+
 
 # ----------- Defender settings ------------
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableAntiSpyware" /t REG_DWORD /d 0 /f | Out-Null
@@ -825,6 +826,9 @@ if ($DC) {
     [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = New-EveryoneAuditRuleSet
     Set-Auditing -Domain $Domain -Rules $Rules -ObjectCN "CN=AdminSDHolder,CN=System"
     Write-Host "[INFO] AdminSDHolder Object Auditing Set"
+
+    # T1003.001 - delete vss shadow copies
+    vssadmin.exe delete shadows /all /quiet
 
     # Prevent insecure encryption suites for Kerberos (need to test)
     # reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Kerberos\Parameters" /v "SupportedEncryptionTypes" /t REG /d 2147483640 | Out-Null
