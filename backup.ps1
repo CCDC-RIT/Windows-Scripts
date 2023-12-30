@@ -1,4 +1,7 @@
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
+    # TODO: edit path to be proper folder
+    robocopy c:\windows\sysvol c:\sysvol-backup /copyall /mir /b /r:0 /xd
+
     $backup = Join-Path -Path (Get-Item -Path '..').FullName -ChildPath "\dns_backup"
     xcopy /E /I C:\Windows\System32\dns $backup
 }
