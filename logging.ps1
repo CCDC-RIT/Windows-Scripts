@@ -7,6 +7,10 @@ WevtUtil sl "Microsoft-Windows-PowerShell/Operational" /ms:512000
 wevtutil sl "Microsoft-Windows-DNS-Client/Operational" /e:true
 Write-Host "[INFO] Log sizes set"
 
+# Enabling audit policy subcategories
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v SCENoApplyLegacyAuditPolicy /t REG_DWORD /d 1 /f | Out-Null
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audit policy subcategories enabled" -ForegroundColor white 
+
 # Powershell logging
 $psLogFolder = Join-Path -Path (Get-Item -Path '..').FullName -ChildPath "scrips"
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging /t REG_DWORD /d 1 /f | Out-Null
