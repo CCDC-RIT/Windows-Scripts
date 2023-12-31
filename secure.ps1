@@ -366,14 +366,14 @@ icacls $env:windir\system32\config\*.* /inheritance:e
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] HiveNightmare mitigations in place" -ForegroundColor white 
 
 # Changing file associations to make sure they have to be executed manually
-cmd /c 'ftype htafile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"'
-cmd /c 'ftype wshfile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"'
-cmd /c 'ftype wsffile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"'
-cmd /c 'ftype batfile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"'
-cmd /c 'ftype jsfile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"'
-cmd /c 'ftype jsefile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"'
-cmd /c 'ftype vbefile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"'
-cmd /c 'ftype vbsfile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"'
+cmd /c ftype htafile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"
+cmd /c ftype wshfile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"
+cmd /c ftype wsffile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"
+cmd /c ftype batfile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"
+cmd /c ftype jsfile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"
+cmd /c ftype jsefile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"
+cmd /c ftype vbefile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"
+cmd /c ftype vbsfile="%SystemRoot%\system32\NOTEPAD.EXE" "%1"
 
 # Blocking DLL loading from remote folders
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v CWDIllegalInDllSearch /t REG_DWORD /d 2 /f | Out-Null
@@ -387,7 +387,10 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v ProtectionMod
 reg add "HKLM\Software\Microsoft\OLE" /v EnableDCOM /t REG_SZ /d N /f | Out-Null
 
 ## Starting Windows Defender service
-Start-Service WinDefend
+if(!(Get-MpComputerStatus | Select-Object AntivirusEnabled)) {
+    Start-Service WinDefend
+}
+
 
 ## Enabling Windows Defender sandboxing
 cmd /c "setx /M MP_FORCE_USE_SANDBOX 1"
@@ -819,6 +822,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Cipher
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\RC4 56/128" /v Enabled /t REG_DWORD /d 0 /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\RC4 64/128" /v Enabled /t REG_DWORD /d 0 /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\Triple DES 168" /v "Enabled" /t REG_DWORD /d 0 /f | Out-Null
+## TODO: Disable MD5 and SHA
 ## Encryption - Hashes: All allowed - IISCrypto (recommended options)
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Hashes\MD5" /v Enabled /t REG_DWORD /d 0xffffffff /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Hashes\SHA" /v Enabled /t REG_DWORD /d 0xffffffff /f
@@ -830,6 +834,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\KeyExc
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\KeyExchangeAlgorithms\Diffie-Hellman" /v ServerMinKeyBitLength /t REG_DWORD /d 0x00001000 /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\KeyExchangeAlgorithms\ECDH" /v Enabled /t REG_DWORD /d 0xffffffff /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\KeyExchangeAlgorithms\PKCS" /v Enabled /t REG_DWORD /d 0xffffffff /f
+## TODO: Disable everything but TLS 1.2
 ## Encryption - Protocols: TLS 1.0 and higher - IISCrypto (recommended options)
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\Multi-Protocol Unified Hello\Client" /v Enabled /t REG_DWORD /d 0 /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\Multi-Protocol Unified Hello\Client" /v DisabledByDefault /t REG_DWORD /d 1 /f
