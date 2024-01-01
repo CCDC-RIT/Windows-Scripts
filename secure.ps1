@@ -29,17 +29,7 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" /v fEncr
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" /v fAllowToGetHelp /t REG_DWORD /d 0 /f | Out-Null
 ## Prevent sharing of local drives via Remote Desktop Session Hosts
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" /v fDisableCdm /t REG_DWORD /d 1 /f | Out-Null
-## Enabling support for Restricted Admin/Remote Credential Guard
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" /v AllowProtectedCreds /t REG_DWORD /d 1 /f | Out-Null
-## Enabling Restricted Admin mode
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v DisableRestrictedAdmin /t REG_DWORD /d 0 /f | Out-Null
-## Disabling Restricted Admin Outbound Creds
-reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v DisableRestrictedAdminOutboundCreds /t REG_DWORD /d 1 /f | Out-Null
-# Enabling Credential Delegation (Restrict Credential Delegation)
-reg add "HKLM\Software\Policies\Microsoft\Windows\CredentialsDelegation" /v RestrictedRemoteAdministration /t REG_DWORD /d 1 /f | Out-Null
-reg add "HKLM\Software\Policies\Microsoft\Windows\CredentialsDelegation" /v RestrictedRemoteAdministrationType /t REG_DWORD /d 3 /f | Out-Null
-
-Write-Host "[INFO] RDP hardening in place"
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] RDP secured" -ForegroundColor white 
 
 # Disabling RDP (only if not needed)
 # reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 1 /f
@@ -50,6 +40,7 @@ Write-Host "[INFO] RDP hardening in place"
 net stop WinRM
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WinRM\Service" /v AllowUnencryptedTraffic /t REG_DWORD /d 0 /f | Out-Null
 net start WinRM
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM secured and restarted" -ForegroundColor white 
 
 # Disabling WinRM
 # Disable-PSRemoting -Force
@@ -61,258 +52,49 @@ net start WinRM
 # Uninstalling SSH
 Remove-WindowsCapability -Online -Name "OpenSSH.Client~~~~0.0.1.0"
 Remove-WindowsCapability -Online -Name "OpenSSH.Server~~~~0.0.1.0"
-Write-Host "[INFO] SSH Client and Server removed"
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SSH Client and Server removed" -ForegroundColor white 
 
-# RPC settings
-## Disabling RPC usage from a remote asset interacting with scheduled tasks
-reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Schedule" /v DisableRpcOverTcp /t REG_DWORD /d 1 /f | Out-Null
-## Disabling RPC usage from a remote asset interacting with services
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control" /v DisableRemoteScmEndpoints /t REG_DWORD /d 1 /f | Out-Null
-## Restricting unauthenticated RPC clients
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Rpc" /v RestrictRemoteClients /t REG_DWORD /d 1 /f | Out-Null
+## Enabling support for Restricted Admin/Remote Credential Guard
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation" /v AllowProtectedCreds /t REG_DWORD /d 1 /f | Out-Null
+## Enabling Restricted Admin mode
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v DisableRestrictedAdmin /t REG_DWORD /d 0 /f | Out-Null
+## Disabling Restricted Admin Outbound Creds
+reg add "HKLM\System\CurrentControlSet\Control\Lsa" /v DisableRestrictedAdminOutboundCreds /t REG_DWORD /d 1 /f | Out-Null
+# Enabling Credential Delegation (Restrict Credential Delegation)
+reg add "HKLM\Software\Policies\Microsoft\Windows\CredentialsDelegation" /v RestrictedRemoteAdministration /t REG_DWORD /d 1 /f | Out-Null
+reg add "HKLM\Software\Policies\Microsoft\Windows\CredentialsDelegation" /v RestrictedRemoteAdministrationType /t REG_DWORD /d 3 /f | Out-Null
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Credential Delegation set" -ForegroundColor white 
 
-# Enforcing LDAP client signing (always)
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v LDAPClientIntegrity /t REG_DWORD /d 2 /f | Out-Null
-
-Function Write-Results {
-Param (
-        [Parameter(Position=0,Mandatory=$true)]
-        [string]$Path,
-
-        [Parameter(Position=1,Mandatory=$true)]
-        [string]$Domain
-    )
-
-    $Acl = Get-Acl -Path $Path 
-    Write-Host $Domain -ForegroundColor DarkRed -BackgroundColor White
-    Write-Host ($Path.Substring($Path.IndexOf(":") + 1)) -ForegroundColor DarkRed -BackgroundColor White
-    Write-Output -InputObject $Acl.Access
-}
-
-Function Set-Auditing {
-    Param (
-        [Parameter(Position=0,Mandatory=$true)]
-        [string]$Domain,
-
-        [Parameter(Position=1,Mandatory=$true)]
-        [AllowEmptyString()]
-        [String]$ObjectCN,
-
-        [Parameter(Position=2,Mandatory=$true)]
-        [System.DirectoryServices.ActiveDirectoryAuditRule[]]$Rules 
-    )
-    
-    $DN = (Get-ADDomain -Identity $Domain).DistinguishedName
-    [String[]]$Drives = Get-PSDrive | Select-Object -ExpandProperty Name
-
-    $TempDrive = "tempdrive"
-
-    if ($Drives.Contains($TempDrive)) {
-        Write-Host "An existing PSDrive exists with name $TempDrive, temporarily removing" -ForegroundColor Yellow
-        $OldDrive = Get-PSDrive -Name $TempDrive
-        Remove-PSDrive -Name $TempDrive
-    }
-
-    $Drive = New-PSDrive -Name $TempDrive -Root "" -PSProvider ActiveDirectory -Server $Domain
-    Push-Location -Path "$Drive`:\"
-    
-    if ($ObjectCN -eq "") {
-        $ObjectDN = $DN
-    } else {
-        $ObjectDN = $ObjectCN + "," + $DN
-    }
-    
-    $ObjectToChange = Get-ADObject -Identity $ObjectDN -Server $Domain
-    $Path = $ObjectToChange.DistinguishedName
-
-    try {
-        $Acl = Get-Acl -Path $Path -Audit
-
-        if ($Acl -ne $null) {
-            foreach ($Rule in $Rules) {
-                $Acl.AddAuditRule($Rule)
-            }
-            Set-Acl -Path $Path -AclObject $Acl
-            # Write-Results -Path $Path -Domain $Domain
-        } else {
-            Write-Warning "Could not retrieve the ACL for $Path"
-        }
-    } catch [System.Exception] {
-        Write-Warning $_.ToString()
-    }
-    Pop-Location
-    
-    Remove-PSDrive $Drive
-
-    if ($OldDrive -ne $null) {
-        Write-Host "Recreating original PSDrive" -ForegroundColor Yellow
-        New-PSDrive -Name $OldDrive.Name -PSProvider $OldDrive.Provider -Root $OldDrive.Root | Out-Null
-        $OldDrive = $null
-    }
-}
-Function New-EveryoneAuditRuleSet {
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll, 
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
-        @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty, 
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl, 
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteOwner),
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-        
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
-
-    Write-Output -InputObject $Rules
-}
-Function New-DomainControllersAuditRuleSet {
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $EveryoneWriteDaclSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl, 
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $EveryoneWritePropertySuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteProperty, 
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All)
-
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneWriteDaclSuccess, $EveryoneWritePropertySuccess)
-
-    Write-Output -InputObject $Rules
-}
-Function New-InfrastructureObjectAuditRuleSet {
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    #$objectguid = "cc17b1fb-33d9-11d2-97d4-00c04fd8d5cd" #Guid for change infrastructure master extended right if it was needed
-    $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
-        [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight),
-        [System.Security.AccessControl.AuditFlags]::Success,
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
-
-    Write-Output -InputObject $Rules
-}
-Function New-PolicyContainerAuditRuleSet {
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All)
-    
-    $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl),
-        [System.Security.AccessControl.AuditFlags]::Success,
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::Descendents)
-
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
-
-    Write-Output -InputObject $Rules
-}
-Function New-DomainAuditRuleSet {
-    Param (
-        [Parameter(Position=0,ValueFromPipeline=$true,Mandatory=$true)]
-        [System.Security.Principal.SecurityIdentifier]$DomainSID    
-    )
-
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-    $DomainUsers = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::AccountDomainUsersSid, $DomainSID)
-    $Administrators = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $DomainSID)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $DomainUsersSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($DomainUsers, 
-        [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight, 
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $AdministratorsSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Administrators, 
-        [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight, 
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
-        @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl,
-        [System.DirectoryServices.ActiveDirectoryRights]::WriteOwner), 
-        [System.Security.AccessControl.AuditFlags]::Success, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $DomainUsersSuccess, $AdministratorsSuccess, $EveryoneSuccess)
-
-    Write-Output -InputObject $Rules
-}
-    
-Function New-RIDManagerAuditRuleSet {
-    $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
-
-    $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
-        [System.Security.AccessControl.AuditFlags]::Failure, 
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
-        @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
-        [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight),
-        [System.Security.AccessControl.AuditFlags]::Success,
-        [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
-
-    [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
-
-    Write-Output -InputObject $Rules
-}
-
-# Reset local group policy
+# GPO stuff
+## Resetting local group policy
 Copy-Item C:\Windows\System32\GroupPolicy* C:\gp -Recurse | Out-Null
 Remove-Item C:\Windows\System32\GroupPolicy* -Recurse -Force | Out-Null
 gpupdate /force
-Write-Output "[INFO] Local Group Policy reset" 
-
-# Reset domain GPOs
-if ($DC) { 
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Local group policy reset" -ForegroundColor white 
+## Resetting domain GPOs
+if ($DC) {
     $DomainGPO = Get-GPO -All
     foreach ($GPO in $DomainGPO) {
-        # Prompt user to decide which GPOs to disable
+        ## Prompt user to decide which GPOs to disable
         $Ans = Read-Host "Reset $($GPO.DisplayName) (y/N)?"
         if ($Ans.ToLower() -eq "y") {
             $GPO.gpostatus = "AllSettingsDisabled"
         }
     }
 
-    # apply dc security template
+    ## Applying DC security template
     secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\dc-secpol.inf'
 
-    # import DC GPO
+    ## Importing domain GPOs
     Import-GPO -BackupId "F4A70563-32A9-4B5F-83B2-9DBE866D54FC" -TargetName "secure-gpo" -path "conf\{F4A70563-32A9-4B5F-83B2-9DBE866D54FC}" -CreateIfNeeded
 
     gpupdate /force
 } else {
-    # apply client/member server security template
+    ## Applying client machine/member server security template
     secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\web-secpol.inf'
     
-    # import local GPO
+    # Importing client machine/member server GPOs
+    # TODO: fix path to be absolute 
     ..\tools\LGPO_30\LGPO.exe /g "conf\{8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147}" 
     
     gpupdate /force
@@ -322,7 +104,6 @@ if ($DC) {
 # reg add "HKLM\SYSTEM\CurrentControlSet\Services\WinHTTPAutoProxySvc" /v Start /t REG_DWORD /d 4 /f | Out-Null
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\WinHttp" /v DisableWpad /t REG_DWORD /d 1 /f | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WPAD disabled" -ForegroundColor white 
-
 # T1557.001 - Countering poisoning via LLMNR/NBT-NS/MDNS
 ## Disabling LLMNR
 reg add "HKLM\Software\policies\Microsoft\Windows NT\DNSClient" /f | Out-Null
@@ -381,6 +162,19 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v CWDIllegalInD
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v SafeDllSearchMode /t REG_DWORD /d 1 /f | Out-Null 
 # Strengthening default permissions of internal system objects
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v ProtectionMode /t REG_DWORD /d 1 /f | Out-Null
+
+# RPC settings
+## Disabling RPC usage from a remote asset interacting with scheduled tasks
+reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Schedule" /v DisableRpcOverTcp /t REG_DWORD /d 1 /f | Out-Null
+## Disabling RPC usage from a remote asset interacting with services
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control" /v DisableRemoteScmEndpoints /t REG_DWORD /d 1 /f | Out-Null
+## Restricting unauthenticated RPC clients
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Rpc" /v RestrictRemoteClients /t REG_DWORD /d 1 /f | Out-Null
+
+# Enforcing LDAP client signing (always)
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v LDAPClientIntegrity /t REG_DWORD /d 2 /f | Out-Null
+
+
 
 
 # Disabling DCOM cuz why not
@@ -475,12 +269,6 @@ ForEach ($ex_ip in (Get-MpPreference).ExclusionIpAddress) {
 }
 Write-Host "[INFO] Defender exclusions removed"
 
-
-
-# doesn't work, access denied
-reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Features" /v TamperProtection /t REG_DWORD /d 5 /f | Out-Null
-Write-Host "[INFO] Windows Defender fully configured"
-
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableAntiSpyware" /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "HideExclusionsFromLocalAdmins" /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "ServiceKeepAlive" /t REG_DWORD /d 1 /f | Out-Null
@@ -499,6 +287,10 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Advanced Threat Protection" /v
 reg add "HKLM\Software\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\Network Protection" /v EnableNetworkProtection /t REG_DWORD /d 1 /f | Out-Null
 
 Write-Host "[INFO] Windows Defender options set" 
+
+# doesn't work, access denied
+reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Features" /v TamperProtection /t REG_DWORD /d 5 /f | Out-Null
+Write-Host "[INFO] Windows Defender fully configured"
 
 ipconfig /flushdns
 Write-Host "[SUCCESS] DNS Cache flushed"
@@ -867,6 +659,216 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protoc
 ## Encryption - Cipher Suites (order) - All cipher included to avoid application problems
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Cryptography\Configuration\SSL\00010002" /v Functions /t REG_SZ /d "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_DHE_RSA_WITH_AES_256_GCM_SHA384,TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_3DES_EDE_CBC_SHA,TLS_RSA_WITH_NULL_SHA256,TLS_RSA_WITH_NULL_SHA,TLS_PSK_WITH_AES_256_GCM_SHA384,TLS_PSK_WITH_AES_128_GCM_SHA256,TLS_PSK_WITH_AES_256_CBC_SHA384,TLS_PSK_WITH_AES_128_CBC_SHA256,TLS_PSK_WITH_NULL_SHA384,TLS_PSK_WITH_NULL_SHA256" /f
 
+Function Write-Results {
+    Param (
+            [Parameter(Position=0,Mandatory=$true)]
+            [string]$Path,
+    
+            [Parameter(Position=1,Mandatory=$true)]
+            [string]$Domain
+        )
+    
+        $Acl = Get-Acl -Path $Path 
+        Write-Host $Domain -ForegroundColor DarkRed -BackgroundColor White
+        Write-Host ($Path.Substring($Path.IndexOf(":") + 1)) -ForegroundColor DarkRed -BackgroundColor White
+        Write-Output -InputObject $Acl.Access
+    }
+    
+    Function Set-Auditing {
+        Param (
+            [Parameter(Position=0,Mandatory=$true)]
+            [string]$Domain,
+    
+            [Parameter(Position=1,Mandatory=$true)]
+            [AllowEmptyString()]
+            [String]$ObjectCN,
+    
+            [Parameter(Position=2,Mandatory=$true)]
+            [System.DirectoryServices.ActiveDirectoryAuditRule[]]$Rules 
+        )
+        
+        $DN = (Get-ADDomain -Identity $Domain).DistinguishedName
+        [String[]]$Drives = Get-PSDrive | Select-Object -ExpandProperty Name
+    
+        $TempDrive = "tempdrive"
+    
+        if ($Drives.Contains($TempDrive)) {
+            Write-Host "An existing PSDrive exists with name $TempDrive, temporarily removing" -ForegroundColor Yellow
+            $OldDrive = Get-PSDrive -Name $TempDrive
+            Remove-PSDrive -Name $TempDrive
+        }
+    
+        $Drive = New-PSDrive -Name $TempDrive -Root "" -PSProvider ActiveDirectory -Server $Domain
+        Push-Location -Path "$Drive`:\"
+        
+        if ($ObjectCN -eq "") {
+            $ObjectDN = $DN
+        } else {
+            $ObjectDN = $ObjectCN + "," + $DN
+        }
+        
+        $ObjectToChange = Get-ADObject -Identity $ObjectDN -Server $Domain
+        $Path = $ObjectToChange.DistinguishedName
+    
+        try {
+            $Acl = Get-Acl -Path $Path -Audit
+    
+            if ($Acl -ne $null) {
+                foreach ($Rule in $Rules) {
+                    $Acl.AddAuditRule($Rule)
+                }
+                Set-Acl -Path $Path -AclObject $Acl
+                # Write-Results -Path $Path -Domain $Domain
+            } else {
+                Write-Warning "Could not retrieve the ACL for $Path"
+            }
+        } catch [System.Exception] {
+            Write-Warning $_.ToString()
+        }
+        Pop-Location
+        
+        Remove-PSDrive $Drive
+    
+        if ($OldDrive -ne $null) {
+            Write-Host "Recreating original PSDrive" -ForegroundColor Yellow
+            New-PSDrive -Name $OldDrive.Name -PSProvider $OldDrive.Provider -Root $OldDrive.Root | Out-Null
+            $OldDrive = $null
+        }
+    }
+    Function New-EveryoneAuditRuleSet {
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll, 
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
+            @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty, 
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl, 
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteOwner),
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+            
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    Function New-DomainControllersAuditRuleSet {
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $EveryoneWriteDaclSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl, 
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $EveryoneWritePropertySuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteProperty, 
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All)
+    
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneWriteDaclSuccess, $EveryoneWritePropertySuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    Function New-InfrastructureObjectAuditRuleSet {
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        #$objectguid = "cc17b1fb-33d9-11d2-97d4-00c04fd8d5cd" #Guid for change infrastructure master extended right if it was needed
+        $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
+            [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight),
+            [System.Security.AccessControl.AuditFlags]::Success,
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    Function New-PolicyContainerAuditRuleSet {
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All)
+        
+        $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl),
+            [System.Security.AccessControl.AuditFlags]::Success,
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::Descendents)
+    
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    Function New-DomainAuditRuleSet {
+        Param (
+            [Parameter(Position=0,ValueFromPipeline=$true,Mandatory=$true)]
+            [System.Security.Principal.SecurityIdentifier]$DomainSID    
+        )
+    
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+        $DomainUsers = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::AccountDomainUsersSid, $DomainSID)
+        $Administrators = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $DomainSID)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $DomainUsersSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($DomainUsers, 
+            [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight, 
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $AdministratorsSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Administrators, 
+            [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight, 
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone, 
+            @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteDacl,
+            [System.DirectoryServices.ActiveDirectoryRights]::WriteOwner), 
+            [System.Security.AccessControl.AuditFlags]::Success, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $DomainUsersSuccess, $AdministratorsSuccess, $EveryoneSuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+        
+    Function New-RIDManagerAuditRuleSet {
+        $Everyone = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::WorldSid, $null)
+    
+        $EveryoneFail = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+            [System.Security.AccessControl.AuditFlags]::Failure, 
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        $EveryoneSuccess = New-Object System.DirectoryServices.ActiveDirectoryAuditRule($Everyone,
+            @([System.DirectoryServices.ActiveDirectoryRights]::WriteProperty,
+            [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight),
+            [System.Security.AccessControl.AuditFlags]::Success,
+            [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None)
+    
+        [System.DirectoryServices.ActiveDirectoryAuditRule[]] $Rules = @($EveryoneFail, $EveryoneSuccess)
+    
+        Write-Output -InputObject $Rules
+    }
+    
 # DC security - put DNS under here?
 if ($DC) {
     # Enforcing LDAP server signing (always)
@@ -1102,7 +1104,7 @@ Write-Host "[INFO] UPnP disabled"
 # Restrict Internet Communication of several Windows features [TEST]
 # reg add "HKLM\SOFTWARE\Policies\Microsoft\InternetManagement" /v "RestrictCommunication" /t REG_DWORD /d 1 /f | Out-Null
 
-# Yeet Powershell v2
+# Yeet PowerShell v2
 Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2 -norestart
 Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root -norestart
 
