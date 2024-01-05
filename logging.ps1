@@ -7,6 +7,9 @@ WevtUtil sl "Microsoft-Windows-PowerShell/Operational" /ms:512000
 wevtutil sl "Microsoft-Windows-DNS-Client/Operational" /e:true
 Write-Host "[INFO] Log sizes set"
 
+# Setting percentage threshold for security event log
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\Eventlog\Security" /v WarningLevel /t REG_DWORD /d 90 /f | Out-Null
+
 # Enabling audit policy subcategories
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v SCENoApplyLegacyAuditPolicy /t REG_DWORD /d 1 /f | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audit policy subcategories enabled" -ForegroundColor white 
@@ -35,6 +38,9 @@ Write-Host "[INFO] Sysmon installed and configured"
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
     dnscmd /config /loglevel 0x8000F301
     dnscmd /config /logfilemaxsize 0xC800000
+    # Enabling logging for 
+    Set-DnsServerDiagnostics -EnableLoggingForPluginDllEvent $true | Out-Null
+
     Write-Host "[INFO] DNS Server logging configured"
 }
 

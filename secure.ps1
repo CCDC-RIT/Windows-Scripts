@@ -62,6 +62,9 @@ gpupdate /force
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Local group policy reset" -ForegroundColor white 
 ## Resetting domain GPOs
 if ($DC) {
+    ## Reset/rebuild default GPOs
+    dcgpofix /ignoreschema
+
     $DomainGPO = Get-GPO -All
     foreach ($GPO in $DomainGPO) {
         ## Prompt user to decide which GPOs to disable
