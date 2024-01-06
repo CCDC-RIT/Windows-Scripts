@@ -118,7 +118,7 @@ if ($DC) {
 }
 
 # Making a backup admin account
-net user cucumber "Passw0rd-123*" /add
+net user cucumber * /add
 net localgroup Administrators cucumber /add
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Backup administrator account created" -ForegroundColor white 
 
@@ -216,14 +216,14 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 # System security 
 ## Disable loading of test signed kernel-drivers
-bcdedit.exe /set TESTSIGNING OFF
-bcdedit.exe /set loadoptions ENABLE_INTEGRITY_CHECKS 
+bcdedit.exe /set TESTSIGNING OFF | Out-Null
+bcdedit.exe /set loadoptions ENABLE_INTEGRITY_CHECKS | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Loading of test-signed kernel drivers disabled" -ForegroundColor white 
 ## Enabling driver signature enforcement
-bcdedit.exe /set nointegritychecks off
+bcdedit.exe /set nointegritychecks off | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Driver signatures enforced" -ForegroundColor white 
 ## Enable DEP for all processes
-bcdedit.exe /set "{current}" nx AlwaysOn
+bcdedit.exe /set "{current}" nx AlwaysOn | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled DEP for all processes" -ForegroundColor white 
 ## Disabling crash dump generation
 reg add "HKLM\SYSTEM\CurrentControlSet\control\CrashControl" /v "CrashDumpEnabled" /t REG_DWORD /d 0 /f | Out-Null
@@ -395,7 +395,7 @@ if(!(Get-MpComputerStatus | Select-Object AntivirusEnabled)) {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Started Windows Defender service" -ForegroundColor white 
 }
 ## Enabling Windows Defender sandboxing
-cmd /c "setx /M MP_FORCE_USE_SANDBOX 1"
+cmd /c "setx /M MP_FORCE_USE_SANDBOX 1" | Out-Null
 ## Enabling a bunch of configuration settings
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableAntiSpyware" /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "HideExclusionsFromLocalAdmins" /t REG_DWORD /d 0 /f | Out-Null
@@ -423,7 +423,7 @@ reg add "HKLM\Software\Policies\Microsoft\Windows Defender\Windows Defender Expl
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled Windows Defender network protection" -ForegroundColor white 
 ## Removing and updating Windows Defender signatures
 & 'C:\Program Files\Windows Defender\MpCmdRun.exe' -RemoveDefinitions -All | Out-Null
-Update-MpSignature | Out-Null
+Update-MpSignature
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Updated Windows Defender signatures" -ForegroundColor white 
 ## Setting exploit guard settings via config file
 try {
@@ -505,9 +505,10 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 reg add "HKLM\Software\Microsoft\OLE" /v EnableDCOM /t REG_SZ /d N /f | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled DCOM" -ForegroundColor white 
 ## I hate print spooler
-net stop spooler | Out-Null
-sc.exe config spooler start=disabled | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Shut down and disabled Print Spooler" -ForegroundColor white 
+if ((Get-Service -Name spooler).Status -eq "Running") {
+    Stop-Service -Name spooler -Force -PassThru | Set-Service -StartupType Disabled | Out-Null
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Shut down and disabled Print Spooler" -ForegroundColor white 
+}
 
 ## Secure channel settings
 ### Ensure 'Domain member: Digitally encrypt or sign secure channel data (always)' is set to 'Enabled'
@@ -654,7 +655,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\LDAP" /v LDAPClientIntegrity /t 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled enforcement of LDAP client signing" -ForegroundColor white
 
 ## Prevent insecure encryption suites for Kerberos (need to test)
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Kerberos\Parameters" /v "SupportedEncryptionTypes" /t REG /d 2147483640 | Out-Null
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Kerberos\Parameters" /v "SupportedEncryptionTypes" /t REG_DWORD /d 2147483640 | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled stronger encryption types for Kerberos" -ForegroundColor white
 
 # ----------- Networking settings ------------
@@ -1180,8 +1181,11 @@ if ($CA) {
 # reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "__PSLockDownPolicy" /t REG_SZ /d 4 /f | Out-Null
 # Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Constrained Language mode enabled" -ForegroundColor white   
 
-# Report errors (TODO: change file path)
+# Report errors
 $Error | Out-File (Join-Path -Path $currentDir -ChildPath "results\hard.txt") -Append -Encoding utf8
+
+Write-Host "Hardening Script done! Please restart the system as soon as possible." -ForegroundColor Cyan   
+Write-Host "See " -NoNewline -ForegroundColor Cyan; Write-Host (Join-Path -Path $currentDir -ChildPath "results\hard.txt") -ForegroundColor Magenta -NoNewline; Write-Host " for errors." -ForegroundColor Cyan
 
 # TODO: test this command out
 # Block tools which remotely install services, such as psexec!
