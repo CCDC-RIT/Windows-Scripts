@@ -20,6 +20,10 @@ if (Get-Service -Name CertSvc 2>$null) {
     $CA = $true
 }
 
+$currentDir = (Get-Location).Path
+$rootDir = Split-Path -Parent $currentDir
+$ConfPath = Join-Path -Path $currentDir -ChildPath "conf"
+
 # Securing RDP
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v SecurityLayer /t REG_DWORD /d 2 /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f | Out-Null
@@ -49,10 +53,23 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # Set-Service WinRM -StartupType Disabled -PassThru
 # Write-Host "[INFO] WinRM disabled and listeners removed"
 
-# Uninstalling SSH
-Remove-WindowsCapability -Online -Name "OpenSSH.Client~~~~0.0.1.0"
-Remove-WindowsCapability -Online -Name "OpenSSH.Server~~~~0.0.1.0"
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SSH Client and Server removed" -ForegroundColor white 
+# Uninstalling Windows capabilities
+$capabilities = @("OpenSSH.Client~~~~0.0.1.0", "OpenSSH.Server~~~~0.0.1.0")
+foreach ($capability in $capabilities) {
+    if ((Get-WindowsCapability -Online -Name $capability | Select-Object "State") -eq "Installed") {
+        Remove-WindowsCapability -Online -Name $capability
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Uninstalled $capability" -ForegroundColor white 
+    }
+}
+
+## Yeeting unneeded Windows features 
+$features = @("MicrosoftWindowsPowerShellV2", "MicrosoftWindowsPowerShellV2Root", "SMB1Protocol")
+foreach ($feature in $features) {
+    if ((Get-WindowsOptionalFeature -Online -FeatureName $feature | Select-Object "State") -eq "Enabled") {
+        Disable-WindowsOptionalFeature -Online -FeatureName $feature -norestart
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Uninstalled $feature" -ForegroundColor white 
+    }
+}
 
 # GPO stuff
 ## Resetting local group policy
@@ -74,20 +91,28 @@ if ($DC) {
         }
     }
 
-    ## Applying DC security template
-    secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\dc-secpol.inf'
+    ## Applying DC security template (deprecated)
+    # secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\dc-secpol.inf'
 
     ## Importing domain GPOs
-    Import-GPO -BackupId "F4A70563-32A9-4B5F-83B2-9DBE866D54FC" -TargetName "secure-gpo" -path "conf\{F4A70563-32A9-4B5F-83B2-9DBE866D54FC}" -CreateIfNeeded
+    Import-GPO -BackupId "AFB8A9FB-461A-4432-8F89-3847DFBEA45F" -TargetName "common-domain-settings" -CreateIfNeeded -Path $ConfPath
+    Import-GPO -BackupId "5A5FA47B-F8F6-4B0B-84DB-E46EF6C239C0" -TargetName "domain-controller-settings" -CreateIfNeeded -Path $ConfPath
+    Import-GPO -BackupId "EBDE39CE-90F2-4119-AA69-E0E48F0FCCAA" -TargetName "member-server-client-settings" -CreateIfNeeded -Path $ConfPath
+    Import-GPO -BackupId "BEAA6460-782B-4351-B17D-4DC8076633C9" -TargetName "defender-settings" -CreateIfNeeded -Path $ConfPath
+    
+    $distinguishedName = (Get-ADDomain -Identity (Get-ADDomain -Current LocalComputer).DNSRoot).DistinguishedName
+    New-GPLink -Name "common-domain-settings" -Target $distinguishedName -Order 1
+    New-GPLink -Name "defender-settings" -Target $distinguishedName
+    New-GPLink -Name "domain-controller-settings" -Target ("OU=Domain Controllers," + $distinguishedName) -Order 1
 
     gpupdate /force
 } else {
-    ## Applying client machine/member server security template
-    secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\web-secpol.inf'
+    ## Applying client machine/member server security template (deprecated)
+    # secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\web-secpol.inf'
     
-    # Importing client machine/member server GPOs
-    # TODO: fix path to be absolute 
-    ..\tools\LGPO_30\LGPO.exe /g "conf\{8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147}" 
+    # Importing client machine/member server GPO
+    $LGPOPath = Join-Path -Path $rootDir -ChildPath "tools\LGPO_30\LGPO.exe"
+    & $LGPOPath /p (Join-Path -Path $ConfPath -ChildPath "localpolicy.PolicyRules") 
     
     gpupdate /force
 }
@@ -99,7 +124,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 # Mitigating CVEs
 # CVE-2021-36934 (HiveNightmare/SeriousSAM) - workaround (patch at https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-36934)
-icacls $env:windir\system32\config\*.* /inheritance:e
+icacls $env:windir\system32\config\*.* /inheritance:e | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] HiveNightmare mitigations in place" -ForegroundColor white 
 ## Mitigating CVE-2021-1675 and CVE 2021-34527 (PrintNightmare)
 reg add "HKLM\Software\Policies\Microsoft\Windows NT\Printers" /v CopyFilesPolicy /t REG_DWORD /d 1 /f | Out-Null
@@ -397,13 +422,12 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 reg add "HKLM\Software\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\Network Protection" /v EnableNetworkProtection /t REG_DWORD /d 1 /f | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled Windows Defender network protection" -ForegroundColor white 
 ## Removing and updating Windows Defender signatures
-& 'C:\Program Files\Windows Defender\MpCmdRun.exe' -RemoveDefinitions -All
-Update-MpSignature
+& 'C:\Program Files\Windows Defender\MpCmdRun.exe' -RemoveDefinitions -All | Out-Null
+Update-MpSignature | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Updated Windows Defender signatures" -ForegroundColor white 
 ## Setting exploit guard settings via config file
 try {
-    # TODO: change to absolute path
-    Set-ProcessMitigation -PolicyFilePath conf\def-eg-settings.xml
+    Set-ProcessMitigation -PolicyFilePath (Join-Path -Path $ConfPath -ChildPath "def-eg-settings.xml") | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Configured Windows Defender Exploit Guard" -ForegroundColor white 
 } catch {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Detected old Defender version, skipping configuring Exploit Guard" -ForegroundColor white 
@@ -484,15 +508,6 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 net stop spooler | Out-Null
 sc.exe config spooler start=disabled | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Shut down and disabled Print Spooler" -ForegroundColor white 
-
-## Yeeting unneeded Windows features 
-$features = @("MicrosoftWindowsPowerShellV2", "MicrosoftWindowsPowerShellV2Root", "SMB1Protocol")
-foreach($feature in $features) {
-    if (Get-WindowsOptionalFeature -Online -FeatureName $feature | Select-Object "State" -eq "Enabled") {
-        Disable-WindowsOptionalFeature -Online -FeatureName $feature -norestart
-        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Uninstalled $feature" -ForegroundColor white 
-    }
-}
 
 ## Secure channel settings
 ### Ensure 'Domain member: Digitally encrypt or sign secure channel data (always)' is set to 'Enabled'
@@ -608,7 +623,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 reg add "HKLM\System\CurrentControlSet\Services\Lanmanserver\Parameters" /v "Hidden" /t REG_DWORD /d 1 /f | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hidden computer from share browse list" -ForegroundColor white
 ## Microsoft-Windows-SMBServer\Audit event 3000 shows attempted connections [TEST]
-Set-SmbServerConfiguration -AuditSmb1Access $true | Out-Null
+Set-SmbServerConfiguration -AuditSmb1Access $true -Force | Out-Null
 
 ## RPC settings
 ### Disabling RPC usage from a remote asset interacting with scheduled tasks
@@ -661,7 +676,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" /v DisableP
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled SMHNR" -ForegroundColor white 
 ## Disabling NBT-NS via registry for all interfaces (might break something)
 $regkey = "HKLM:SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\"
-Get-ChildItem $regkey | ForEach-Object { Set-ItemProperty -Path "$regkey\$($_.pschildname)" -Name NetbiosOptions -Value 2 -Verbose }
+Get-ChildItem $regkey | ForEach-Object { Set-ItemProperty -Path "$regkey\$($_.pschildname)" -Name NetbiosOptions -Value 2 | Out-Null }
 ## Disabling NetBIOS broadcast-based name resolution
 reg add "HKLM\System\CurrentControlSet\Services\NetBT\Parameters" /v NodeType /t REG_DWORD /d 2 /f | Out-Null
 ## Enabling ability to ignore NetBIOS name release requests except from WINS servers
@@ -672,7 +687,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" /v EnableMD
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled mDNS" -ForegroundColor white 
 
 ## Flushing DNS cache
-ipconfig /flushdns
+ipconfig /flushdns | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Flushed DNS cache" -ForegroundColor white 
 
 ## Disabling ipv6
@@ -1161,12 +1176,12 @@ if ($CA) {
 
 }
 
-# Enabling Constrained Language Mode (the wrong way)
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "__PSLockDownPolicy" /t REG_SZ /d 4 /f | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Constrained Language mode enabled" -ForegroundColor white   
+# Enabling Constrained Language Mode (the wrong way) (disabled for now because it breaks some tools)
+# reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "__PSLockDownPolicy" /t REG_SZ /d 4 /f | Out-Null
+# Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Constrained Language mode enabled" -ForegroundColor white   
 
 # Report errors (TODO: change file path)
-$Error | Out-File $env:USERPROFILE\Desktop\hard.txt -Append -Encoding utf8
+$Error | Out-File (Join-Path -Path $currentDir -ChildPath "results\hard.txt") -Append -Encoding utf8
 
 # TODO: test this command out
 # Block tools which remotely install services, such as psexec!

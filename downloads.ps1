@@ -68,9 +68,11 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 # Service tooling 
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') { # DC detection
-    # GPO and security template
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/dc/dc-secpol.inf", (Join-Path -Path $ConfPath -ChildPath "dc-secpol.inf"))
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/dc/%7BF4A70563-32A9-4B5F-83B2-9DBE866D54FC%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{F4A70563-32A9-4B5F-83B2-9DBE866D54FC}.zip"))
+    # Domain, Domain Controller, member/client, and Defender GPOs 
+    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BAFB8A9FB-461A-4432-8F89-3847DFBEA45F%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{AFB8A9FB-461A-4432-8F89-3847DFBEA45F}.zip"))
+    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7B5A5FA47B-F8F6-4B0B-84DB-E46EF6C239C0%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{5A5FA47B-F8F6-4B0B-84DB-E46EF6C239C0}.zip"))
+    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BEBDE39CE-90F2-4119-AA69-E0E48F0FCCAA%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{EBDE39CE-90F2-4119-AA69-E0E48F0FCCAA}.zip"))
+    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BBEAA6460-782B-4351-B17D-4DC8076633C9%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"))
     # Reset-KrbtgtKeyInteractive script
     (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/mubix/fd0c89ec021f70023695/raw/02e3f0df13aa86da41f1587ad798ad3c5e7b3711/Reset-KrbtgtKeyInteractive.ps1", (Join-Path -Path $ScriptPath -ChildPath "Reset-KrbtgtKeyInteractive.ps1"))
     # Pingcastle
@@ -78,19 +80,20 @@ if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') { 
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DC tools downloaded" -ForegroundColor white
     # Pingcastle, GPO extraction
     Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "pc.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "pc") 
-    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{F4A70563-32A9-4B5F-83B2-9DBE866D54FC}.zip") -DestinationPath (Join-Path -Path $ConfPath -ChildPath "{F4A70563-32A9-4B5F-83B2-9DBE866D54FC}")
+    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{AFB8A9FB-461A-4432-8F89-3847DFBEA45F}.zip") -DestinationPath $ConfPath
+    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{5A5FA47B-F8F6-4B0B-84DB-E46EF6C239C0}.zip") -DestinationPath $ConfPath
+    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{EBDE39CE-90F2-4119-AA69-E0E48F0FCCAA}.zip") -DestinationPath $ConfPath
+    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip") -DestinationPath $ConfPath
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DC tools extracted" -ForegroundColor white
 } else { # Member server/client tools
-    # GPO and security template 
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/web/web-secpol.inf", (Join-Path -Path $ConfPath -ChildPath "web-secpol.inf"))
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/web/%7B8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147}.zip"))
+    # Local policy file
+    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/localpolicy.PolicyRules", (Join-Path -Path $ConfPath -ChildPath "localpolicy.PolicyRules"))
     # LGPO tool
     (New-Object System.Net.WebClient).DownloadFile("https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip", (Join-Path -Path $InputPath -ChildPath "lg.zip"))
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Non-DC GPO, security template, and LGPO downloaded" -ForegroundColor white
-    # LGPO, GPO extraction
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LGPO and local policy file downloaded" -ForegroundColor white
+    # LGPO extraction
     Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "lg.zip") -DestinationPath $ToolsPath
-    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147}.zip") -DestinationPath (Join-Path -Path $ConfPath -ChildPath "{8DBC52E2-C1DF-4D2D-9A84-0F3760FE3147}")
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LGPO and non-DC GPO extracted" -ForegroundColor white
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LGPO extracted" -ForegroundColor white
 }
 
 if (Get-Service -Name CertSvc 2>$null) { # ADCS tools
@@ -157,5 +160,5 @@ Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "st.zip") -De
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "sm.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "sm")
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SysInternals tools extracted" -ForegroundColor white
 
-Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "hh64.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "hh64")
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "hh64.zip") -DestinationPath $ToolsPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hollows Hunter extracted" -ForegroundColor white
