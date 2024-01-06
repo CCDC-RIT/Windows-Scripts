@@ -73,7 +73,11 @@ foreach ($feature in $features) {
 
 # GPO stuff
 ## Resetting local group policy
-Copy-Item C:\Windows\System32\GroupPolicy* C:\gp -Recurse | Out-Null
+$gp = (Join-Path -Path $currentDir -ChildPath "results\gp")
+if(!(Test-Path -Path $gp)) {
+    New-Item -Path (Join-Path -Path $currentDir -ChildPath "results\gp") -ItemType Directory
+}
+Copy-Item C:\Windows\System32\GroupPolicy* $gp -Recurse | Out-Null
 Remove-Item C:\Windows\System32\GroupPolicy* -Recurse -Force | Out-Null
 gpupdate /force
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Local group policy reset" -ForegroundColor white 
@@ -118,9 +122,24 @@ if ($DC) {
 }
 
 # Making a backup admin account
-net user cucumber * /add
-net localgroup Administrators cucumber /add
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Backup administrator account created" -ForegroundColor white 
+Write-Host "Creating a backup admin account (name: cucumber)..." -ForegroundColor Cyan
+$match = $true
+while ($match) {
+    $Password = Read-Host -AsSecureString "Enter a secure password (min. 14 characters)"
+    $Password2 = Read-Host -AsSecureString "Confirm password"
+    $pwd1_text = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+    $pwd2_text = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password2))
+
+    if ($pwd1_text -cne $pwd2_text) {
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Passwords don't match, please try again" -ForegroundColor white 
+    } else {
+        New-LocalUser -Name cucumber -Password $Password
+        net localgroup Administrators cucumber /add
+        $match = $false
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Backup administrator account created" -ForegroundColor white 
+    }
+}
+# TODO: Add backup domain admin
 
 # Mitigating CVEs
 # CVE-2021-36934 (HiveNightmare/SeriousSAM) - workaround (patch at https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-36934)
@@ -1184,7 +1203,7 @@ if ($CA) {
 # Report errors
 $Error | Out-File (Join-Path -Path $currentDir -ChildPath "results\hard.txt") -Append -Encoding utf8
 
-Write-Host "Hardening Script done! Please restart the system as soon as possible." -ForegroundColor Cyan   
+Write-Host "Hardening Script done! Please restart the system as soon as possible." -ForegroundColor Cyan
 Write-Host "See " -NoNewline -ForegroundColor Cyan; Write-Host (Join-Path -Path $currentDir -ChildPath "results\hard.txt") -ForegroundColor Magenta -NoNewline; Write-Host " for errors." -ForegroundColor Cyan
 
 # TODO: test this command out
