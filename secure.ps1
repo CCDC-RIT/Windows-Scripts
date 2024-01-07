@@ -1,3 +1,8 @@
+# Optional parameter for password
+param (
+    [SecureString]$Password 
+)
+
 # Lorge secure script
 $Error.Clear()
 $ErrorActionPreference = "Continue"
@@ -123,23 +128,29 @@ if ($DC) {
 
 # Making a backup admin account
 Write-Host "Creating a backup admin account (name: cucumber)..." -ForegroundColor Cyan
-$match = $true
-while ($match) {
-    $Password = Read-Host -AsSecureString "Enter a secure password (min. 14 characters)"
-    $Password2 = Read-Host -AsSecureString "Confirm password"
-    $pwd1_text = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
-    $pwd2_text = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password2))
+# prompt for password if one wasn't specified as cli arg
+$promptPassword = $null
+if ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)) -ceq "") {
+    while ($true) {
+        $promptPassword = Read-Host -AsSecureString "Enter a secure password (min. 14 characters)"
+        $promptPassword2 = Read-Host -AsSecureString "Confirm password"
+        $pwd1_text = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($promptPassword))
+        $pwd2_text = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($promptPassword2))
 
-    if ($pwd1_text -cne $pwd2_text) {
-        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Passwords don't match, please try again" -ForegroundColor white 
-    } else {
-        New-LocalUser -Name cucumber -Password $Password
-        net localgroup Administrators cucumber /add
-        $match = $false
-        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Backup administrator account created" -ForegroundColor white 
+        if ($pwd1_text -cne $pwd2_text) {
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Passwords don't match, please try again" -ForegroundColor white 
+        } else {
+            $Password = $promptPassword 
+            break
+        }
     }
 }
-# TODO: Add backup domain admin
+New-LocalUser -Name cucumber -Password $Password
+net localgroup Administrators cucumber /add
+if ($DC) {
+    Add-ADGroupMember -Identity "Domain Admins" -Members "cucumber"
+}
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Backup administrator account created" -ForegroundColor white 
 
 # Mitigating CVEs
 # CVE-2021-36934 (HiveNightmare/SeriousSAM) - workaround (patch at https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-36934)
@@ -964,7 +975,7 @@ if ($DC) {
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters" /v FullSecureChannelProtection /t REG_DWORD /d 1 /f | Out-Null
     reg delete "HKLM\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters" /v vulnerablechannelallowlist /f | Out-Null
     # Enable netlogon debug logging - %windir%\debug\netlogon.log - watch for event IDs 5827 & 5828
-    nltest /DBFlag:2080FFFF
+    nltest /DBFlag:2080FFFF | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ZeroLogon mitigations in place" -ForegroundColor white
     
     # CVE-2021-42287/CVE-2021-42278 (SamAccountName / nopac)
