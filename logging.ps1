@@ -1,3 +1,11 @@
+# Parameter for Wazuh Manager IP Address
+param(
+    [Parameter(Mandatory=$true)]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    $wazuhIP
+)
+
 # setting up logging
 WevtUtil sl Application /ms:256000
 WevtUtil sl System /ms:256000
@@ -66,7 +74,8 @@ if (Get-Service -Name CertSvc 2>$null) {
 }
 
 # setup wazuh agent, config file, backup
-Start-Process -FilePath ..\installers\wazuhagent.msi -ArgumentList "/q WAZUH_MANAGER='10.0.136.143'" -Wait
+# Start-Process -FilePath ..\installers\wazuhagent.msi -ArgumentList "/q WAZUH_MANAGER='10.0.136.143'" -Wait
+Start-Process -FilePath ..\installers\wazuhagent.msi -ArgumentList "/q WAZUH_MANAGER='" + $wazuhIP + "'" -Wait
 Remove-Item "C:\Program Files (x86)\ossec-agent\ossec.conf" -Force
 Copy-Item -Path "conf\ossec_windows.conf" -Destination "C:\Program Files (x86)\ossec-agent\ossec.conf"
 net start Wazuh
