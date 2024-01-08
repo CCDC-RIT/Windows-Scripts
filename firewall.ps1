@@ -1,3 +1,10 @@
+# Parameter for enabling/disabling lockout prevention
+param(
+    [Parameter(Mandatory=$true)]
+    [bool]$EnableLockoutPrevention
+)
+
+
 # Delete all rules
 netsh advfirewall set allprofiles state off | Out-Null
 netsh advfirewall set allprofiles firewallpolicy allowinbound,allowoutbound | Out-Null
@@ -218,5 +225,7 @@ netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound | Ou
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Firewall on, set to block for all inbound and outbound traffic" -ForegroundColor white
 
 # Lockout prevention
-timeout 60
-netsh advfirewall set allprofiles state off
+if ($EnableLockoutPrevention) {
+    timeout 60
+    netsh advfirewall set allprofiles state off
+}
