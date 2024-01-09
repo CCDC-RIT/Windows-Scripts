@@ -563,6 +563,26 @@ $keysvalues = @{
 Write-KeysValues "----------- Active Startup Items -----------" $keysvalues $registryPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Active Setup keys" -ForegroundColor white
 
+# T1556.002 - Modify Authentication Process: Password Filter DLL
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" = @("Notification Packages")
+}
+Write-KeysValues "----------- Password Filter Item -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Password Filter DLL value" -ForegroundColor white
+# T1556.008 - Modify Authentication Process: Network Provider DLL
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\NetworkProvider\Order" = @("ProviderOrder")
+}
+Write-KeysValues "----------- Network Provider Order Item -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Network Provider DLL value" -ForegroundColor white
+
+# Security Providers
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders" = @("SecurityProviders")
+}
+Write-KeysValues "----------- Security Provider Item -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Security Providers" -ForegroundColor white
+
 # Alternate Shell
 $keysvalues = @{
     "HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot" = @("AlternateShell")
@@ -598,26 +618,6 @@ $keysvalues = @{
 }
 Write-KeysValues "----------- Protocol Filtering/Handling Items -----------" $keysvalues $registryPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Protocol Filtering & Handling keys" -ForegroundColor white
-
-# T1556.002 - Modify Authentication Process: Password Filter DLL
-$keysvalues = @{
-    "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" = @("Notification Packages")
-}
-Write-KeysValues "----------- Password Filter Item -----------" $keysvalues $registryPath
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Password Filter DLL value" -ForegroundColor white
-# T1556.008 - Modify Authentication Process: Network Provider DLL
-$keysvalues = @{
-    "HKLM\SYSTEM\CurrentControlSet\Control\NetworkProvider\Order" = @("ProviderOrder")
-}
-Write-KeysValues "----------- Network Provider Order Item -----------" $keysvalues $registryPath
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Network Provider DLL value" -ForegroundColor white
-
-# Security Providers
-$keysvalues = @{
-    "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders" = @("SecurityProviders")
-}
-Write-KeysValues "----------- Security Provider Item -----------" $keysvalues $registryPath
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Security Providers" -ForegroundColor white
 
 # $firewallfunction = Show-Firewall
 # $firewallfunction | Out-File -FilePath $firewallPath
