@@ -38,6 +38,7 @@ Function Get-KeysValues {
         }
     }
 }
+
 Function Write-KeysValues {
     param (
         [string]$header,
@@ -47,33 +48,21 @@ Function Write-KeysValues {
     Write-Output $header | Out-File -FilePath $filepath -Append
     Get-KeysValues $keysvalues | Out-File -FilePath $filepath -Append
 }
-Function Show-Firewall{#good
-    function Get-FirewallProfiles {
-        $profiles = Get-NetFirewallProfile | Select-Object -Property Name, Enabled
-        return $profiles
-    }
-    function Get-FirewallRulesForProfile {
-        param (
-            [string]$ProfileName
-        )
-        $rules = Get-NetFirewallRule | Where-Object { $_.Profile -contains $ProfileName } | Select-Object -Property Name, DisplayName, Direction, Action, Enabled
-        return $rules
-    }
-    $firewallProfiles = Get-FirewallProfiles
-    foreach ($profile in $firewallProfiles){
-        Write-Output "Firewall Profile: $($profile.Name)"
-        Write-Output "Enabled: $($profile.Enabled)"
-        $profileName = $profile.Name
-        $rules = Get-FirewallRulesForProfile -ProfileName $profileName
-        Write-Output "========================================================="
-        foreach ($rule in $rules){
-            Write-Output "Rule Name: $($rule.Name)"
-            Write-Output "Display Name: $($rule.DisplayName)"
-            Write-Output "Direction: $($rule.Direction)"
-            Write-Output "Action: $($rule.Action)"
-            Write-Output "Enabled: $($rule.Enabled)"
+
+Function Write-FirewallRules {
+    $firewallProfiles =  Get-NetFirewallProfile
+    foreach ($profile in $firewallProfiles) {
+        Write-Output "----------- $($profile.Name) -----------"
+        Write-Output ($profile | Select-Object Enabled | Format-List | Out-String).Trim()
+        Write-Output "=============================="
+        $rules = $profile | Get-NetFirewallRule
+        foreach ($rule in $rules) {
+            Write-Output ($rule | Select-Object Name,DisplayName,Direction,Action,Enabled | Format-List | Out-String).Trim()
+            Write-Output ""
         }
-        Write-Output "End Profile : $($profile.Name)"
+        Write-Output "----------- End $($profile.Name) -----------"
+        Write-Output ""
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited $($profile.Name) Profile firewall rules" -ForegroundColor white
     }
 }
 
@@ -619,8 +608,7 @@ $keysvalues = @{
 Write-KeysValues "----------- Protocol Filtering/Handling Items -----------" $keysvalues $registryPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Protocol Filtering & Handling keys" -ForegroundColor white
 
-# $firewallfunction = Show-Firewall
-# $firewallfunction | Out-File -FilePath $firewallPath
+Write-FirewallRules | Out-File $firewallPath
 
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
