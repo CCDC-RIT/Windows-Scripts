@@ -49,6 +49,61 @@ Function Write-KeysValues {
     Get-KeysValues $keysvalues | Out-File -FilePath $filepath -Append
 }
 
+Function Start-ACLCheck {
+    param(
+        $Target, 
+        $ServiceName
+    )
+
+    # Gather ACL of object
+    if ($null -ne $target) {
+        try {
+            $ACLObject = Get-Acl $target -ErrorAction SilentlyContinue
+        } catch { 
+            $null
+        }  
+        # If Found, Evaluate Permissions
+        if ($ACLObject) { 
+            $Identity = @()
+            $Identity += "$env:COMPUTERNAME\$env:USERNAME"
+            if ($ACLObject.Owner -like $Identity) { 
+                Write-Output "$Identity has ownership of $Target" 
+            }
+            whoami.exe /groups /fo csv | ConvertFrom-Csv | Select-Object -ExpandProperty 'group name' | ForEach-Object { $Identity += $_ }
+            $IdentityFound = $false
+            foreach ($i in $Identity) {
+                $permission = $ACLObject.Access | Where-Object { $_.IdentityReference -like $i }
+                $UserPermission = ""
+                switch -WildCard ($Permission.FileSystemRights) {
+                    "FullControl" { $userPermission = "FullControl"; $IdentityFound = $true }
+                    "Write*" { $userPermission = "Write"; $IdentityFound = $true }
+                    "Modify" { $userPermission = "Modify"; $IdentityFound = $true }
+                }
+                Switch ($permission.RegistryRights) {
+                    "FullControl" { $userPermission = "FullControl"; $IdentityFound = $true }
+                }
+                if ($UserPermission) {
+                    if ($ServiceName) { 
+                        Write-Output "$ServiceName found with permissions issue:"
+                    }
+                    Write-Output "Identity $($permission.IdentityReference) has '$userPermission' perms for $Target"
+                }
+            }    
+            # Identity Found Check - If False, loop through and stop at root of drive
+            if ($IdentityFound -eq $false) {
+                if ($Target.Length -gt 3) {
+                    $Target = Split-Path $Target
+                    Start-ACLCheck $Target -ServiceName $ServiceName
+                }
+            }
+        } else {
+            # If not found, split path one level and Check again
+            $Target = Split-Path $Target
+            Start-ACLCheck $Target $ServiceName
+        }
+    }
+}
+
 Function Write-FirewallRules {
     $firewallProfiles =  Get-NetFirewallProfile
     foreach ($profile in $firewallProfiles) {
@@ -66,10 +121,22 @@ Function Write-FirewallRules {
     }
 }
 
-Function Process-Audit{#good
-    $processList = Get-Process -IncludeUserName | Format-List
-    Write-Output "Process List with Usernames: "
+Function Write-ProcessInformation {
+    $processList = Get-Process -IncludeUserName | Sort-Object Id | Format-Table Id,ProcessName,Path,UserName | Out-String
+    Write-Output "----------- Process List -----------"
     Write-Output "$($processList)"
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited process information" -ForegroundColor white
+}
+Function Write-InjectedThreads {
+    Write-Output "----------- Injected Threads -----------"
+    $InjectedThread = Join-Path $currentDir -ChildPath "Get-InjectedThread.ps1"
+    & $InjectedThread
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited threads" -ForegroundColor white
+}
+Function Write-ProcessACL {
+    Write-Output "----------- Interesting Process ACLs -----------"
+    Get-Process | Select-Object Path -Unique | ForEach-Object { Start-ACLCheck -Target $_.path }
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited process ACLs" -ForegroundColor white
 }
 
 Function Hidden-Services{#not good
@@ -89,9 +156,7 @@ Function Windows-Defender-Exclusions{
     Write-Output "$($exclusions)"
 }
 
-Function Injected-Threads{
-    .\Get-InjectedThread.ps1
-}
+
 
 Function Random-Directories{
     $sus = @("C:\Intel", "C:\Temp")
@@ -300,58 +365,8 @@ function Get-Installed{
     }
 }
 
-Function Start-ACLCheck {
-    param(
-        $Target, $ServiceName)
-    # Gather ACL of object
-    if ($null -ne $target) {
-        try {
-            $ACLObject = Get-Acl $target -ErrorAction SilentlyContinue
-        }
-        catch { $null }
-        
-        # If Found, Evaluate Permissions
-        if ($ACLObject) { 
-            $Identity = @()
-            $Identity += "$env:COMPUTERNAME\$env:USERNAME"
-            if ($ACLObject.Owner -like $Identity ) { Write-Output "$Identity has ownership of $Target" -ForegroundColor Red }
-            whoami.exe /groups /fo csv | ConvertFrom-Csv | Select-Object -ExpandProperty 'group name' | ForEach-Object { $Identity += $_ }
-            $IdentityFound = $false
-            foreach ($i in $Identity) {
-                $permission = $ACLObject.Access | Where-Object { $_.IdentityReference -like $i }
-                $UserPermission = ""
-                switch -WildCard ($Permission.FileSystemRights) {
-                    "FullControl" { $userPermission = "FullControl"; $IdentityFound = $true }
-                    "Write*" { $userPermission = "Write"; $IdentityFound = $true }
-                    "Modify" { $userPermission = "Modify"; $IdentityFound = $true }
-                }
-                Switch ($permission.RegistryRights) {
-                    "FullControl" { $userPermission = "FullControl"; $IdentityFound = $true }
-                }
-                if ($UserPermission) {
-                    if ($ServiceName) { Write-Output "$ServiceName found with permissions issue:" -ForegroundColor Red }
-                    Write-Output -ForegroundColor red  "Identity $($permission.IdentityReference) has '$userPermission' perms for $Target"
-                }
-            }    
-            # Identity Found Check - If False, loop through and stop at root of drive
-            if ($IdentityFound -eq $false) {
-                if ($Target.Length -gt 3) {
-                    $Target = Split-Path $Target
-                    Start-ACLCheck $Target -ServiceName $ServiceName
-                }
-            }
-        }
-        else {
-        # If not found, split path one level and Check again
-            $Target = Split-Path $Target
-            Start-ACLCheck $Target $ServiceName
-        }
-    }
-}
 
-Function Get-Process-ACL{
-    Get-Process | Select-Object Path -Unique | ForEach-Object { Start-ACLCheck -Target $_.path }
-}
+
 
 Function Get-Registry-ACL{
     Get-ChildItem 'HKLM:\System\CurrentControlSet\services\' | ForEach-Object {
@@ -609,7 +624,9 @@ Write-KeysValues "----------- Protocol Filtering/Handling Items -----------" $ke
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Protocol Filtering & Handling keys" -ForegroundColor white
 
 Write-FirewallRules | Out-File $firewallPath
-
+Write-ProcessInformation | Out-File $processPath -Append
+Write-InjectedThreads | Out-File $processPath -Append
+Write-ProcessACL | Out-File $processPath -Append
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
 # $registryfunction = StartUp-Programs
