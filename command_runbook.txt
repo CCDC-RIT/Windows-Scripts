@@ -1,8 +1,8 @@
 # Getting all AD users except self, krbtgt, whiteteam users
-Get-ADUser -Filter "SamAccountName -notlike '$Env:UserName' -and SamAccountName -notlike 'krbtgt' -and SamAccountName -notlike 'der_vendor' -and SamAccountName -notlike 'scorechk'" -Properties SamAccountName | Select-Object -ExpandProperty SamAccountName | Out-File -FilePath "users.txt"
+Get-ADUser -Filter "SamAccountName -notlike '$Env:UserName' -and SamAccountName -notlike 'krbtgt' -and SamAccountName -notlike '' -and SamAccountName -notlike ''" -Properties SamAccountName | Select-Object -ExpandProperty SamAccountName | Out-File -FilePath "users.txt"
 
 # Getting all local users except self, whiteteam users
-Get-CimInstance -ClassName Win32_UserAccount -Filter "LocalAccount='True'" | Where-Object { $_.Name -notlike $Env:UserName -and $_.Name -notlike 'der_vendor' -and $_.Name -notlike 'scorechk' } | Select-Object -ExpandProperty Name | Out-File -FilePath "users.txt"
+Get-CimInstance -ClassName Win32_UserAccount -Filter "LocalAccount='True'" | Where-Object { $_.Name -notlike $Env:UserName -and $_.Name -notlike '' -and $_.Name -notlike '' } | Select-Object -ExpandProperty Name | Out-File -FilePath "users.txt"
 
 # Recon of listening and active connections:
 while ($true){Get-NetTCPConnection -State Listen,Established -ErrorAction "SilentlyContinue" | Sort-Object state,localport | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,@{'Name'='CommandLine';'Expression'={(Get-CimInstance -Class Win32_Process -Filter "ProcessId = $($_.OwningProcess)").CommandLine}} | Format-Table -AutoSize; sleep 10; clear}
