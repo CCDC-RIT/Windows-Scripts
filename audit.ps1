@@ -1,5 +1,5 @@
 $VerbosePreference = "SilentlyContinue"
-$currentDir = Get-Location
+$currentDir = (Get-Location).Path
 $firewallPath = Join-Path -Path $currentDir -ChildPath 'results\firewallaudit.txt'
 $registryPath = Join-Path -Path $currentDir -ChildPath 'results\registryaudit.txt'
 $processPath = Join-Path -Path $currentDir -ChildPath 'results\processaudit.txt'
@@ -7,7 +7,46 @@ $thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\threathuntingau
 $windowsPath = Join-Path -Path $currentDir -ChildPath 'results\windowsaudit.txt'
 $aclPath = Join-Path -Path $currentDir -ChildPath 'results\aclaudit.txt'
 #split into different files
+Function Get-KeysValues {
+    param(
+        [hashtable]$hash
+    )
 
+    $key_test = ""
+    foreach ($Key in $hash.Keys) {
+        # drop wildcard character
+        if ($Key -like '*\`**') {
+            $key_test = "Registry::" + $Key.TrimEnd("\*")
+        } else {
+            $key_test = "Registry::" + $Key
+        }
+
+        if (Test-Path -Path $key_test) {
+            if ($hash[$key].Count -eq 0) { # querying only key/subkeys
+                $properties = Get-ItemProperty ("Registry::" + $Key)
+            } else {
+                $properties = Get-ItemProperty ("Registry::" + $Key) -Name $hash[$Key] -ErrorAction SilentlyContinue
+            }
+            foreach ($property in $properties) {
+                $key_path = "Key -",(Convert-Path $property.PSPath | Out-String) -join " "
+                Write-Output $key_path
+                Write-Output ($property | Select-Object * -ExcludeProperty PSPath,PSParentPath,PSChildName,PSProvider | Format-List | Out-String).Trim()
+                Write-Output "`r`n"
+            }         
+        } else {
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewline; Write-Host $key -ForegroundColor Magenta -NoNewline; Write-Host " not found" -ForegroundColor White
+        }
+    }
+}
+Function Write-KeysValues {
+    param (
+        [string]$header,
+        [hashtable]$keysvalues,
+        [string]$filepath
+    )
+    Write-Output $header | Out-File -FilePath $filepath -Append
+    Get-KeysValues $keysvalues | Out-File -FilePath $filepath -Append
+}
 Function Show-Firewall{#good
     function Get-FirewallProfiles {
         $profiles = Get-NetFirewallProfile | Select-Object -Property Name, Enabled
@@ -54,133 +93,6 @@ Function Scheduled-Tasks{#good
     $scheduled = Get-ScheduledTask | Format-List
     Write-Output "Scheduled Task List: "
     Write-Output "$($scheduled)"
-}
-
-Function StartUp-Programs{ #good
-    $startup = Get-CimInstance -ClassName Win32_StartupCommand | Select-Object -Property Command, Description, User, Location
-    Write-Output "$($startup)"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")"
-    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")"
-    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")"
-}
-
-Function StratUp-Scripts{#good cant find reg keys 
-    Write-Output "$(reg query "HKLM\Software\Policies\Microsoft\Windows\System\Scripts" /s)"
-    Write-Output "$(reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts" /s)"
-    Write-Output "$(reg query "HKCU\Software\Policies\Microsoft\Windows\System\Scripts" /s)"
-}
-
-Function Boot-Keys{ #good
-    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot" /v "AlternateShell")"
-    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v "BootExecute")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
-    Write-Output "$(reg query "HKCU\SOFTWARE\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
-    Write-Output "$(reg query "HKCU\SOFTWARE\Wow6432Node\Microsoft\Active Setup\Installed Components" /s /v "StubPath")"
-}
-
-Function Startup-Services{ #good can't find reg key
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServices")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
-    Write-Output "$(reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices")"
-    Write-Output "$(reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
-    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServices")"
-    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
-    Write-Output "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices")"
-    Write-Output "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce")"
-}
-
-Function Run-Keys{ #good - could not find smoe of the regs keys 
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce")"
-    Write-Output "$(reg query "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
-    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run")"
-    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce")"
-    Write-Output "$(reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx")"
-    Write-Output "$(reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
-    Write-Output "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run")"
-    Write-Output "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce")"
-    Write-Output "$(reg query "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx")"
-    Write-Output "$(reg query "HKCU\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run")"
-    Write-Output "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run")"
-    Write-Output "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Runonce")"
-    Write-Output "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunonceEx")"
-    Write-Output "$(reg query "HKLM\System\CurrentControlSet\Control\Terminal Server\Wds\rdpwd\StartupPrograms")"
-}
-
-Function RDP-Debugger-Persistance{
-    Write-Output "$(reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Accessibility\ATs" /s /v "StartExe")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /s /v "Debugger")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /s /v "Debugger")"
-    Write-Output "RDP enabled if 0, disabled if 1"
-    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v "fDenyTSConnections")"
-}
-
-Function COM-Hijacking{
-    Write-Output "$(reg query "HKLM\Software\Classes\Protocols\Filter" /s)"
-    Write-Output "$(reg query "HKLM\Software\Classes\Protocols\Handler" /s)"
-    Write-Output "$(reg query "HKLM\Software\Classes\CLSID" /s /v "InprocServer32")"
-    Write-Output "$(reg query "HKLM\Software\Classes\CLSID" /s /v "LocalServer32")"
-    Write-Output "$(reg query "HKLM\Software\Classes\CLSID" /s /v "TreatAs")"
-    Write-Output "$(reg query "HKLM\Software\Classes\CLSID" /s /v "ProcID")"
-}
-
-Function Password-Filter{
-    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Notification Packages")"
-}
-
-Function Authentication-Packages{
-    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Authentication Packages")"
-}
-
-Function Security-Packages{
-    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Security Packages" )"
-    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Lsa\OSConfig" /v "Security Packages")"
-}
-
-Function Security-Providers{
-    Write-Output "Including WDigest"
-    Write-Output "$(reg query "HKLM\System\CurrentControlSet\Control\SecurityProviders" /v SecurityProviders)"
-    Write-Output "$(reg query "HKLM\System\CurrentControlSet\Control\SecurityProviders\WDigest")"
-}
-
-Function Networker-Provider-Order{
-    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\NetworkProvider\Order" /v "ProviderOrder")"
-}
-
-Function Netsh-DLL{
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\NetSh")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\NetSh")"
-}
-
-Function AppInit-DLL{
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /v AppInit_DLLs)"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows" /v AppInit_DLLs)"
-}
-
-Function AppCert-DLL{
-    Write-Output "$(reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\AppCertDLLs")"
-}
-
-Function Winlogon-DLL{
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell)"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Userinit)"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Notify)"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell)"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Userinit)"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Notify)"
-}
-
-Function Print-Monitor-Ports{
-    Write-Output "$(reg query "HKLM\System\CurrentControlSet\Control\Print\Monitors" /s)"
 }
 
 Function Windows-Defender-Exclusions{
@@ -523,53 +435,239 @@ Function Get-Startup-ACL{
     }
 }
 
-$firewallfunction = Show-Firewall
-$firewallfunction | Out-File -FilePath $firewallPath
+# T1546.007 - Event Triggered Execution: Netsh Helper DLL
+$keysvalues = @{
+    "HKLM\SOFTWARE\Microsoft\NetSh" = @();
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\NetSh" = @()
+}
+Write-KeysValues "----------- netsh Helper DLL Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited netsh Helper DLL keys" -ForegroundColor white
+# T1546.009 - Event Triggered Execution: AppCert DLLs
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\AppCertDLLs" = @()
+}
+Write-KeysValues "----------- AppCert DLLs -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited AppCert DLL values" -ForegroundColor white
+# T1546.010 - Event Triggered Execution: AppCert DLLs
+$keysvalues = @{
+    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" = @("AppInit_DLLs");
+    "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows" = @("AppInit_DLLs")
+}
+Write-KeysValues "----------- AppInit DLLs -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited AppInit DLL values" -ForegroundColor white
+# T1546.012 - Event Triggered Execution: Image File Execution Options Injection
+$keysvalues = @{
+    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*" = @("Debugger");
+    "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*" = @("Debugger")
+}
+Write-KeysValues "----------- IFEO Debugger Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited IFEO keys" -ForegroundColor white
+# T1546.015 - Event Triggered Execution: Component Object Model Hijacking
+$keysvalues = @{
+    "HKLM\Software\Classes\CLSID\*" = @("InprocServer", "InprocServer32","LocalServer","LocalServer32","TreatAs","ProcID");
+    "HKCU\Software\Classes\CLSID\*" = @("InprocServer", "InprocServer32","LocalServer","LocalServer32","TreatAs","ProcID")
+}
+Write-KeysValues "----------- COM Hijacking Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited COM keys" -ForegroundColor white
 
-$registryfunction = StartUp-Programs
-$registryfunction += StratUp-Scripts
-$registryfunction += Boot-Keys
-$registryfunction += Startup-Services
-$registryfunction += Run-Keys
-$registryfunction += RDP-Debugger-Persistance
-$registryfunction += COM-Hijacking
-$registryfunction += Password-Filter
-$registryfunction += Authentication-Packages
-$registryfunction += Security-Packages
-$registryfunction += Security-Providers
-$registryfunction += Networker-Provider-Order
-$registryfunction += Netsh-DLL
-$registryfunction += AppInit-DLL
-$registryfunction += AppCert-DLL
-$registryfunction += Winlogon-DLL
-$registryfunction += Print-Monitor-Ports
-$registryfunction += Programs-Registry
-$registryfunction += Uninstall-Keys
-$registryfunction | Out-File -FilePath $registryPath
+# T1547.001 - Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder
+## ye olde run keys
+$keysvalues = @{
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" = @();
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" = @();
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx" = @();
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run" = @();
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run" = @();
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce"= @();
+    "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx"= @();
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"= @();
+    "HKCU\Software\Microsoft\Windows\CurrentVersion\Run"= @();
+    "HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce"= @();
+    "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx"= @();
+    "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"= @();
+    "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run"= @();
+    "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce"= @();
+    "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx"= @();
+    "HKCU\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"= @();
+    "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run"= @();
+    "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Runonce"= @();
+    "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunonceEx"= @();
+    "HKLM\System\CurrentControlSet\Control\Terminal Server\Wds\rdpwd\StartupPrograms"= @()
+}
+Write-KeysValues "----------- Run Key Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited run keys" -ForegroundColor white
+## Automatic service startup keys
+$keysvalues = @{
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServices" = @();
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServicesOnce" = @();
+    "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices" = @();
+    "HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce" = @();
+    "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServices" = @();
+    "HKCU\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce" = @();
+    "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices" = @();
+    "HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce" = @()
+}
+Write-KeysValues "----------- Automatic Service Startup Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited service run keys" -ForegroundColor white
+## Startup folder items
+$keysvalues = @{
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" = @();
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" = @();
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" = @();
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" = @();
+    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" = @();
+    "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" = @()
+}
+Write-KeysValues "----------- StartUp Folder Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited startup folder keys" -ForegroundColor white
+## BootExecute key - default of "autocheck autochk /q /v *"
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" = @("BootExecute")
+}
+Write-KeysValues "----------- Boot Execute Item -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited BootExecute value" -ForegroundColor white
 
-$processfunction = Process-Audit
-$processfunction += Hidden-Services
-$processfunction += Scheduled-Tasks
-$processfunction | Out-File -FilePath $processPath
+# T1547.002 - Boot or Logon Autostart Execution: Authentication Package
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" = @("Authentication Packages")
+}
+Write-KeysValues "----------- Authentication Packages -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Authentication Packages value" -ForegroundColor white
+# T1547.004 - Boot or Logon Autostart Execution: Winlogon Helper DLL
+$keysvalues = @{
+    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" = @("Shell","Userinit","Notify");
+    "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon" = @("Shell","Userinit","Notify")
+}
+Write-KeysValues "----------- Winlogon Helper DLLs -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Winlogon Helper DLL keys" -ForegroundColor white
+# T1547.005 - Boot or Logon Autostart Execution: Security Support Provider
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" = @("Security Packages");
+    "HKLM\SYSTEM\CurrentControlSet\Control\Lsa\OSConfig" = @("Security Packages")
+}
+Write-KeysValues "----------- Security Packages -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Security Packages value" -ForegroundColor white
+# T1547.010 - Boot or Logon Autostart Execution: Port Monitors
+$keysvalues = @{
+    "HKLM\System\CurrentControlSet\Control\Print\Monitors\*" = @()
+}
+Write-KeysValues "----------- Port Monitor Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Port Monitor keys" -ForegroundColor white
+# T1547.014 - Boot or Logon Autostart Execution: Active Setup
+$keysvalues = @{
+    "HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components\*" = @("StubPath");
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Active Setup\Installed Components\*" = @("StubPath");
+    "HKCU\SOFTWARE\Microsoft\Active Setup\Installed Components\*" = @("StubPath");
+    "HKCU\SOFTWARE\Wow6432Node\Microsoft\Active Setup\Installed Components\*" = @("StubPath")
+}
+Write-KeysValues "----------- Active Startup Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Active Setup keys" -ForegroundColor white
 
-$thruntingfunction = Windows-Defender-Exclusions
-$thruntingfunction += Random-Directories
-$thruntingfunction += Unsigned-Files
-$thruntingfunction += Ripper 
-$thruntingfunction += UnquotedServicePathCheck
-$thruntingfunction += Recently-Run-Commands
-$thruntingfunction += Get-ConsoleHostHistory
-$thruntingfunction | Out-File -FilePath $thruntingPath
+# Alternate Shell
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot" = @("AlternateShell")
+}
+Write-KeysValues "----------- Alternate Shell Item -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited AlternateShell value" -ForegroundColor white
 
-$windowsfunction = Get-Installed
-$windowsfunction += Current-local-gpo
-$windowsfunction += Windows-Features
-$windowsfunction | Out-File -FilePath $windowsPath
+# Startup/shutdown script keys
+$keysvalues = @{
+    "HKLM\Software\Policies\Microsoft\Windows\System\Scripts\*" = @();
+    "HKLM\Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts\*" = @();
+    "HKCU\Software\Policies\Microsoft\Windows\System\Scripts\*" = @()
+}
+Write-KeysValues "----------- Startup/Shutdown Script Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited startup/shutdown script keys" -ForegroundColor white
 
-$aclfunction = Get-Process-ACL
-$aclfunction = Get-Registry-ACL
-$aclfunction = Get-ScheduledTask-ACL
-$aclfunction = Get-Startup-ACL
-$aclfunction | Out-File -FilePath $aclPath
+# Assistive Technology 
+$keysvalues = @{
+    "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Accessibility\ATs\*" = @("StartExe");
+    "HKCU\Software\Microsoft\Windows NT\CurrentVersion\Accessibility" = @("Configuration")
+}
+Write-KeysValues "----------- Assistive Technology Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Assistive Technology keys" -ForegroundColor white
+
+# Protocol filtering and handling
+$keysvalues = @{
+    "HKLM\Software\Classes\Protocols\Filter\*" = @(); 
+    "HKLM\Software\Classes\Protocols\Handler\*" = @();
+    "HKLM\Software\Wow6432Node\Classes\Protocols\Filter\*" = @(); 
+    "HKLM\Software\Wow6432Node\Classes\Protocols\Handler\*" = @();
+    "HKCU\Software\Classes\Protocols\Filter\*" = @();
+    "HKCU\Software\Classes\Protocols\Handler\*" = @()
+}
+Write-KeysValues "----------- Protocol Filtering/Handling Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Protocol Filtering & Handling keys" -ForegroundColor white
+
+# T1556.002 - Modify Authentication Process: Password Filter DLL
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" = @("Notification Packages")
+}
+Write-KeysValues "----------- Password Filter Item -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Password Filter DLL value" -ForegroundColor white
+# T1556.008 - Modify Authentication Process: Network Provider DLL
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\NetworkProvider\Order" = @("ProviderOrder")
+}
+Write-KeysValues "----------- Network Provider Order Item -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Network Provider DLL value" -ForegroundColor white
+
+# Security Providers
+$keysvalues = @{
+    "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders" = @("SecurityProviders")
+}
+Write-KeysValues "----------- Security Provider Item -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Security Providers" -ForegroundColor white
+
+# $firewallfunction = Show-Firewall
+# $firewallfunction | Out-File -FilePath $firewallPath
+
+# $registryfunction = Get-StartupFolderItems
+# $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
+# $registryfunction = StartUp-Programs
+# $registryfunction += StratUp-Scripts
+# $registryfunction += Boot-Keys
+# $registryfunction += Startup-Services
+# $registryfunction += Run-Keys
+# $registryfunction += RDP-Debugger-Persistance
+# $registryfunction += COM-Hijacking
+# $registryfunction += Password-Filter
+# $registryfunction += Authentication-Packages
+# $registryfunction += Security-Packages
+# $registryfunction += Security-Providers
+# $registryfunction += Networker-Provider-Order
+# $registryfunction += Netsh-DLL
+# $registryfunction += AppInit-DLL
+# $registryfunction += AppCert-DLL
+# $registryfunction += Winlogon-DLL
+# $registryfunction += Print-Monitor-Ports
+# $registryfunction += Programs-Registry
+# $registryfunction += Uninstall-Keys
+# $registryfunction | Out-File -FilePath $registryPath
+
+# $processfunction = Process-Audit
+# $processfunction += Hidden-Services
+# $processfunction += Scheduled-Tasks
+# $processfunction | Out-File -FilePath $processPath
+
+# $thruntingfunction = Windows-Defender-Exclusions
+# $thruntingfunction += Random-Directories
+# $thruntingfunction += Unsigned-Files
+# $thruntingfunction += Ripper 
+# $thruntingfunction += UnquotedServicePathCheck
+# $thruntingfunction += Recently-Run-Commands
+# $thruntingfunction += Get-ConsoleHostHistory
+# $thruntingfunction | Out-File -FilePath $thruntingPath
+
+# $windowsfunction = Get-Installed
+# $windowsfunction += Current-local-gpo
+# $windowsfunction += Windows-Features
+# $windowsfunction | Out-File -FilePath $windowsPath
+
+# $aclfunction = Get-Process-ACL
+# $aclfunction = Get-Registry-ACL
+# $aclfunction = Get-ScheduledTask-ACL
+# $aclfunction = Get-Startup-ACL
+# $aclfunction | Out-File -FilePath $aclPath
 
 #TODO: Print user properties
