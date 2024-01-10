@@ -1,5 +1,4 @@
 # Parameter for Wazuh Manager IP Address
-# Parameter for path for files from Download.ps1
 param(
     [Parameter(Mandatory=$true)]
     [ValidateNotNullOrEmpty()]
