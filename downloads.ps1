@@ -42,6 +42,7 @@ $SysPath = Join-Path -Path $ToolsPath -ChildPath "sys"
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Directories created" -ForegroundColor white
 
 # Custom tooling downloads
+$ProgressPreference = 'SilentlyContinue'
 # Audit script
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/audit.ps1", (Join-Path -Path $ScriptPath -ChildPath "audit.ps1"))
 # Audit policy file
