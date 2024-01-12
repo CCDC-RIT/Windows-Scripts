@@ -6,6 +6,9 @@ param(
     $wazuhIP
 )
 
+# Variable for the file's current path
+[string]$currentPath = $MyInvocation.MyCommand.Path
+
 # setting up logging
 WevtUtil sl Application /ms:256000
 WevtUtil sl System /ms:256000
@@ -34,11 +37,11 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 Write-Host "[INFO] PowerShell and command-line logging set"
 
 # TODO: import audit policy
-auditpol /restore /file:"conf\auditpol.csv"
+auditpol /restore /file: (Join-Path ($currentPath.substring(0, $currentPath.IndexOf("logging.ps1"))) "\conf\auditpol.csv")
 Write-Host "[INFO] System audit policy set"
 
 # Sysmon setup
-..\tools\sys\sm\sysmon64.exe -accepteula -i "conf\sysmon.xml"
+& (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "sm\sysmon64.exe") -accepteula -i (Join-Path ($currentPath.substring(0,$currentPAth.IndexOf("logging.ps1"))) "\conf\sysmon.xml")
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
 Write-Host "[INFO] Sysmon installed and configured"
 
@@ -74,9 +77,8 @@ if (Get-Service -Name CertSvc 2>$null) {
 }
 
 # setup wazuh agent, config file, backup
-# Start-Process -FilePath ..\installers\wazuhagent.msi -ArgumentList "/q WAZUH_MANAGER='10.0.136.143'" -Wait
-Start-Process -FilePath ..\installers\wazuhagent.msi -ArgumentList "/q WAZUH_MANAGER='" + $wazuhIP + "'" -Wait
+Start-Process -FilePath (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "installers\wazuhagent.msi") -ArgumentList ("/q WAZUH_MANAGER='" + $wazuhIP + "'") -Wait
 Remove-Item "C:\Program Files (x86)\ossec-agent\ossec.conf" -Force
-Copy-Item -Path "conf\ossec_windows.conf" -Destination "C:\Program Files (x86)\ossec-agent\ossec.conf"
+Copy-Item -Path (Join-Path ($currentPath.substring(0,$currentPath.indexOf("logging.ps1"))) "conf\agent_windows.conf") -Destination "C:\Program Files (x86)\ossec-agent\ossec.conf"
 net start Wazuh
 Write-Host "[INFO] Wazuh installed and configured"

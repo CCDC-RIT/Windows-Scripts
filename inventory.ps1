@@ -122,7 +122,7 @@ function Get-Inventory {
     Get-WindowsFeature | Where-Object {$_.InstallState -eq "Installed"} | Format-Table Name,Path
 }
 
-Get-Inventory | Tee-Object -FilePath "results\inventory.txt"
+Get-Inventory | Tee-Object -FilePath (Join-Path (($MyInvocation.MyCommand.Path).substring(0,($MyInvocation.MyCommand.Path).indexOf("inventory.ps1")))  "results\inventory.txt")
 
 
 
