@@ -3,6 +3,7 @@ $currentDir = (Get-Location).Path
 $firewallPath = Join-Path -Path $currentDir -ChildPath 'results\firewallaudit.txt'
 $registryPath = Join-Path -Path $currentDir -ChildPath 'results\registryaudit.txt'
 $processPath = Join-Path -Path $currentDir -ChildPath 'results\processaudit.txt'
+$servicePath = Join-Path -Path $currentDir -ChildPath 'results\serviceaudit.txt'
 $thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\threathuntingaudit.txt'
 $windowsPath = Join-Path -Path $currentDir -ChildPath 'results\windowsaudit.txt'
 $aclPath = Join-Path -Path $currentDir -ChildPath 'results\aclaudit.txt'
@@ -121,11 +122,17 @@ Function Write-FirewallRules {
     }
 }
 
-Function Write-ProcessInformation {
-    $processList = Get-Process -IncludeUserName | Sort-Object Id | Format-Table Id,ProcessName,Path,UserName | Out-String
+Function Write-ProcessChecks {
+    # Process List
+    $processes = Get-Process -IncludeUserName
     Write-Output "----------- Process List -----------"
-    Write-Output "$($processList)"
+    Write-Output $processes | Sort-Object Id | Format-Table Id,ProcessName,Description,UserName,Path -Wrap 
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited process information" -ForegroundColor white
+    # Process ACLs
+    Write-Output "----------- Interesting Process ACLs -----------"
+    $processes | Select-Object Path -Unique | ForEach-Object { Start-ACLCheck -Target $_.path }
+    Write-Output "`n"
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited process ACLs" -ForegroundColor white
 }
 Function Write-InjectedThreads {
     Write-Output "----------- Injected Threads -----------"
@@ -133,54 +140,48 @@ Function Write-InjectedThreads {
     & $InjectedThread
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited threads" -ForegroundColor white
 }
-Function Write-ProcessACL {
-    Write-Output "----------- Interesting Process ACLs -----------"
-    Get-Process | Select-Object Path -Unique | ForEach-Object { Start-ACLCheck -Target $_.path }
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited process ACLs" -ForegroundColor white
-}
 
-Function Hidden-Services{#not good
-    $hidden = Compare-Object -ReferenceObject (Get-Service | Select-Object -ExpandProperty Name | % { $_ -replace "_[0-9a-f]{2,8}$" } ) -DifferenceObject (gci -path hklm:\system\currentcontrolset\services | % { $_.Name -Replace "HKEY_LOCAL_MACHINE\\","HKLM:\" } | ? { Get-ItemProperty -Path "$_" -name objectname -erroraction 'ignore' } | % { $_.substring(40) }) -PassThru | ?{$_.sideIndicator -eq "=>"}
-    Write-Output "Hidden Service List: "
-    Write-Output "$($hidden)"
-}
-
-Function Scheduled-Tasks{#good
-    $scheduled = Get-ScheduledTask | Format-List
-    Write-Output "Scheduled Task List: "
-    Write-Output "$($scheduled)"
-}
-
-Function Windows-Defender-Exclusions{
-    $exclusions = Get-MpPreference | findstr /b Exclusion
-    Write-Output "$($exclusions)"
-}
-
-
-
-Function Random-Directories{
-    $sus = @("C:\Intel", "C:\Temp")
-    foreach ($directory in $sus){
-        Write-Output "$(Get-ChildItem $directory)"
+Function Find-UnquotedServicePaths {
+    param (
+        $servicesList
+    )
+    $foundServices = $servicesList | Where-Object { $_.PathName -inotmatch "`"" -and $_.PathName -inotmatch ":\\Windows\\" -and ($_.StartMode -eq "Auto" -or $_.StartMode -eq "Manual") -and ($_.State -eq "Running" -or $_.State -eq "Stopped") };
+    if($($foundServices | Measure-Object).Count -lt 1) {
+        Write-Output "No unquoted service paths were found"
+        Write-Output "`n"
+    } else {
+        $foundServices | Sort-Object -Property ProcessId,Name | Format-List -Property ProcessId,State,StartMode,Name,DisplayName,StartName,PathName
     }
+} 
+Function Write-ServiceChecks {
+    $services = Get-CimInstance -Class Win32_Service
+    Write-Output "----------- Service List -----------"
+    # PID, Name, DisplayName, State, StartMode, StartName, PathName
+    Write-Output $services | Select-Object @{Name="PID";Expression={$_.Processid}},State,StartMode,Name,DisplayName,StartName,PathName | Sort-Object PID | Format-Table -Property PID,Name,DisplayName,State,StartMode,StartName,PathName -Autosize -Wrap
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited service information" -ForegroundColor white
+    # Unquoted service path check
+    Write-Output "----------- Unquoted Service Paths -----------"
+    Find-UnquotedServicePaths $services
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited for unquoted service paths" -ForegroundColor white
+    # TODO: Check service executable ACLs
+    # TODO: merge ripper function 
 }
-
-Function Exporting-Sec-Policy{
-    SecEdit /export /cfg "results\artifacts\old_secpol.cfg"
+Function Find-HiddenServices {
+    $hidden = Compare-Object -ReferenceObject (Get-Service | Select-Object -ExpandProperty Name | % { $_ -replace "_[0-9a-f]{2,8}$" } ) -DifferenceObject (gci -path hklm:\system\currentcontrolset\services | % { $_.Name -Replace "HKEY_LOCAL_MACHINE\\","HKLM:\" } | ? { Get-ItemProperty -Path "$_" -name objectname -erroraction 'ignore' } | % { $_.substring(40) }) -PassThru | ?{$_.sideIndicator -eq "=>"}
+    $hidden = $hidden | Format-List
+    Write-Output "----------- Hidden Services -----------"
+    Write-Output $hidden
+    Write-Output "`n"
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited for hidden services" -ForegroundColor white
 }
-
-Function Current-local-gpo{
-    # Use auditpol to get the current local gpo
-    gpresult /h "results\artifacts\LocalGrpPolReport.html"
-}
-
-Function Programs-Registry{
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "DisplayName")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "UninstallString")"
-}
-
-Function Unsigned-Files{
-    ..\tools\sys\sc\sigcheck64 -accepteula -u -e c:\windows\system32
+# WARNING: takes forever
+Function Invoke-ServiceRegistryACLCheck {
+    Write-Output "----------- Interesting Service Registry Key ACLs -----------"
+    Get-ChildItem 'HKLM:\System\CurrentControlSet\services\' | ForEach-Object {
+        $target = $_.Name.Replace("HKEY_LOCAL_MACHINE", "hklm:")
+        Start-ACLCheck -Target $target
+    }
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited service registry key ACLs" -ForegroundColor white
 }
 
 Function Ripper{
@@ -249,6 +250,47 @@ Function Ripper{
         Write-Output "No potentially suspicious services detected.`n"
     }
 }
+
+
+Function Scheduled-Tasks{#good
+    $scheduled = Get-ScheduledTask | Format-List
+    Write-Output "Scheduled Task List: "
+    Write-Output "$($scheduled)"
+}
+
+Function Windows-Defender-Exclusions{
+    $exclusions = Get-MpPreference | findstr /b Exclusion
+    Write-Output "$($exclusions)"
+}
+
+
+
+Function Random-Directories{
+    $sus = @("C:\Intel", "C:\Temp")
+    foreach ($directory in $sus){
+        Write-Output "$(Get-ChildItem $directory)"
+    }
+}
+
+Function Exporting-Sec-Policy{
+    SecEdit /export /cfg "results\artifacts\old_secpol.cfg"
+}
+
+Function Current-local-gpo{
+    # Use auditpol to get the current local gpo
+    gpresult /h "results\artifacts\LocalGrpPolReport.html"
+}
+
+Function Programs-Registry{
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "DisplayName")"
+    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "UninstallString")"
+}
+
+Function Unsigned-Files{
+    ..\tools\sys\sc\sigcheck64 -accepteula -u -e c:\windows\system32
+}
+
+
 #only if server 
 Function Windows-Features{
     $featureList = Get-WindowsFeature | Where-Object Installed
@@ -277,49 +319,7 @@ Function Uninstall-Keys{
     $results
 }
 
-Function Service-CMD-Line{
-    # Get a list of all services
-    $services = Get-Service
 
-    # Iterate through each service and retrieve command line arguments
-    foreach ($service in $services) {
-        $serviceName = $service.DisplayName
-        $serviceStatus = $service.Status
-        $serviceCommand = $null
-
-        try {
-            # Access the service's executable path which typically contains command line arguments
-            $serviceCommand = (Get-CimInstance Win32_Service | Where-Object { $_.Name -eq $serviceName }).PathName
-        }
-        catch {
-            $serviceCommand = "Error: Unable to retrieve command line arguments"
-        }
-
-        # Output service information
-        Write-Output "`nService Name: $serviceName"
-        Write-Output "`nService Status: $serviceStatus"
-        Write-Output "`nCommand Line Arguments: $serviceCommand"
-        Write-Output "`n-----------------------------------"
-    }
-}
-
-Function UnquotedServicePathCheck {
-    Write-Output "Fetching the list of services, this may take a while...";
-    $services = Get-WmiObject -Class Win32_Service | Where-Object { $_.PathName -inotmatch "`"" -and $_.PathName -inotmatch ":\\Windows\\" -and ($_.StartMode -eq "Auto" -or $_.StartMode -eq "Manual") -and ($_.State -eq "Running" -or $_.State -eq "Stopped") };
-    if ($($services | Measure-Object).Count -lt 1) {
-    Write-Output "No unquoted service paths were found";
-    }
-    else {
-        $services | ForEach-Object {
-            Write-Output "Unquoted Service Path found!`n" -ForegroundColor red
-            Write-Output `nName: $_.Name
-            Write-Output `nPathName: $_.PathName
-            Write-Output `nStartName: $_.StartName 
-            Write-Output `nStartMode: $_.StartMode
-            Write-Output `nRunning: $_.State
-        } 
-    }
-}
 
 Function Recently-Run-Commands{
     Get-ChildItem HKU:\ -ErrorAction SilentlyContinue | ForEach-Object {
@@ -362,16 +362,6 @@ function Get-Installed{
     Get-CimInstance -class win32_Product | Select-Object Name, Version | 
     ForEach-Object {
         Write-Output $("{0} : {1}" -f $_.Name, $_.Version)  
-    }
-}
-
-
-
-
-Function Get-Registry-ACL{
-    Get-ChildItem 'HKLM:\System\CurrentControlSet\services\' | ForEach-Object {
-        $target = $_.Name.Replace("HKEY_LOCAL_MACHINE", "hklm:")
-        Start-aclcheck -Target $target
     }
 }
 
@@ -624,9 +614,13 @@ Write-KeysValues "----------- Protocol Filtering/Handling Items -----------" $ke
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Protocol Filtering & Handling keys" -ForegroundColor white
 
 Write-FirewallRules | Out-File $firewallPath
-Write-ProcessInformation | Out-File $processPath -Append
+
+Write-ProcessChecks | Out-File $processPath -Append
 Write-InjectedThreads | Out-File $processPath -Append
-Write-ProcessACL | Out-File $processPath -Append
+
+Write-ServiceChecks | Out-File $servicePath -Append
+Find-HiddenServices | Out-File $servicePath -Append
+Invoke-ServiceRegistryACLCheck | Out-File $servicePath -Append
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
 # $registryfunction = StartUp-Programs
