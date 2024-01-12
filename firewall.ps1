@@ -20,9 +20,9 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 # if key doesn't already exist, install WFC
 if (!(Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Windows Firewall Control")) {
-    $rootDir = Split-Path -Parent (Get-Location).Path
-    $toolInstallPath = Join-Path -Path $rootDir -ChildPath "tools\WFC"
-    $installerPath = Join-Path -Path $rootDir -ChildPath "installers\wfcsetup.exe"
+    $currentDir = ($MyInvocation.MyCommand.Path).substring(0,($MyInvocation.MyCommand.Path).indexOf("scripts\firewall.ps1"))
+    $toolInstallPath = Join-Path -Path $currentDir -ChildPath "installers\wfcinstall.exe"
+    $installerPath = Join-Path -Path $currentDir -ChildPath "installers\wfcsetup.exe"
     & $installerPath -i -r -noshortcuts -norules $toolInstallPath
 }
 
