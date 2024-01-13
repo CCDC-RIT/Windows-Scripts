@@ -24,7 +24,7 @@ $CA = $false
 if (Get-Service -Name CertSvc 2>$null) {
     $CA = $true
 }
-$currentDir = (($MyInvocation.MyCommand.Path).Substring(0,($MyInvocation.MyCommand.Path).IndexOf("sbaseline.ps1")))
+$currentDir = (($MyInvocation.MyCommand.Path).Substring(0,($MyInvocation.MyCommand.Path).IndexOf("secure.ps1")))
 $rootDir = $currentDir.substring(0,$currentDir.indexOf("scripts"))
 $ConfPath = Join-Path -Path $currentDir -ChildPath "conf"
 

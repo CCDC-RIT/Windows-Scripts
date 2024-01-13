@@ -41,7 +41,7 @@ auditpol /restore /file: (Join-Path ($currentPath.substring(0, $currentPath.Inde
 Write-Host "[INFO] System audit policy set"
 
 # Sysmon setup
-& (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "sm\sysmon64.exe") -accepteula -i (Join-Path ($currentPath.substring(0,$currentPAth.IndexOf("logging.ps1"))) "\conf\sysmon.xml")
+& (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "tools\sys\sm\sysmon64.exe") -accepteula -i (Join-Path ($currentPath.substring(0,$currentPAth.IndexOf("logging.ps1"))) "\conf\sysmon.xml")
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
 Write-Host "[INFO] Sysmon installed and configured"
 
