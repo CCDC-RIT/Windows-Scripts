@@ -41,7 +41,7 @@ auditpol /restore /file: (Join-Path ($currentPath.substring(0, $currentPath.Inde
 Write-Host "[INFO] System audit policy set"
 
 # Sysmon setup
-& (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "sm\sysmon64.exe") -accepteula -i (Join-Path ($currentPath.substring(0,$currentPAth.IndexOf("logging.ps1"))) "\conf\sysmon.xml")
+& (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "tools\sys\sm\sysmon64.exe") -accepteula -i (Join-Path ($currentPath.substring(0,$currentPAth.IndexOf("logging.ps1"))) "\conf\sysmon.xml")
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
 Write-Host "[INFO] Sysmon installed and configured"
 
@@ -75,6 +75,10 @@ if (Get-Service -Name CertSvc 2>$null) {
     certutil -setreg policy\EditFlags +EDITF_AUDITCERTTEMPLATELOAD
     Write-Host "[ERROR] CA logging enabled"
 }
+
+# Turns on Event log service if it's stopped
+Start-Service -Name EventLog
+Write-Host "[INFO] Windows Event Log Service Started"
 
 # setup wazuh agent, config file, backup
 Start-Process -FilePath (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "installers\wazuhagent.msi") -ArgumentList ("/q WAZUH_MANAGER='" + $wazuhIP + "'") -Wait
