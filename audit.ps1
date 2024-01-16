@@ -1,5 +1,7 @@
 $VerbosePreference = "SilentlyContinue"
-$currentDir = (Get-Location).Path
+[string]$cmdPath = $MyInvocation.MyCommand.Path
+$currentDir = $cmdPath.substring(0, $cmdPath.IndexOf("audit.ps1"))
+$accesscheckPath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\ac\accesschk64.exe"
 $firewallPath = Join-Path -Path $currentDir -ChildPath 'results\firewallaudit.txt'
 $registryPath = Join-Path -Path $currentDir -ChildPath 'results\registryaudit.txt'
 $processPath = Join-Path -Path $currentDir -ChildPath 'results\processaudit.txt'
@@ -56,53 +58,91 @@ Function Start-ACLCheck {
         $ServiceName
     )
 
-    # Gather ACL of object
-    if ($null -ne $target) {
+    # Gather ACL of object (file/directory, service, or registry key)
+    if ($null -ne $Target) {
         try {
-            $ACLObject = Get-Acl $target -ErrorAction SilentlyContinue
+            $owner = (Get-Acl $Target -ErrorAction SilentlyContinue).Owner
+            $acl = $null
+            $serviceacl = $null
+            if (Test-Path -Path $Target -PathType Leaf) {
+                $acl = & $accesscheckPath -wuv -nobanner $Target
+            } else {
+                if ($Target -ilike 'hk*') {
+                    $acl = & $accesscheckPath -kwuv -nobanner $Target
+                } else {
+                    $acl = & $accesscheckPath -dwuv -nobanner $Target
+                }
+            }              
+
+            if ($ServiceName) {
+                $serviceacl = & $accesscheckPath -cwuv -nobanner $serviceName
+            }
         } catch { 
             $null
-        }  
-        # If Found, Evaluate Permissions
-        if ($ACLObject) { 
-            $Identity = @()
-            $Identity += "$env:COMPUTERNAME\$env:USERNAME"
-            if ($ACLObject.Owner -like $Identity) { 
-                Write-Output "$Identity has ownership of $Target" 
-            }
-            whoami.exe /groups /fo csv | ConvertFrom-Csv | Select-Object -ExpandProperty 'group name' | ForEach-Object { $Identity += $_ }
-            $IdentityFound = $false
-            foreach ($i in $Identity) {
-                $permission = $ACLObject.Access | Where-Object { $_.IdentityReference -like $i }
-                $UserPermission = ""
-                switch -WildCard ($Permission.FileSystemRights) {
-                    "FullControl" { $userPermission = "FullControl"; $IdentityFound = $true }
-                    "Write*" { $userPermission = "Write"; $IdentityFound = $true }
-                    "Modify" { $userPermission = "Modify"; $IdentityFound = $true }
-                }
-                Switch ($permission.RegistryRights) {
-                    "FullControl" { $userPermission = "FullControl"; $IdentityFound = $true }
-                }
-                if ($UserPermission) {
-                    if ($ServiceName) { 
-                        Write-Output "$ServiceName found with permissions issue:"
-                    }
-                    Write-Output "Identity $($permission.IdentityReference) has '$userPermission' perms for $Target"
-                }
-            }    
-            # Identity Found Check - If False, loop through and stop at root of drive
-            if ($IdentityFound -eq $false) {
-                if ($Target.Length -gt 3) {
-                    $Target = Split-Path $Target
-                    Start-ACLCheck $Target -ServiceName $ServiceName
-                }
-            }
-        } else {
-            # If not found, split path one level and Check again
-            $Target = Split-Path $Target
-            Start-ACLCheck $Target $ServiceName
         }
-    }
+      
+      
+        if ($serviceacl) {
+            $splitserviceacl = $serviceacl -split "`n" | Select-Object -Skip 2 
+            $serviceacl = $splitserviceacl -Join "`n"
+
+            $splitserviceacl = $serviceacl -split "  RW " | Select-Object -Skip 1
+            $interestingserviceaces = ""
+            foreach ($aclentry in $splitserviceacl) {
+                if (($aclentry -notlike '*TrustedInstaller*') -and ($aclentry -notlike '*Administrators*') -and ($aclentry -notlike '*SYSTEM*') -and ($aclentry -notlike '*Server Operators*')) {
+                    $interestingserviceaces += "  RW $aclentry"
+                } 
+            }
+            # TODO: Figure out how to write this only when an interesting property is discovered
+            if ($interestingserviceaces -ne "") {
+                Write-Output $ServiceName
+                Write-Output $interestingserviceaces
+                Write-Output "`n"                
+            }
+        }
+
+        if ($acl) {
+            # TODO: Figure out how to write this only when an interesting property is discovered
+
+            $owner = ($owner | Out-String).Trim()
+            $interestingowner = ""
+            if (($owner -notlike '*TrustedInstaller') -and ($owner -notlike '*Administrators') -and ($owner -notlike '*SYSTEM')) {
+                $interestingowner += "  $owner has ownership of $Target"
+            }
+
+            # skipping first 2 lines b/c they are useless
+            $splitacl = $acl -split "`n" | Select-Object -Skip 2 
+            $acl = $splitacl -Join "`n"
+
+            # Processing
+            $splitacl = $acl -split "  RW " | Select-Object -Skip 1
+            $interestingaces = ""
+            foreach ($aclentry in $splitacl) {
+                if (($aclentry -notlike '*TrustedInstaller*') -and ($aclentry -notlike '*Administrators*') -and ($aclentry -notlike '*SYSTEM*') -and ($aclentry -notlike '*Server Operators*') -and ($aclentry -notlike '*SERVICE*')) {
+                    $interestingaces += "  RW $aclentry"
+                } 
+            }
+            
+            # Writing
+            if (($interestingaces -ne "") -or ($interestingowner -ne "")) {
+                if ($ServiceName) {
+                    Write-Output "$ServiceName - $Target"
+                } else {
+                    Write-Output $Target
+                }
+
+                if ($interestingowner -ne "") {
+                    Write-Output $interestingowner
+                    Write-Output ""
+                }
+
+                if ($interestingaces -ne "") {
+                    Write-Output $interestingaces
+                }
+                Write-Output "`n"
+            }
+        }
+    }  
 }
 
 Function Write-FirewallRules {
@@ -137,7 +177,8 @@ Function Write-ProcessChecks {
 Function Write-InjectedThreads {
     Write-Output "----------- Injected Threads -----------"
     $InjectedThread = Join-Path $currentDir -ChildPath "Get-InjectedThread.ps1"
-    & $InjectedThread
+    $threads = & $InjectedThread | Out-String
+    Write-Output $threads
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited threads" -ForegroundColor white
 }
 
@@ -153,6 +194,19 @@ Function Find-UnquotedServicePaths {
         $foundServices | Sort-Object -Property ProcessId,Name | Format-List -Property ProcessId,State,StartMode,Name,DisplayName,StartName,PathName
     }
 } 
+Function Invoke-ServiceACLCheck {
+    param(
+        $servicesList
+    )
+    $UniqueServices = @{}
+    $servicesList | Where-Object { $_.Pathname -like '*.exe' } | ForEach-Object {
+        $Path = ($_.PathName -split '(?<=\.exe\b)')[0].Trim('"')
+        $UniqueServices[$Path] = $_.Name
+    }
+    foreach ($h in ($UniqueServices | Select-Object -Unique).GetEnumerator()) {
+        Start-ACLCheck -Target $h.Name -ServiceName $h.Value
+    }
+}
 Function Write-ServiceChecks {
     $services = Get-CimInstance -Class Win32_Service
     Write-Output "----------- Service List -----------"
@@ -163,12 +217,15 @@ Function Write-ServiceChecks {
     Write-Output "----------- Unquoted Service Paths -----------"
     Find-UnquotedServicePaths $services
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited for unquoted service paths" -ForegroundColor white
-    # TODO: Check service executable ACLs
+    # Check service executable ACLs
+    Write-Output "----------- Service + Service Executable ACLs -----------"
+    Invoke-ServiceACLCheck $services
     # TODO: merge ripper function 
 }
 Function Find-HiddenServices {
     $hidden = Compare-Object -ReferenceObject (Get-Service | Select-Object -ExpandProperty Name | % { $_ -replace "_[0-9a-f]{2,8}$" } ) -DifferenceObject (gci -path hklm:\system\currentcontrolset\services | % { $_.Name -Replace "HKEY_LOCAL_MACHINE\\","HKLM:\" } | ? { Get-ItemProperty -Path "$_" -name objectname -erroraction 'ignore' } | % { $_.substring(40) }) -PassThru | ?{$_.sideIndicator -eq "=>"}
     $hidden = $hidden | Format-List
+    Write-Output "`n"
     Write-Output "----------- Hidden Services -----------"
     Write-Output $hidden
     Write-Output "`n"
