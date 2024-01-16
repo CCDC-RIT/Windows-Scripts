@@ -126,7 +126,7 @@ Function Start-ACLCheck {
             # Writing
             if (($interestingaces -ne "") -or ($interestingowner -ne "")) {
                 if ($ServiceName) {
-                    Write-Output "$ServiceName - $Target"
+                    Write-Output "$ServiceName ($($Target)) ACL properties:"
                 } else {
                     Write-Output $Target
                 }
@@ -193,18 +193,77 @@ Function Find-UnquotedServicePaths {
     } else {
         $foundServices | Sort-Object -Property ProcessId,Name | Format-List -Property ProcessId,State,StartMode,Name,DisplayName,StartName,PathName
     }
-} 
-Function Invoke-ServiceACLCheck {
+}
+Function Find-SuspiciousServiceProperties {
+    param(
+        $service,
+        $path
+    )
+
+    # sus path
+    $PathSuspicious = $false
+    if ($path -like 'C:\Users\*') {
+        $PathSuspicious = $true
+    }
+    
+    # unsigned binaries
+    $Unsigned = $false
+    try {
+        $Signatures = Get-AuthenticodeSignature -FilePath $path
+        if ($Signatures.Status -ne "Valid") {
+            $Unsigned = $true
+        }
+    } catch {
+        Write-Output "Unable to determine validity of service binary signature`n"
+    }
+   
+    # sus extension
+    $SuspiciousExtension = $false
+    $suspiciousExtensions = @('.vbs', '.js', '.bat', '.cmd', '.scr')
+    $extension = [IO.Path]::GetExtension($path)
+    if ($suspiciousExtensions -contains $extension) {
+        $SuspiciousExtension = $true
+    }
+
+    # commented out b/c super noisy
+    # $LocalSystemAccount = ($service.StartName -eq "LocalSystem")
+    $NoDescription = ([string]::IsNullOrEmpty($service.Description))
+    
+    # TODO: turn into switch statement cause why not
+    if ($PathSuspicious -or $LocalSystemAccount -or $NoDescription -or $Unsigned -or $SuspiciousExtension) {
+        Write-Output "$($service.Name) ($($service.DisplayName)) suspicious characteristics:"
+
+        if ($PathSuspicious) {
+            Write-Output "  - Running from a potentially suspicious path: $path"
+        }
+        # commented out b/c super noisy
+        #if ($LocalSystemAccount) {
+        #    Write-Output "  - Running with a LocalSystem account"
+        #}
+        if ($NoDescription) {
+            Write-Output "  - No description provided"
+        }
+        if ($Unsigned) {
+            Write-Output "  - Unsigned executable"
+        }
+        if ($SuspiciousExtension) {
+            Write-Output "  - Suspicious file extension"
+        }
+        Write-Output ""
+    }
+}
+Function Invoke-ServiceChecks {
     param(
         $servicesList
     )
-    $UniqueServices = @{}
-    $servicesList | Where-Object { $_.Pathname -like '*.exe' } | ForEach-Object {
-        $Path = ($_.PathName -split '(?<=\.exe\b)')[0].Trim('"')
-        $UniqueServices[$Path] = $_.Name
-    }
-    foreach ($h in ($UniqueServices | Select-Object -Unique).GetEnumerator()) {
-        Start-ACLCheck -Target $h.Name -ServiceName $h.Value
+
+    $servicesList | ForEach-Object {
+        $extension = [IO.Path]::GetExtension($_.PathName.Split([IO.Path]::GetInvalidFileNameChars()) -join '').Split(' ')[0].Trim()
+        $pattern = "(?<=\" + $extension + "\b)"
+        $Path = ($_.PathName -split $pattern)[0].Trim('"')
+               
+        Find-SuspiciousServiceProperties -service $_ -path $Path
+        Start-ACLCheck -Target $Path -ServiceName $_.Name
     }
 }
 Function Write-ServiceChecks {
@@ -217,10 +276,9 @@ Function Write-ServiceChecks {
     Write-Output "----------- Unquoted Service Paths -----------"
     Find-UnquotedServicePaths $services
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited for unquoted service paths" -ForegroundColor white
-    # Check service executable ACLs
-    Write-Output "----------- Service + Service Executable ACLs -----------"
-    Invoke-ServiceACLCheck $services
-    # TODO: merge ripper function 
+    # Service properties + ACL check
+    Write-Output "----------- Interesting Service Properties -----------"
+    Invoke-ServiceChecks $services
 }
 Function Find-HiddenServices {
     $hidden = Compare-Object -ReferenceObject (Get-Service | Select-Object -ExpandProperty Name | % { $_ -replace "_[0-9a-f]{2,8}$" } ) -DifferenceObject (gci -path hklm:\system\currentcontrolset\services | % { $_.Name -Replace "HKEY_LOCAL_MACHINE\\","HKLM:\" } | ? { Get-ItemProperty -Path "$_" -name objectname -erroraction 'ignore' } | % { $_.substring(40) }) -PassThru | ?{$_.sideIndicator -eq "=>"}
@@ -241,72 +299,7 @@ Function Invoke-ServiceRegistryACLCheck {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited service registry key ACLs" -ForegroundColor white
 }
 
-Function Ripper{
-    # Function to check if the service's binary path is suspicious
-    function IsSuspiciousPath($path) {
-        return ($path -like "C:\Users\*")
-    }
 
-    # Function to check if the service's binary is unsigned
-    function IsUnsigned($path) {
-        try {
-            $Signatures = Get-AuthenticodeSignature -FilePath $path
-            return ($Signatures.Status -ne "Valid")
-        }
-        catch {
-            return $true
-        }
-    }
-
-    # Function to check if the service has a suspicious file extension
-    function HasSuspiciousExtension($path) {
-        $suspiciousExtensions = @('.vbs', '.js', '.bat', '.cmd', '.scr')
-        $extension = [IO.Path]::GetExtension($path)
-        return ($suspiciousExtensions -contains $extension)
-    }
-
-    $AllServices = Get-WmiObject -Class Win32_Service
-    # Create an empty array to store detected suspicious services
-    $DetectedServices = New-Object System.Collections.ArrayList
-    foreach ($Service in $AllServices){
-        $BinaryPathName = $Service.PathName.Trim('"')
-        # Check for suspicious characteristics
-        $PathSuspicious = IsSuspiciousPath($BinaryPathName)
-        $LocalSystemAccount = ($Service.StartName -eq "LocalSystem")
-        $NoDescription = ([string]::IsNullOrEmpty($Service.Description))
-        $Unsigned = IsUnsigned($BinaryPathName)
-        $SuspiciousExtension = HasSuspiciousExtension($BinaryPathName)
-        if ($PathSuspicious -or $LocalSystemAccount -or $NoDescription -or $Unsigned -or $SuspiciousExtension){
-            $DetectedServices.Add($Service) | Out-Null
-        }
-    }
-    if ($DetectedServices.Count -gt 0) {
-        Write-Output "Potentially Suspicious Services Detected"
-        Write-Output "----------------------------------------"
-        foreach ($Service in $DetectedServices) {
-            Write-Output "Name: $($Service.Name) - Display Name: $($Service.DisplayName) - Status: $($Service.State) - StartName: $($Service.StartName) - Description: $($Service.Description) - Binary Path: $($Service.PathName.Trim('"'))"
-            # Output verbose information about each suspicious characteristic
-            if ($PathSuspicious) {
-                Write-Output "`t- Running from a potentially suspicious path`n"
-            }
-            if ($LocalSystemAccount) {
-                Write-Output "`t- Running with a LocalSystem account`n"
-            }
-            if ($NoDescription) {
-                Write-Output "`t- No description provided`n"
-            }
-            if ($Unsigned) {
-                Write-Output "`t- Unsigned executable`n"
-            }
-            if ($SuspiciousExtension) {
-                Write-Output "`t- Suspicious file extension`n"
-            }
-            Write-Output ""
-        }
-    } else {
-        Write-Output "No potentially suspicious services detected.`n"
-    }
-}
 
 
 Function Scheduled-Tasks{#good
