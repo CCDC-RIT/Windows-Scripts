@@ -73,6 +73,8 @@ if (Get-Service -Name W3SVC 2>$null) {
 if (Get-Service -Name CertSvc 2>$null) {
     auditpol /set /subcategory:"Certification Services" /success:enable /failure:enable
     certutil -setreg policy\EditFlags +EDITF_AUDITCERTTEMPLATELOAD
+    reg add "HKLM:\System\CurrentControlSet\Services\CertSvc\Configuration" /v EnableLogging /t REG_DWORD /d 1 /f | Out-Null
+
     Write-Host "[ERROR] CA logging enabled"
 }
 
