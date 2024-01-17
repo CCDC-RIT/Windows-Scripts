@@ -9,7 +9,22 @@ $servicePath = Join-Path -Path $currentDir -ChildPath 'results\serviceaudit.txt'
 $thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\thruntingaudit.txt'
 $windowsPath = Join-Path -Path $currentDir -ChildPath 'results\windowsaudit.txt'
 $aclPath = Join-Path -Path $currentDir -ChildPath 'results\aclaudit.txt'
-#split into different files
+
+$DC = $false
+if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
+    $DC = $true
+}
+
+$IIS = $false
+if (Get-Service -Name W3SVC 2>$null) {
+    $IIS = $true
+}
+
+$CA = $false
+if (Get-Service -Name CertSvc 2>$null) {
+    $CA = $true
+}
+
 Function Get-KeysValues {
     param(
         [hashtable]$hash
@@ -310,7 +325,6 @@ Function Invoke-ScheduledTaskChecks {
     param (
         $tasks
     )
-
     Start-ACLCheck -Target "C:\Windows\System32\Tasks"
     foreach ($task in $tasks) {
         $Actions = $task.Actions.Execute
@@ -344,8 +358,10 @@ Function Random-Directories{
     }
 }
 
-Function Exporting-Sec-Policy{
-    SecEdit /export /cfg "results\artifacts\old_secpol.cfg"
+Function Get-GPOReport {
+    if ($DC) {
+    
+    }
 }
 
 Function Current-local-gpo{
@@ -620,6 +636,18 @@ Invoke-ServiceRegistryACLCheck | Out-File $servicePath -Append
 
 Get-DefenderExclusionSettings | Out-File $thruntingPath -Append
 Write-ScheduledTaskChecks | Out-File -FilePath $thruntingPath -Append
+
+# pingcastle time
+if ($DC) {
+    $current = Get-Location
+    $pingcastlePath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\pc\PingCastle.exe"
+    $resultsPath = Join-Path -Path $currentDir -ChildPath "results"
+    cd $resultsPath
+    & $pingcastlePath --healthcheck --carto --datefile | Out-Null
+    cd $current
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited AD with PingCastle" -ForegroundColor white
+}
+
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
 # $registryfunction = StartUp-Programs
