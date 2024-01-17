@@ -7,8 +7,7 @@ $registryPath = Join-Path -Path $currentDir -ChildPath 'results\registryaudit.tx
 $processPath = Join-Path -Path $currentDir -ChildPath 'results\processaudit.txt'
 $servicePath = Join-Path -Path $currentDir -ChildPath 'results\serviceaudit.txt'
 $thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\thruntingaudit.txt'
-$windowsPath = Join-Path -Path $currentDir -ChildPath 'results\windowsaudit.txt'
-$aclPath = Join-Path -Path $currentDir -ChildPath 'results\aclaudit.txt'
+$artifactsPath = Join-Path $currentDir -ChildPath 'results\artifacts'
 
 $DC = $false
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
@@ -349,24 +348,22 @@ Function Write-ScheduledTaskChecks {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited scheduled tasks" -ForegroundColor white
 }
 
-
+Function Get-GroupPolicyReport {
+    if ($DC) {
+        $reportPath = Join-Path -Path $artifactsPath -ChildPath "DomainGrpPolReport.html"
+        Get-GPOReport -All -ReportType HTML -Path $reportPath
+    } else {
+        $reportPath = Join-Path -Path $artifactsPath -ChildPath "LocalGrpPolReport.html"
+        gpresult /h $reportPath
+    }
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Exported GPO report" -ForegroundColor white
+}
 
 Function Random-Directories{
     $sus = @("C:\Intel", "C:\Temp")
     foreach ($directory in $sus){
         Write-Output "$(Get-ChildItem $directory)"
     }
-}
-
-Function Get-GPOReport {
-    if ($DC) {
-    
-    }
-}
-
-Function Current-local-gpo{
-    # Use auditpol to get the current local gpo
-    gpresult /h "results\artifacts\LocalGrpPolReport.html"
 }
 
 Function Unsigned-Files{
@@ -636,6 +633,8 @@ Invoke-ServiceRegistryACLCheck | Out-File $servicePath -Append
 
 Get-DefenderExclusionSettings | Out-File $thruntingPath -Append
 Write-ScheduledTaskChecks | Out-File -FilePath $thruntingPath -Append
+
+Get-GroupPolicyReport
 
 # pingcastle time
 if ($DC) {
