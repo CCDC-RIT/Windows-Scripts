@@ -407,6 +407,54 @@ function Get-ConsoleHostHistory {
     }
 }
 
+function Get-PowerShellHistory{
+    Write-Output "----------------------------------------------------------------"
+    Write-Output "--------------------- Powershell History -----------------------"
+    Write-Output "----------------------------------------------------------------"
+    (Get-PSReadlineOption).HistorySavePath
+    Write-Output "----------------------------------------------------------------"
+}
+
+function Get-Installed{
+    Get-CimInstance -class win32_Product | Select-Object Name, Version | 
+    ForEach-Object {
+        Write-Output $("{0} : {1}" -f $_.Name, $_.Version)  
+    }
+}
+
+Function Get-ScheduledTask-ACL{
+    if (Get-ChildItem "c:\windows\system32\tasks" -ErrorAction SilentlyContinue) {
+        Write-Output "Access confirmed, may need futher investigation"
+        Get-ChildItem "c:\windows\system32\tasks"
+    }
+    else {
+        Write-Output "No admin access to scheduled tasks folder."
+        Get-ScheduledTask | Where-Object { $_.TaskPath -notlike "\Microsoft*" } | ForEach-Object {
+            $Actions = $_.Actions.Execute
+            if ($Actions -ne $null) {
+                foreach ($a in $actions) {
+                    if ($a -like "%windir%*") { $a = $a.replace("%windir%", $Env:windir) }
+                    elseif ($a -like "%SystemRoot%*") { $a = $a.replace("%SystemRoot%", $Env:windir) }
+                    elseif ($a -like "%localappdata%*") { $a = $a.replace("%localappdata%", "$env:UserProfile\appdata\local") }
+                    elseif ($a -like "%appdata%*") { $a = $a.replace("%localappdata%", $env:Appdata) }
+                    $a = $a.Replace('"', '')
+                    Start-ACLCheck -Target $a
+                    Write-Output "`n"
+                    Write-Output "TaskName: $($_.TaskName)"
+                    Write-Output "-------------"
+                    [pscustomobject]@{
+                        LastResult = $(($_ | Get-ScheduledTaskInfo).LastTaskResult)
+                        NextRun    = $(($_ | Get-ScheduledTaskInfo).NextRunTime)
+                        Status     = $_.State
+                        Command    = $_.Actions.execute
+                        Arguments  = $_.Actions.Arguments 
+                    } | Write-Output
+                } 
+            }
+        }
+    }
+}
+
 Function Get-Startup-ACL{
     @("C:\Documents and Settings\All Users\Start Menu\Programs\Startup",
     "C:\Documents and Settings\$env:Username\Start Menu\Programs\Startup", 
@@ -623,6 +671,7 @@ Write-KeysValues "----------- Protocol Filtering/Handling Items -----------" $ke
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Protocol Filtering & Handling keys" -ForegroundColor white
 
 Write-FirewallRules | Out-File $firewallPath
+Get-PowerShellHistory | Out-File $firewallPath -Append
 
 Write-ProcessChecks | Out-File $processPath -Append
 Write-InjectedThreads | Out-File $processPath -Append

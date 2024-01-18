@@ -161,10 +161,6 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # netsh adv f a r n=Syslog-Client dir=out act=allow prof=any prot=udp remoteport=514
 # netsh adv f a r n=Syslog-Server dir=in act=allow prof=any prot=udp localport=514
 
-# WSUS
-# netsh adv f a r n=WSUS-Server dir=in act=allow prof=any prot=tcp localport=8530
-# netsh adv f a r n=WSUS-Client dir=out act=allow prof=any prot=tcp remoteport=8530
-
 # blocking win32/64 lolbins from making network connections when they shouldn't
 netsh advfirewall firewall add rule name="Block appvlp.exe netconns" program="C:\Program Files (x86)\Microsoft Office\root\client\AppVLP.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
 netsh advfirewall firewall add rule name="Block appvlp.exe netconns" program="C:\Program Files\Microsoft Office\root\client\AppVLP.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
