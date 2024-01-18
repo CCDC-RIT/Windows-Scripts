@@ -6,10 +6,24 @@ $firewallPath = Join-Path -Path $currentDir -ChildPath 'results\firewallaudit.tx
 $registryPath = Join-Path -Path $currentDir -ChildPath 'results\registryaudit.txt'
 $processPath = Join-Path -Path $currentDir -ChildPath 'results\processaudit.txt'
 $servicePath = Join-Path -Path $currentDir -ChildPath 'results\serviceaudit.txt'
-$thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\threathuntingaudit.txt'
-$windowsPath = Join-Path -Path $currentDir -ChildPath 'results\windowsaudit.txt'
-$aclPath = Join-Path -Path $currentDir -ChildPath 'results\aclaudit.txt'
-#split into different files
+$thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\thruntingaudit.txt'
+$artifactsPath = Join-Path $currentDir -ChildPath 'results\artifacts'
+
+$DC = $false
+if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
+    $DC = $true
+}
+
+$IIS = $false
+if (Get-Service -Name W3SVC 2>$null) {
+    $IIS = $true
+}
+
+$CA = $false
+if (Get-Service -Name CertSvc 2>$null) {
+    $CA = $true
+}
+
 Function Get-KeysValues {
     param(
         [hashtable]$hash
@@ -102,14 +116,12 @@ Function Start-ACLCheck {
         }
 
         if ($acl) {
-            # TODO: Figure out how to write this only when an interesting property is discovered
-
             $owner = ($owner | Out-String).Trim()
             $interestingowner = ""
-            if (($owner -notlike '*TrustedInstaller') -and ($owner -notlike '*Administrators') -and ($owner -notlike '*SYSTEM')) {
+            if (($owner -ne "") -and ($owner -notlike '*TrustedInstaller') -and ($owner -notlike '*Administrators') -and ($owner -notlike '*SYSTEM')) {
                 $interestingowner += "  $owner has ownership of $Target"
             }
-
+            
             # skipping first 2 lines b/c they are useless
             $splitacl = $acl -split "`n" | Select-Object -Skip 2 
             $acl = $splitacl -Join "`n"
@@ -279,6 +291,7 @@ Function Write-ServiceChecks {
     # Service properties + ACL check
     Write-Output "----------- Interesting Service Properties -----------"
     Invoke-ServiceChecks $services
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited service properties" -ForegroundColor white
 }
 Function Find-HiddenServices {
     $hidden = Compare-Object -ReferenceObject (Get-Service | Select-Object -ExpandProperty Name | % { $_ -replace "_[0-9a-f]{2,8}$" } ) -DifferenceObject (gci -path hklm:\system\currentcontrolset\services | % { $_.Name -Replace "HKEY_LOCAL_MACHINE\\","HKLM:\" } | ? { Get-ItemProperty -Path "$_" -name objectname -erroraction 'ignore' } | % { $_.substring(40) }) -PassThru | ?{$_.sideIndicator -eq "=>"}
@@ -299,21 +312,52 @@ Function Invoke-ServiceRegistryACLCheck {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited service registry key ACLs" -ForegroundColor white
 }
 
-
-
-
-Function Scheduled-Tasks{#good
-    $scheduled = Get-ScheduledTask | Format-List
-    Write-Output "Scheduled Task List: "
-    Write-Output "$($scheduled)"
-}
-
-Function Windows-Defender-Exclusions{
-    $exclusions = Get-MpPreference | findstr /b Exclusion
+Function Get-DefenderExclusionSettings {
+    Write-Output "----------- Windows Defender Exclusion Settings -----------"
+    $exclusions = Get-MpPreference | findstr Exclusion
     Write-Output "$($exclusions)"
+    Write-Output "`n"
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Windows Defender exclusion settings" -ForegroundColor white
 }
 
+Function Invoke-ScheduledTaskChecks {
+    param (
+        $tasks
+    )
+    Start-ACLCheck -Target "C:\Windows\System32\Tasks"
+    foreach ($task in $tasks) {
+        $Actions = $task.Actions.Execute
+        if ($Actions -ne $null) {
+            foreach ($a in $actions) {
+                if ($a -like "%windir%*") { $a = $a.replace("%windir%", $Env:windir) }
+                elseif ($a -like "%SystemRoot%*") { $a = $a.replace("%SystemRoot%", $Env:windir) }
+                elseif ($a -like "%localappdata%*") { $a = $a.replace("%localappdata%", "$env:UserProfile\appdata\local") }
+                elseif ($a -like "%appdata%*") { $a = $a.replace("%localappdata%", $env:Appdata) }
+                $a = $a.Replace('"', '')
+                Start-ACLCheck -Target $a
+            }
+        }
+    }
+}
+Function Write-ScheduledTaskChecks {
+    Write-Output "----------- Scheduled Tasks -----------"
+    $tasks = Get-ScheduledTask
+    Write-Output $tasks | Select-Object State,TaskName,TaskPath,@{Name="NextRunTime";Expression={$(($_ | Get-ScheduledTaskInfo).NextRunTime)}},@{Name="Command";Expression={$_.Actions.Execute}},@{Name="Arguments";Expression={$_.Actions.Arguments}} | Format-Table -Wrap -AutoSize
+    Write-Output "----------- Interesting Scheduled Tasks Properties -----------"
+    Invoke-ScheduledTaskChecks -tasks $tasks
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited scheduled tasks" -ForegroundColor white
+}
 
+Function Get-GroupPolicyReport {
+    if ($DC) {
+        $reportPath = Join-Path -Path $artifactsPath -ChildPath "DomainGrpPolReport.html"
+        Get-GPOReport -All -ReportType HTML -Path $reportPath
+    } else {
+        $reportPath = Join-Path -Path $artifactsPath -ChildPath "LocalGrpPolReport.html"
+        gpresult /h $reportPath
+    }
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Exported GPO report" -ForegroundColor white
+}
 
 Function Random-Directories{
     $sus = @("C:\Intel", "C:\Temp")
@@ -322,54 +366,9 @@ Function Random-Directories{
     }
 }
 
-Function Exporting-Sec-Policy{
-    SecEdit /export /cfg "results\artifacts\old_secpol.cfg"
-}
-
-Function Current-local-gpo{
-    # Use auditpol to get the current local gpo
-    gpresult /h "results\artifacts\LocalGrpPolReport.html"
-}
-
-Function Programs-Registry{
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "DisplayName")"
-    Write-Output "$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /v "UninstallString")"
-}
-
 Function Unsigned-Files{
     ..\tools\sys\sc\sigcheck64 -accepteula -u -e c:\windows\system32
 }
-
-
-#only if server 
-Function Windows-Features{
-    $featureList = Get-WindowsFeature | Where-Object Installed
-    Write-Output "Windows Features"
-    Write-Output "$(featureList)"
-}
-
-Function Uninstall-Keys{
-    $productNames = @("*google*")
-    $UninstallKeys = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
-                        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall',
-                        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
-                        )
-    $results = foreach ($key in (Get-ChildItem $UninstallKeys) ) {
-        foreach ($product in $productNames) {
-            if ($key.GetValue("DisplayName") -like "$product") {
-                [pscustomobject]@{
-                    KeyName = $key.Name.split('\')[-1];
-                    DisplayName = $key.GetValue("DisplayName");
-                    UninstallString = $key.GetValue("UninstallString");
-                    Publisher = $key.GetValue("Publisher");
-                }
-            }
-        }
-    }
-    $results
-}
-
-
 
 Function Recently-Run-Commands{
     Get-ChildItem HKU:\ -ErrorAction SilentlyContinue | ForEach-Object {
@@ -680,6 +679,23 @@ Write-InjectedThreads | Out-File $processPath -Append
 Write-ServiceChecks | Out-File $servicePath -Append
 Find-HiddenServices | Out-File $servicePath -Append
 Invoke-ServiceRegistryACLCheck | Out-File $servicePath -Append
+
+Get-DefenderExclusionSettings | Out-File $thruntingPath -Append
+Write-ScheduledTaskChecks | Out-File -FilePath $thruntingPath -Append
+
+Get-GroupPolicyReport
+
+# pingcastle time
+if ($DC) {
+    $current = Get-Location
+    $pingcastlePath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\pc\PingCastle.exe"
+    $resultsPath = Join-Path -Path $currentDir -ChildPath "results"
+    cd $resultsPath
+    & $pingcastlePath --healthcheck --carto --datefile | Out-Null
+    cd $current
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited AD with PingCastle" -ForegroundColor white
+}
+
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
 # $registryfunction = StartUp-Programs
