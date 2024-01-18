@@ -411,10 +411,62 @@ function Get-PowerShellHistory{
     Write-Output "----------------------------------------------------------------"
     Write-Output "--------------------- Powershell History -----------------------"
     Write-Output "----------------------------------------------------------------"
-    (Get-PSReadlineOption).HistorySavePath
-    Write-Output "----------------------------------------------------------------"
+    Write-Host "[*] Getting PS History for all users."
+    $users = Get-ChildItem -Path "C:\Users" -Directory
+    Write-Output "[+] PowerShell Console History For All Users!"
+    Write-Output "[+] Computer Name: $env:computername"
+    Write-Output "[+] Users On Machine:"
+    foreach ($user in $users) {
+        Write-Host "    $user"
+        $historyFile = Join-Path -Path $user.FullName -ChildPath "AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"
+        if (-not (Test-Path $historyFile)) {
+            $errorActionPreference = "Continue"
+            if ($SuppressErrors) {
+                $errorActionPreference = "SilentlyContinue"
+            }
+            $psReadlineOptions = Get-PSReadlineOption -Scope "CurrentUser" -ErrorAction $errorActionPreference
+            if ($psReadlineOptions -and $psReadlineOptions.HistorySavePath) {
+                $historyFile = $psReadlineOptions.HistorySavePath
+            }
+        }
+        if (Test-Path $historyFile) {
+            $output += "User: $($user.Name)`n"
+            $output += "Command History:`n"
+            $output += Get-Content -Path $historyFile | Out-String
+            $output += "`n"
+        }
+        else {
+            $output += "User: $($user.Name)`n"
+            $output += "No history found.`n`n"
+        }
+    }
+    Write-Host $output
+    Write-Host "----------------------------------------------------------------"
 }
-
+function Get-AnsibleLogs{
+    Write-Host "----------------------------------------------------------------"
+    Write-Host "[*] Checking for Ansible Logs for all users."
+    Write-Host "----------------------------------------------------------------"
+    $users = Get-ChildItem -Path "C:\Users" -Directory
+    foreach($user in $users){
+        $LogDir = "C:\Users\$user\AppData\Local\Temp\.ansible_async"
+        if(Test-Path -Path $LogFile -PathType leaf){
+            Write-Host "Ansible Log Found for User: $user" -f Green
+            $LogFiles = Get-ChildItem -Path $LogDir -Name
+            foreach($LogFile in $LogFiles){
+                $Loc = Join-Path -Path $LogDir -ChildPath $LogFile
+                $text = Get-Content $Loc | Out-String
+                Write-Host "Ansible Log File Output: 'n" -f Blue
+                Write-Host $text
+                Write-Host "        ----------------------------        "
+            }
+        }
+        Else{
+            Write-Host "No Ansible Log file found for User: $user" -f Yellow
+        }
+    }
+    Write-Host "----------------------------------------------------------------"
+}
 function Get-Installed{
     Get-CimInstance -class win32_Product | Select-Object Name, Version | 
     ForEach-Object {
