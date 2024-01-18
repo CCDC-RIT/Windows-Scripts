@@ -408,6 +408,14 @@ function Get-ConsoleHostHistory {
     }
 }
 
+function Get-PowerShellHistory{
+    Write-Output "----------------------------------------------------------------"
+    Write-Output "--------------------- Powershell History -----------------------"
+    Write-Output "----------------------------------------------------------------"
+    (Get-PSReadlineOption).HistorySavePath
+    Write-Output "----------------------------------------------------------------"
+}
+
 function Get-Installed{
     Get-CimInstance -class win32_Product | Select-Object Name, Version | 
     ForEach-Object {
@@ -664,6 +672,7 @@ Write-KeysValues "----------- Protocol Filtering/Handling Items -----------" $ke
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Protocol Filtering & Handling keys" -ForegroundColor white
 
 Write-FirewallRules | Out-File $firewallPath
+Get-PowerShellHistory | Out-File $firewallPath -Append
 
 Write-ProcessChecks | Out-File $processPath -Append
 Write-InjectedThreads | Out-File $processPath -Append
