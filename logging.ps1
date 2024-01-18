@@ -37,11 +37,14 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 Write-Host "[INFO] PowerShell and command-line logging set"
 
 # TODO: import audit policy
-auditpol /restore /file: (Join-Path ($currentPath.substring(0, $currentPath.IndexOf("logging.ps1"))) "\conf\auditpol.csv")
+[string]$auditpolPath = (Join-Path ($currentPath.substring(0, $currentPath.IndexOf("logging.ps1"))) "\conf\auditpol.csv")
+auditpol /restore /file:$auditpolPath
 Write-Host "[INFO] System audit policy set"
 
 # Sysmon setup
-& (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "tools\sys\sm\sysmon64.exe") -accepteula -i (Join-Path ($currentPath.substring(0,$currentPAth.IndexOf("logging.ps1"))) "\conf\sysmon.xml")
+[string]$sysmonPath = (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "tools\sys\sm\sysmon64.exe")
+[string]$xmlPath = (Join-Path ($currentPath.substring(0,$currentPAth.IndexOf("logging.ps1"))) "\conf\sysmon.xml")
+& $sysmonPath -accepteula -i $xmlPath
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
 Write-Host "[INFO] Sysmon installed and configured"
 
