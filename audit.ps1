@@ -293,6 +293,7 @@ Function Write-ServiceChecks {
     Invoke-ServiceChecks $services
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited service properties" -ForegroundColor white
 }
+
 Function Find-HiddenServices {
     $hidden = Compare-Object -ReferenceObject (Get-Service | Select-Object -ExpandProperty Name | % { $_ -replace "_[0-9a-f]{2,8}$" } ) -DifferenceObject (gci -path hklm:\system\currentcontrolset\services | % { $_.Name -Replace "HKEY_LOCAL_MACHINE\\","HKLM:\" } | ? { Get-ItemProperty -Path "$_" -name objectname -erroraction 'ignore' } | % { $_.substring(40) }) -PassThru | ?{$_.sideIndicator -eq "=>"}
     $hidden = $hidden | Format-List
@@ -339,6 +340,7 @@ Function Invoke-ScheduledTaskChecks {
         }
     }
 }
+
 Function Write-ScheduledTaskChecks {
     Write-Output "----------- Scheduled Tasks -----------"
     $tasks = Get-ScheduledTask
@@ -443,6 +445,23 @@ function Get-PowerShellHistory{
     Write-Host $output
     Write-Host "----------------------------------------------------------------"
 }
+
+function Powershell-Profile{
+    Write-Host "----------------------------------------------------------------"
+    Write-Host "[*] Grabbing Powershell Profiles."
+    Write-Host "----------------------------------------------------------------"
+    $PROFILE | Format-List -Force
+    Write-Host "----------------------------------------------------------------"
+}
+
+function List-EnvironmentVariables{
+    Write-Host "----------------------------------------------------------------"
+    Write-Host "[*] Grabbing Environment Variables."
+    Write-Host "----------------------------------------------------------------"
+    dir env: | format-table -autosize
+    Write-Host "----------------------------------------------------------------"
+}
+
 function Get-AnsibleLogs{
     Write-Host "----------------------------------------------------------------"
     Write-Host "[*] Checking for Ansible Logs for all users."
@@ -467,6 +486,25 @@ function Get-AnsibleLogs{
     }
     Write-Host "----------------------------------------------------------------"
 }
+
+function Get-StartUp{
+    Write-Host "----------------------------------------------------------------"
+    Write-Host "[*] Checking System and User Statup Folders."
+    Write-Host "----------------------------------------------------------------"
+    Write-Host "Getting System Startup Contents"
+    $systemDir = "C:\ProgramData\Microsoft\Windows\Start Menu\Programs"
+    $systemStart = Get-ChildItem -Path $systemDir -Recurse -Force
+    Write-Host "----------------------------------------------------------------"
+    $users = Get-ChildItem -Path "C:\Users" -Directory
+    foreach($user in $users){
+        $personalDir = "C:\Users\$user\AppData\Roaming\Microsoft\Windows\Start Menu\Programs"
+        Write-Host "Getting $user Startup Contents"
+        $personalStart = Get-ChildItem -Path $personalDirDir -Recurse -Force
+        Write-Host "        ----------------------------        "
+    }
+    Write-Host "----------------------------------------------------------------"
+}
+
 function Get-Installed{
     Get-CimInstance -class win32_Product | Select-Object Name, Version | 
     ForEach-Object {
@@ -723,7 +761,6 @@ Write-KeysValues "----------- Protocol Filtering/Handling Items -----------" $ke
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Protocol Filtering & Handling keys" -ForegroundColor white
 
 Write-FirewallRules | Out-File $firewallPath
-Get-PowerShellHistory | Out-File $firewallPath -Append
 
 Write-ProcessChecks | Out-File $processPath -Append
 Write-InjectedThreads | Out-File $processPath -Append
@@ -734,6 +771,7 @@ Invoke-ServiceRegistryACLCheck | Out-File $servicePath -Append
 
 Get-DefenderExclusionSettings | Out-File $thruntingPath -Append
 Write-ScheduledTaskChecks | Out-File -FilePath $thruntingPath -Append
+Get-PowerShellHistory | Out-File $thruntingPath -Append
 
 Get-GroupPolicyReport
 
