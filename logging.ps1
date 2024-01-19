@@ -43,7 +43,7 @@ Write-Host "[INFO] System audit policy set"
 
 # Sysmon setup
 [string]$sysmonPath = (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "tools\sys\sm\sysmon64.exe")
-[string]$xmlPath = (Join-Path ($currentPath.substring(0,$currentPAth.IndexOf("logging.ps1"))) "\conf\sysmon.xml")
+[string]$xmlPath = (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("logging.ps1"))) "\conf\sysmon.xml")
 & $sysmonPath -accepteula -i $xmlPath
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
 Write-Host "[INFO] Sysmon installed and configured"
@@ -82,6 +82,10 @@ if (Get-Service -Name CertSvc 2>$null) {
 # Turns on Event log service if it's stopped
 Start-Service -Name EventLog
 Write-Host "[INFO] Windows Event Log Service Started"
+
+$file = Join-Path -Path ($currentPath.substring(0,$currentPath.indexOf("logging.ps1"))) -ChildPath "conf\agent_windows.conf"
+$content = Get-Content $file
+$content | ForEach-Object { $_ -replace "<address></address>", "<address>$($wazuhIP)</address>" } | Set-Content $file
 
 # setup wazuh agent, config file, backup
 Start-Process -FilePath (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "installers\wazuhagent.msi") -ArgumentList ("/q WAZUH_MANAGER='" + $wazuhIP + "'") -Wait
