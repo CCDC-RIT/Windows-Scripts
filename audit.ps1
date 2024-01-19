@@ -193,7 +193,7 @@ Function Invoke-HollowsHunter {
     cd $resultsPath
     & $hollowshunterPath /dir $artifactsPath /uniqd
     cd $current
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Ran hollows hunter" -ForegroundColor white
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited processes using Hollows Hunter, check " -ForegroundColor white -NoNewline; Write-Host $artifactsPath -ForegroundColor Magenta -NoNewline; Write-Host " for any dumps" -ForegroundColor white
 }
 Function Write-InjectedThreads {
     Write-Output "----------- Injected Threads -----------"
@@ -325,7 +325,7 @@ Function Invoke-ServiceRegistryACLCheck {
 Function Get-DefenderExclusionSettings {
     Write-Output "----------- Windows Defender Exclusion Settings -----------"
     $exclusions = Get-MpPreference | findstr Exclusion
-    Write-Output "$($exclusions)"
+    Write-Output $exclusions | Format-List
     Write-Output "`n"
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Windows Defender exclusion settings" -ForegroundColor white
 }
