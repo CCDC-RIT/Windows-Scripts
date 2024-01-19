@@ -7,6 +7,22 @@ Get-CimInstance -ClassName Win32_UserAccount -Filter "LocalAccount='True'" | Whe
 # Recon of listening and active connections:
 while ($true){Get-NetTCPConnection -State Listen,Established -ErrorAction "SilentlyContinue" | Sort-Object state,localport | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,@{'Name'='CommandLine';'Expression'={(Get-CimInstance -Class Win32_Process -Filter "ProcessId = $($_.OwningProcess)").CommandLine}} | Format-Table -AutoSize; sleep 10; clear}
 
+# Listing and killing processes
+tasklist /svc /FO table
+taskkill /F /PID <pid>
+
+# Get items in a directory, sort by last modified time, return only files modified in the last x days
+Get-ChildItem [directory]-Recurse -Force | Sort-Object LastWriteTime -Descending | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays([days]) }
+
+# Look for matching hashes of a file
+$h=(Get-FileHash [file]).Hash; gci [dir] |?{($_|Get-FileHash).Hash -eq $h}
+
+# "unhiding" a hidden service
+sc sdset <service name> "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)S:(AU;FA;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;WD)"
+
+# delete a scheduled task
+schtasks /delete /tn "<task folder path>\<task name>" /f
+
 Log querying commands:
 
 # Success & Failed Logons
@@ -63,3 +79,110 @@ WevtUtil qe "Microsoft-WindowsPowerShell/Operational" /q:"*[System[(EventID=4104
 
 # querying logs through powershell example
 # get-eventlog -logname "Windows PowerShell" -computername <your_systemname> | where {$_.eventID -eq 400}
+
+Local Group: gpedit.msc
+Local Security: secpol.msc
+GPO - Domain Group: gpmc.msc
+
+AD Domains and Trusts
+domain.msc
+Active Directory Management
+admgmt.msc
+AD Sites and Services
+dssite.msc
+AD Users and Computers
+dsa.msc
+ADSI Edit
+adsiedit.msc
+Authorization manager
+azman.msc
+Certification Authority Management
+certsrv.msc
+Certificate Templates
+certtmpl.msc
+Cluster Administrator
+cluadmin.exe
+Computer Management
+compmgmt.msc
+Component Services
+comexp.msc
+Configure Your Server
+cys.exe
+Device Manager
+devmgmt.msc
+DHCP Management
+dhcpmgmt.msc
+Disk Defragmenter
+dfrg.msc
+Disk Manager
+diskmgmt.msc
+Distributed File System
+dfsgui.msc
+DNS Management
+dnsmgmt.msc
+Event Viewer
+eventvwr.msc
+Indexing Service Management
+ciadv.msc
+IP Address Manage
+ipaddrmgmt.msc
+Licensing Manager
+llsmgr.exe
+Local Certificates Management
+certmgr.msc
+Local Group Policy Editor
+gpedit.msc
+Local Security Settings Manager
+secpol.msc
+Local Users and Groups Manager
+lusrmgr.msc
+Network Load balancing
+nlbmgr.exe
+Performance Monitor
+perfmon.msc
+PKI Viewer
+pkiview.msc
+Public Key Management
+pkmgmt.msc
+Quality of Service Control Management
+acssnap.msc
+Remote Desktop
+tsmmc.msc
+Remote Storage Administration
+rsadmin.msc
+Removable Storage
+ntmsmgr.msc
+Removable Storage Operator Requests
+ntmsoprq.msc
+Routing and Remote Access Manager
+rrasmgmt.msc
+Resultant Set of Policy
+rsop.msc
+Schema management
+schmmgmt.msc
+Services Management
+services.msc
+Shared Folders
+fsmgmt.msc
+SID Security Migration
+sidwalk.msc
+Telephony Management
+Tapimgmt.msc
+Task Manager
+Taskschd.msc
+Task Manager
+taskmgr
+Terminal Server Configuration
+tscc.msc
+Terminal Server Licensing
+licmgr.exe
+Terminal Server Manager
+tsadmin.exe
+Teminal Services RDP	MSTSC
+Teminal Services RDP to Console	mstsc /v:[server] /console 	 
+UDDI Services Managment
+uddi.msc
+Windows Mangement Instumentation
+wmimgmt.msc
+WINS Server manager
+Winsmgmt.msc
