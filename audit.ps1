@@ -489,7 +489,7 @@ Function Invoke-ModifiedFilesCheck {
     param (
         $directory
     )
-    Get-ChildItem $directory -Force | Sort-Object LastWriteTime -Descending | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) }
+    Get-ChildItem -Attributes !System $directory -Force | Sort-Object LastWriteTime -Descending | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) }
 }
 Function Write-FileAndDirectoryChecks {
     $directories = @{
@@ -517,7 +517,7 @@ Function Write-FileAndDirectoryChecks {
             Invoke-UnsignedFilesCheck $key
             Invoke-ADSCheck $key
             if ($directories[$key]) {
-                Get-ChildItem -Recurse -Force -Path $key -Depth 2 | Where-Object -property Attributes -NotLike -value "*ReparsePoint*" | ForEach-Object {
+                Get-ChildItem -Attributes !System -Recurse -Force -Path $key -Depth 2 | ForEach-Object {
                     $SubItem = $_.FullName
                     if (Test-Path $SubItem) {
                         Write-Output $SubItem 
