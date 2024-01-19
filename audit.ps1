@@ -173,7 +173,6 @@ Function Write-FirewallRules {
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited $($profile.Name) Profile firewall rules" -ForegroundColor white
     }
 }
-
 Function Write-ProcessChecks {
     # Process List
     $processes = Get-Process -IncludeUserName
@@ -185,6 +184,16 @@ Function Write-ProcessChecks {
     $processes | Select-Object Path -Unique | ForEach-Object { Start-ACLCheck -Target $_.path }
     Write-Output "`n"
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited process ACLs" -ForegroundColor white
+}
+Function Invoke-HollowsHunter {
+    Write-Output "----------- Hollows Hunter Results -----------"
+    $current = Get-Location
+    $hollowshunterPath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\hollows_hunter.exe"
+    $resultsPath = Join-Path -Path $currentDir -ChildPath "results"
+    cd $resultsPath
+    & $hollowshunterPath /dir $artifactsPath /uniqd
+    cd $current
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Ran hollows hunter" -ForegroundColor white
 }
 Function Write-InjectedThreads {
     Write-Output "----------- Injected Threads -----------"
@@ -340,7 +349,6 @@ Function Invoke-ScheduledTaskChecks {
         }
     }
 }
-
 Function Write-ScheduledTaskChecks {
     Write-Output "----------- Scheduled Tasks -----------"
     $tasks = Get-ScheduledTask
@@ -764,13 +772,14 @@ Write-FirewallRules | Out-File $firewallPath
 
 Write-ProcessChecks | Out-File $processPath -Append
 Write-InjectedThreads | Out-File $processPath -Append
+Invoke-HollowsHunter | Out-File $processPath -Append
 
 Write-ServiceChecks | Out-File $servicePath -Append
 Find-HiddenServices | Out-File $servicePath -Append
 Invoke-ServiceRegistryACLCheck | Out-File $servicePath -Append
 
 Get-DefenderExclusionSettings | Out-File $thruntingPath -Append
-Write-ScheduledTaskChecks | Out-File -FilePath $thruntingPath -Append
+Write-ScheduledTaskChecks | Out-File $thruntingPath -Append
 Get-PowerShellHistory | Out-File $thruntingPath -Append
 
 Get-GroupPolicyReport
