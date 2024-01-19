@@ -82,6 +82,12 @@ function Get-Inventory {
         }
     }
 
+    # DNS records if DC
+    if ($DC){
+        Write-Output "----------- DNS Records -----------`n"
+        Write-Output Get-DnsServerResourceRecord
+    }
+
     Write-Output "----------- SMB Shares -----------"
     net share
 
