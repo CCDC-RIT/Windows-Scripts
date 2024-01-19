@@ -517,7 +517,7 @@ Function Write-FileAndDirectoryChecks {
             Invoke-UnsignedFilesCheck $key
             Invoke-ADSCheck $key
             if ($directories[$key]) {
-                Get-ChildItem -Attributes !System -Recurse -Force -Path $key -Depth 2 | ForEach-Object {
+                Get-ChildItem -Attributes !Hidden, !System, !ReparsePoint -Recurse -Force -Path $key -Depth 2 | ForEach-Object {
                     $SubItem = $_.FullName
                     if (Test-Path $SubItem) {
                         Write-Output $SubItem 
