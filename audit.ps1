@@ -9,6 +9,7 @@ $servicePath = Join-Path -Path $currentDir -ChildPath 'results\serviceaudit.txt'
 $thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\thruntingaudit.txt'
 $filesystemPath = Join-Path -path $currentDir -ChildPath 'results\filesystemaudit.txt'
 $artifactsPath = Join-Path $currentDir -ChildPath 'results\artifacts'
+$CAPath = Join-Path -path $currentDir -ChildPath 'results\certificateauthorityaudit.txt'
 
 $DC = $false
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
@@ -764,7 +765,10 @@ if ($DC) {
 }
 # locksmith time
 if ($CA) {
-
+	#import module (for running again later)
+	Import-Module Locksmith.psd1
+	
+	.\Invoke-Locksmith.ps1 -Mode 3
 }
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
