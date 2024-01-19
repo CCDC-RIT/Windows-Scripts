@@ -7,6 +7,7 @@ $registryPath = Join-Path -Path $currentDir -ChildPath 'results\registryaudit.tx
 $processPath = Join-Path -Path $currentDir -ChildPath 'results\processaudit.txt'
 $servicePath = Join-Path -Path $currentDir -ChildPath 'results\serviceaudit.txt'
 $thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\thruntingaudit.txt'
+$filesystemPath = Join-Path -path $currentDir -ChildPath 'results\filesystemaudit.txt'
 $artifactsPath = Join-Path $currentDir -ChildPath 'results\artifacts'
 
 $DC = $false
@@ -355,6 +356,7 @@ Function Write-ScheduledTaskChecks {
     Write-Output $tasks | Select-Object State,TaskName,TaskPath,@{Name="NextRunTime";Expression={$(($_ | Get-ScheduledTaskInfo).NextRunTime)}},@{Name="Command";Expression={$_.Actions.Execute}},@{Name="Arguments";Expression={$_.Actions.Arguments}} | Format-Table -Wrap -AutoSize
     Write-Output "----------- Interesting Scheduled Tasks Properties -----------"
     Invoke-ScheduledTaskChecks -tasks $tasks
+    Write-Output "`n"
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited scheduled tasks" -ForegroundColor white
 }
 
@@ -369,25 +371,14 @@ Function Get-GroupPolicyReport {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Exported GPO report" -ForegroundColor white
 }
 
-Function Random-Directories{
-    $sus = @("C:\Intel", "C:\Temp")
-    foreach ($directory in $sus){
-        Write-Output "$(Get-ChildItem $directory)"
-    }
-}
-
-Function Unsigned-Files{
-    ..\tools\sys\sc\sigcheck64 -accepteula -u -e c:\windows\system32
-}
-
-Function Recently-Run-Commands{
+Function Get-RecentlyRunCommands {
     Get-ChildItem HKU:\ -ErrorAction SilentlyContinue | ForEach-Object {
         # get the SID from output
         $HKUSID = $_.Name.Replace('HKEY_USERS\', "")
         $property = (Get-Item "HKU:\$_\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" -ErrorAction SilentlyContinue).Property
         $HKUSID | ForEach-Object {
             if (Test-Path "HKU:\$_\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU") {
-                Write-Output -ForegroundColor Blue "=========||HKU Recently Run Commands"
+                Write-Output "----------- HKU Recently Run Commands -----------"
                 foreach ($p in $property) {
                     Write-Output "$((Get-Item "HKU:\$_\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU"-ErrorAction SilentlyContinue).getValue($p))" 
                 }
@@ -396,189 +387,146 @@ Function Recently-Run-Commands{
     }
 }
 
-function Get-ConsoleHostHistory {
-    Write-Output $(Get-Content (Get-PSReadLineOption).HistorySavePath | Select-String pa)
-    $historyFilePath = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"
-    if (Test-Path $historyFilePath) {
-        try {
-            $historyContent = Get-Content -Path $historyFilePath
-            Write-Output "Console Host Command History:"
-            Write-Output "-----------------------------"
-            foreach ($command in $historyContent) {
-                Write-Output $command
-            }
-        }
-        catch {
-            Write-Error "Error occurred while reading the console host history: $_"
-        }
-    }
-    else {
-        Write-Warning "Console host history file not found."
-    }
-}
-
-function Get-PowerShellHistory{
-    Write-Output "----------------------------------------------------------------"
-    Write-Output "--------------------- Powershell History -----------------------"
-    Write-Output "----------------------------------------------------------------"
-    Write-Host "[*] Getting PS History for all users."
+Function Get-PowerShellHistory {
     $users = Get-ChildItem -Path "C:\Users" -Directory
-    Write-Output "[+] PowerShell Console History For All Users!"
-    Write-Output "[+] Computer Name: $env:computername"
-    Write-Output "[+] Users On Machine:"
     foreach ($user in $users) {
-        Write-Host "    $user"
         $historyFile = Join-Path -Path $user.FullName -ChildPath "AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"
         if (-not (Test-Path $historyFile)) {
-            $errorActionPreference = "Continue"
-            if ($SuppressErrors) {
-                $errorActionPreference = "SilentlyContinue"
-            }
-            $psReadlineOptions = Get-PSReadlineOption -Scope "CurrentUser" -ErrorAction $errorActionPreference
+            $errorActionPreference = "SilentlyContinue"
+            $psReadlineOptions = Get-PSReadlineOption -ErrorAction $errorActionPreference
             if ($psReadlineOptions -and $psReadlineOptions.HistorySavePath) {
                 $historyFile = $psReadlineOptions.HistorySavePath
             }
         }
         if (Test-Path $historyFile) {
-            $output += "User: $($user.Name)`n"
-            $output += "Command History:`n"
             $output += Get-Content -Path $historyFile | Out-String
-            $output += "`n"
-        }
-        else {
-            $output += "User: $($user.Name)`n"
-            $output += "No history found.`n`n"
+            $date = Get-Date -Format "ddMMyyyy"
+            $time = Get-Date -Format "HHmm"
+            $filename = "${user.Name}_${date}_${time}_PSHistory.txt"
+            $filePath = Join-Path -Path $artifactsPath -ChildPath $filename
+            $output | Out-File -FilePath $filePath
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Exported PowerShell history for user: " -ForegroundColor white -NoNewline; Write-Host $user.Name -ForegroundColor Magenta -NoNewLine; Write-Host " to artifacts folder" -ForegroundColor white
+        } else {
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] No PowerShell history found for user: " -ForegroundColor white -NoNewline; Write-Host $user.Name -ForegroundColor Magenta
         }
     }
-    Write-Host $output
-    Write-Host "----------------------------------------------------------------"
+}
+Function Find-PowershellProfiles {
+    Write-Output "----------- PowerShell Profiles -----------"
+    $profiles = $PROFILE | Select-Object * -Exclude Length
+    $profiles.PSObject.Properties | ForEach-Object {
+        if (Test-Path $_.Value) {
+            Write-Output "Exists: $($_.Value)"
+        } else {
+            Write-Output "Does not exist: $($_.Value)"
+        }
+    }
+    Write-Output "`n"
 }
 
-function Powershell-Profile{
-    Write-Host "----------------------------------------------------------------"
-    Write-Host "[*] Grabbing Powershell Profiles."
-    Write-Host "----------------------------------------------------------------"
-    $PROFILE | Format-List -Force
-    Write-Host "----------------------------------------------------------------"
-}
-
-function List-EnvironmentVariables{
-    Write-Host "----------------------------------------------------------------"
-    Write-Host "[*] Grabbing Environment Variables."
-    Write-Host "----------------------------------------------------------------"
+Function Write-EnvironmentVariables {
+    Write-Output "----------- Environment Variables -----------"
     dir env: | format-table -autosize
-    Write-Host "----------------------------------------------------------------"
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Envrionment variables audited" -ForegroundColor white
 }
 
-function Get-AnsibleLogs{
-    Write-Host "----------------------------------------------------------------"
-    Write-Host "[*] Checking for Ansible Logs for all users."
-    Write-Host "----------------------------------------------------------------"
+function Get-AnsibleAsyncLogs {
     $users = Get-ChildItem -Path "C:\Users" -Directory
-    foreach($user in $users){
-        $LogDir = "C:\Users\$user\AppData\Local\Temp\.ansible_async"
-        if(Test-Path -Path $LogFile -PathType leaf){
-            Write-Host "Ansible Log Found for User: $user" -f Green
-            $LogFiles = Get-ChildItem -Path $LogDir -Name
-            foreach($LogFile in $LogFiles){
-                $Loc = Join-Path -Path $LogDir -ChildPath $LogFile
-                $text = Get-Content $Loc | Out-String
-                Write-Host "Ansible Log File Output: 'n" -f Blue
-                Write-Host $text
-                Write-Host "        ----------------------------        "
+    foreach ($user in $users) {
+        $LogDir = Join-Path -Path $user.FullName -ChildPath "AppData\Local\Temp\.ansible_async"
+        if (Test-Path -Path $LogDir -PathType Container) {
+            $output = ""
+            Get-ChildItem $LogDir | ForEach-Object {
+                $output += Get-Content $_.FullName
+                $output += "`n"
             }
-        }
-        Else{
-            Write-Host "No Ansible Log file found for User: $user" -f Yellow
-        }
-    }
-    Write-Host "----------------------------------------------------------------"
-}
-
-function Get-StartUp{
-    Write-Host "----------------------------------------------------------------"
-    Write-Host "[*] Checking System and User Statup Folders."
-    Write-Host "----------------------------------------------------------------"
-    Write-Host "Getting System Startup Contents"
-    $systemDir = "C:\ProgramData\Microsoft\Windows\Start Menu\Programs"
-    $systemStart = Get-ChildItem -Path $systemDir -Recurse -Force
-    Write-Host "----------------------------------------------------------------"
-    $users = Get-ChildItem -Path "C:\Users" -Directory
-    foreach($user in $users){
-        $personalDir = "C:\Users\$user\AppData\Roaming\Microsoft\Windows\Start Menu\Programs"
-        Write-Host "Getting $user Startup Contents"
-        $personalStart = Get-ChildItem -Path $personalDirDir -Recurse -Force
-        Write-Host "        ----------------------------        "
-    }
-    Write-Host "----------------------------------------------------------------"
-}
-
-function Get-Installed{
-    Get-CimInstance -class win32_Product | Select-Object Name, Version | 
-    ForEach-Object {
-        Write-Output $("{0} : {1}" -f $_.Name, $_.Version)  
-    }
-}
-
-Function Get-ScheduledTask-ACL{
-    if (Get-ChildItem "c:\windows\system32\tasks" -ErrorAction SilentlyContinue) {
-        Write-Output "Access confirmed, may need futher investigation"
-        Get-ChildItem "c:\windows\system32\tasks"
-    }
-    else {
-        Write-Output "No admin access to scheduled tasks folder."
-        Get-ScheduledTask | Where-Object { $_.TaskPath -notlike "\Microsoft*" } | ForEach-Object {
-            $Actions = $_.Actions.Execute
-            if ($Actions -ne $null) {
-                foreach ($a in $actions) {
-                    if ($a -like "%windir%*") { $a = $a.replace("%windir%", $Env:windir) }
-                    elseif ($a -like "%SystemRoot%*") { $a = $a.replace("%SystemRoot%", $Env:windir) }
-                    elseif ($a -like "%localappdata%*") { $a = $a.replace("%localappdata%", "$env:UserProfile\appdata\local") }
-                    elseif ($a -like "%appdata%*") { $a = $a.replace("%localappdata%", $env:Appdata) }
-                    $a = $a.Replace('"', '')
-                    Start-ACLCheck -Target $a
-                    Write-Output "`n"
-                    Write-Output "TaskName: $($_.TaskName)"
-                    Write-Output "-------------"
-                    [pscustomobject]@{
-                        LastResult = $(($_ | Get-ScheduledTaskInfo).LastTaskResult)
-                        NextRun    = $(($_ | Get-ScheduledTaskInfo).NextRunTime)
-                        Status     = $_.State
-                        Command    = $_.Actions.execute
-                        Arguments  = $_.Actions.Arguments 
-                    } | Write-Output
-                } 
-            }
+            $date = Get-Date -Format "ddMMyyyy"
+            $time = Get-Date -Format "HHmm"
+            $filename = "${user.Name}_${date}_${time}_ansibleasynclog.txt"
+            $filePath = Join-Path -Path $artifactsPath -ChildPath $filename
+            $output | Out-File -FilePath $filePath
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Exported Ansible async logs for user: " -ForegroundColor white -NoNewline; Write-Host $user.Name -ForegroundColor Magenta -NoNewLine; Write-Host " to artifacts folder" -ForegroundColor white
+        } else {
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] No Ansible async logs found for user: " -ForegroundColor white -NoNewline; Write-Host $user.Name -ForegroundColor Magenta
         }
     }
 }
 
-Function Get-Startup-ACL{
-    @("C:\Documents and Settings\All Users\Start Menu\Programs\Startup",
-    "C:\Documents and Settings\$env:Username\Start Menu\Programs\Startup", 
-    "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup", 
-    "$env:Appdata\Microsoft\Windows\Start Menu\Programs\Startup") | ForEach-Object {
-        if (Test-Path $_) {
-            # CheckACL of each top folder then each sub folder/file
-            Start-ACLCheck $_
-            Get-ChildItem -Recurse -Force -Path $_ | ForEach-Object {
-                $SubItem = $_.FullName
-                if (Test-Path $SubItem) { 
-                    Start-ACLCheck -Target $SubItem
+Function Invoke-UnsignedFilesCheck {
+    param (
+        $directory,
+        $recursion
+    )
+
+    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64.exe"
+    if ($recursion) {
+        & $sigcheckpath -accepteula -nobanner -u -e -s $directory
+    } else {
+        & $sigcheckpath -accepteula -nobanner -u -e $directory
+    }
+}
+Function Invoke-UnsignedFilesCheck {
+    param (
+        $directory
+    )
+    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64.exe"
+    $output = & $sigcheckpath -accepteula -nobanner -u -e $directory | Out-String
+    if ($output.Trim() -ne "No matching files were found.") {
+        Write-Output $output
+    }
+}
+Function Invoke-ADSCheck {
+    param (
+        $directory
+    )
+    $streamspath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\st\streams64.exe"
+    $output = & $streamspath -accepteula -nobanner $directory | Out-String
+    if ($output.Trim() -ne "No files with streams found.") {
+        Write-Output $output
+    }
+}
+Function Invoke-ModifiedFilesCheck {
+    param (
+        $directory
+    )
+    Get-ChildItem $directory -Force | Sort-Object LastWriteTime -Descending | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) }
+}
+Function Write-FileAndDirectoryChecks {
+    $directories = @{
+        "C:\Intel" = $true;
+        "C:\Temp" = $true;
+        "$env:windir" = $false;
+        "$env:windir\System32" = $false;
+        "C:\Documents and Settings\All Users\Start Menu\Programs\Startup" = $true;
+        "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup" = $true
+    }
+    Get-ChildItem -Path "C:\Users" -Directory | ForEach-Object {
+        $directories[$_.FullName] = $true
+        $pdir1 = Join-Path -Path $_.FullName -ChildPath "AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
+        $pdir2 = Join-Path -Path "C:\Documents and Settings" -ChildPath $_.Name
+        $pdir2 = Join-Path -Path $pdir2 -ChildPath "Start Menu\Programs\Startup"
+
+        $directories[$pdir1] = $true
+        $directories[$pdir2] = $true
+    }
+    foreach ($key in $directories.Keys) {
+        if (Test-Path $key) {
+            Write-Output $key
+            Invoke-ModifiedFilesCheck $key
+            Start-ACLCheck $key
+            Invoke-UnsignedFilesCheck $key
+            Invoke-ADSCheck $key
+            if ($directories[$key]) {
+                Get-ChildItem -Attributes !System -Recurse -Force -Path $key -Depth 2 | ForEach-Object {
+                    $SubItem = $_.FullName
+                    if (Test-Path $SubItem) {
+                        Write-Output $SubItem 
+                        Invoke-ModifiedFilesCheck $SubItem
+                        Start-ACLCheck -Target $SubItem
+                        Invoke-UnsignedFilesCheck $SubItem
+                        Invoke-ADSCheck $SubItem
+                    }
                 }
-            }
-        }
-    }
-    @("registry::HKLM\Software\Microsoft\Windows\CurrentVersion\Run",
-    "registry::HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce",
-    "registry::HKCU\Software\Microsoft\Windows\CurrentVersion\Run",
-    "registry::HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce") | ForEach-Object {
-    # CheckACL of each Property Value found
-        $ROPath = $_
-        (Get-Item $_) | ForEach-Object {
-            $ROProperty = $_.property
-            $ROProperty | ForEach-Object {
-                Start-ACLCheck ((Get-ItemProperty -Path $ROPath).$_ -split '(?<=\.exe\b)')[0].Trim('"')
             }
         }
     }
@@ -621,6 +569,20 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 # T1547.001 - Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder
 ## ye olde run keys
+# TODO: check ACLs on run key values
+# @("registry::HKLM\Software\Microsoft\Windows\CurrentVersion\Run",
+# "registry::HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce",
+# "registry::HKCU\Software\Microsoft\Windows\CurrentVersion\Run",
+# "registry::HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce") | ForEach-Object {
+# # CheckACL of each Property Value found
+#     $ROPath = $_
+#     (Get-Item $_) | ForEach-Object {
+#         $ROProperty = $_.property
+#         $ROProperty | ForEach-Object {
+#             Start-ACLCheck ((Get-ItemProperty -Path $ROPath).$_ -split '(?<=\.exe\b)')[0].Trim('"')
+#         }
+#     }
+# }
 $keysvalues = @{
     "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" = @();
     "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" = @();
@@ -780,9 +742,15 @@ Invoke-ServiceRegistryACLCheck | Out-File $servicePath -Append
 
 Get-DefenderExclusionSettings | Out-File $thruntingPath -Append
 Write-ScheduledTaskChecks | Out-File $thruntingPath -Append
-Get-PowerShellHistory | Out-File $thruntingPath -Append
+Find-PowershellProfiles | Out-File $thruntingPath -Append
+Write-EnvironmentVariables | Out-File $thruntingPath -Append
+Get-RecentlyRunCommands | Out-File $thruntingPath -Append 
 
 Get-GroupPolicyReport
+Get-PowerShellHistory
+Get-AnsibleAsyncLogs
+
+Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
 
 # pingcastle time
 if ($DC) {
@@ -794,7 +762,10 @@ if ($DC) {
     cd $current
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited AD with PingCastle" -ForegroundColor white
 }
+# locksmith time
+if ($CA) {
 
+}
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
 # $registryfunction = StartUp-Programs
