@@ -772,7 +772,10 @@ if ($DC) {
 }
 # locksmith time
 if ($CA) {
+	$resultsPath = Join-Path -Path $currentDir -ChildPath "results"
+    cd $resultsPath
 	Invoke-Locksmith -Mode 3
+	cd $current
 }
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
