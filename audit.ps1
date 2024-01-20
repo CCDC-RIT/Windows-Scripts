@@ -490,7 +490,7 @@ Function Invoke-ModifiedFilesCheck {
     param (
         $directory
     )
-    Get-ChildItem -Attributes !System $directory -Force | Sort-Object LastWriteTime -Descending | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) }
+    Get-ChildItem $directory -Force | Sort-Object LastWriteTime -Descending | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) }
 }
 Function Write-FileAndDirectoryChecks {
     $directories = @{
@@ -518,7 +518,7 @@ Function Write-FileAndDirectoryChecks {
             Invoke-UnsignedFilesCheck $key
             Invoke-ADSCheck $key
             if ($directories[$key]) {
-                Get-ChildItem -Attributes !System -Recurse -Force -Path $key -Depth 2 | ForEach-Object {
+                Get-ChildItem -Attributes !System, !ReparsePoint -Recurse -Force -Path $key -Depth 2 | ForEach-Object {
                     $SubItem = $_.FullName
                     if (Test-Path $SubItem) {
                         Write-Output $SubItem 
@@ -778,10 +778,7 @@ if ($DC) {
 }
 # locksmith time
 if ($CA) {
-	#import module (for running again later)
-	Import-Module Locksmith.psd1
-	
-	.\Invoke-Locksmith.ps1 -Mode 3
+	Invoke-Locksmith -Mode 3
 }
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
