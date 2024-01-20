@@ -428,7 +428,7 @@ Function Find-PowershellProfiles {
 Function Write-EnvironmentVariables {
     Write-Output "----------- Environment Variables -----------"
     dir env: | format-table -autosize
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Envrionment variables audited" -ForegroundColor white
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Environment variables audited" -ForegroundColor white
 }
 
 function Get-AnsibleAsyncLogs {
@@ -531,6 +531,12 @@ Function Write-FileAndDirectoryChecks {
             }
         }
     }
+}
+
+Function Start-PrivescCheck {
+    $privescpath = Join-Path -Path $currentDir -ChildPath "PrivescCheck.ps1"
+    $reportPath = Join-Path -Path $currentDir -ChildPath "results\PrivescCheck"
+    . $privescpath; Invoke-PrivescCheck -Extended -Report $reportPath -Format HTML -Force | Out-Null
 }
 
 # T1546.007 - Event Triggered Execution: Netsh Helper DLL
@@ -750,6 +756,7 @@ Get-RecentlyRunCommands | Out-File $thruntingPath -Append
 Get-GroupPolicyReport
 Get-PowerShellHistory
 Get-AnsibleAsyncLogs
+Start-PrivescCheck
 
 Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
 
