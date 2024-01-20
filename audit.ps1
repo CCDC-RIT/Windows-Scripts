@@ -354,7 +354,7 @@ Function Invoke-ScheduledTaskChecks {
 Function Write-ScheduledTaskChecks {
     Write-Output "----------- Scheduled Tasks -----------"
     $tasks = Get-ScheduledTask
-    Write-Output $tasks | Select-Object State,TaskName,TaskPath,@{Name="NextRunTime";Expression={$(($_ | Get-ScheduledTaskInfo).NextRunTime)}},@{Name="Command";Expression={$_.Actions.Execute}},@{Name="Arguments";Expression={$_.Actions.Arguments}} | Format-Table -Wrap -AutoSize
+    Write-Output $tasks | Select-Object State,TaskName,TaskPath,@{Name="NextRunTime";Expression={$(($_ | Get-ScheduledTaskInfo).NextRunTime)}},@{Name="Command";Expression={$_.Actions.Execute}},@{Name="Arguments";Expression={$_.Actions.Arguments}} | Format-Table -Wrap -AutoSize |  Out-String -Width 10000 #
     Write-Output "----------- Interesting Scheduled Tasks Properties -----------"
     Invoke-ScheduledTaskChecks -tasks $tasks
     Write-Output "`n"
