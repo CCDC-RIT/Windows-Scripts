@@ -279,12 +279,10 @@ Function Invoke-ServiceChecks {
     param(
         $servicesList
     )
-
     $servicesList | ForEach-Object {
         $extension = [IO.Path]::GetExtension($_.PathName.Split([IO.Path]::GetInvalidFileNameChars()) -join '').Split(' ')[0].Trim()
         $pattern = "(?<=\" + $extension + "\b)"
         $Path = ($_.PathName -split $pattern)[0].Trim('"')
-               
         Find-SuspiciousServiceProperties -service $_ -path $Path
         Start-ACLCheck -Target $Path -ServiceName $_.Name
     }
@@ -455,19 +453,6 @@ function Get-AnsibleAsyncLogs {
 
 Function Invoke-UnsignedFilesCheck {
     param (
-        $directory,
-        $recursion
-    )
-
-    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64.exe"
-    if ($recursion) {
-        & $sigcheckpath -accepteula -nobanner -u -e -s $directory
-    } else {
-        & $sigcheckpath -accepteula -nobanner -u -e $directory
-    }
-}
-Function Invoke-UnsignedFilesCheck {
-    param (
         $directory
     )
     $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64.exe"
@@ -476,6 +461,7 @@ Function Invoke-UnsignedFilesCheck {
         Write-Output $output
     }
 }
+
 Function Invoke-ADSCheck {
     param (
         $directory
@@ -486,12 +472,14 @@ Function Invoke-ADSCheck {
         Write-Output $output
     }
 }
+
 Function Invoke-ModifiedFilesCheck {
     param (
         $directory
     )
     Get-ChildItem $directory -Force | Sort-Object LastWriteTime -Descending | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) }
 }
+
 Function Write-FileAndDirectoryChecks {
     $directories = @{
         "C:\Intel" = $true;
@@ -526,9 +514,17 @@ Function Write-FileAndDirectoryChecks {
                         Start-ACLCheck -Target $SubItem
                         Invoke-UnsignedFilesCheck $SubItem
                         Invoke-ADSCheck $SubItem
+                        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] File was checked: " -ForegroundColor white -NoNewline; Write-Host $SubItem -ForegroundColor Magenta -NoNewLine; Write-Host "in Directory: "; Write-Host $key -ForegroundColor Magenta -NoNewLine
+                    }
+                    else{
+                        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor red -NoNewLine; Write-Host "] File was not checked: " -ForegroundColor white -NoNewline; Write-Host $SubItem -ForegroundColor Magenta -NoNewLine; Write-Host "in Directory: "; Write-Host $key -ForegroundColor Magenta -NoNewLine
                     }
                 }
             }
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Directory was checked: " -ForegroundColor white -NoNewline; Write-Host $key -ForegroundColor Magenta -NoNewLine
+        }
+        else{
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Directory was not checked: " -ForegroundColor white -NoNewline; Write-Host $key -ForegroundColor Magenta
         }
     }
 }
@@ -742,6 +738,58 @@ $keysvalues = @{
 Write-KeysValues "----------- Protocol Filtering/Handling Items -----------" $keysvalues $registryPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Protocol Filtering & Handling keys" -ForegroundColor white
 
+#Trust Providers 
+$keyvalues = @{
+    "HKLM\SOFTWARE\Microsoft\Cryptography\Providers\Trust\FinalPolicy\*" = @();
+    "HKLM\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllGetSignedDataMsg\*" = @()
+    "HKLM\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllVerifyIndirectData\*" = @()
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\Providers\Trust\FinalPolicy\*" = @()
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllGetSignedDataMsg\*" = @()
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllVerifyIndirectData\*" = @()
+}
+Write-KeysValues "----------- Trust Provider Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Trust Provider Items" -ForegroundColor white
+
+$keyvalues = @{
+    "HKCU\Control Panel\Desktop" #Screen Saver 
+    "HKLM\SYSTEM\CurrentControlSet\Control\BootVerificationProgram" #Boot Verification Program
+    "HKCU\txtfile\shell\open\command" #File Extension Hijacking
+    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\TelemetryController" #TelemetryController 
+    "HKCR\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\" #Recycle Bin COM Extension Handler 
+    "HKLM\SOFTWARE\Classes\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\" #Recycle Bin COM Extension Handler
+    "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" #TS Intial
+    "HKCU\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" #TS Intial 
+    "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" #TS Intial
+    "HKLM\SYSTEM\CurrentControlSet\Services\WinSock2\Parameters\AutodialDLL" #Autodial DLL
+    "HKCU\Software\Microsoft\Windows NT\CurrentVersion\Windows" #HKCU Load 
+    "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify" #Winlogon Notification Package 
+    "HKLM\SYSTEM\CurrentControlSet\Control\LsaExtensionConfig\LsaSrv" #LSA Extension
+    "HKCU\Software\Microsoft\Command Processor\AutoRun" #cmd.exe AutoRun
+    "HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters" #ServerLevelPluginDLL
+    "HKLM\SOFTWARE\Microsoft\AMSI\Providers" #AMSI Providers
+    "HKCR\CLSID\{52A2AAAE-085D-4187-97EA-8C30DB990436}\InprocServer32" #hhctrl.ocx
+    "HKCU\Software\Microsoft\HtmlHelp Author" #.chm helper DLL
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\" #Disk Cleanup Handler 
+    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\GPExtensions" #Group Policy Client Side Extension
+    "HKLM\System\CurrentControlSet\Control\ContentIndex\Language" #Natural Language 6 DLLs
+    "HKLM\Software\Microsoft\Windows\Windows Error Reporting\Hangs" #WER Debugger 
+    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug" #AeDebug
+}
+Write-KeysValues "----------- Miscellaneous Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Miscellaneous Items on key:" -ForegroundColor white; Write-Host $key -ForegroundColor Magenta
+
+$processes = Get-Process
+foreach ($process in $processes) {
+    @keyvalues = @{
+        "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\$process" #Monitoring Silent Process Exit
+        "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$process\" #Monitoring Silent Process Exit 
+    }
+    Write-KeysValues $keysvalues $registryPath
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Checked for Silent Process Exit Items on Process:" -ForegroundColor white; Write-Host $process -ForegroundColor Magenta; Write-Host " on key: " -ForegroundColor White; Write-Host $key -ForegroundColor Magenta
+}
+
+
+
 Write-FirewallRules | Out-File $firewallPath
 
 Write-ProcessChecks | Out-File $processPath -Append
@@ -764,8 +812,6 @@ Get-AnsibleAsyncLogs
 Start-PrivescCheck
 Invoke-Chainsaw
 
-Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
-
 # pingcastle time
 if ($DC) {
     $current = Get-Location
@@ -783,6 +829,8 @@ if ($CA) {
 	Invoke-Locksmith -Mode 3
 	cd $current
 }
+
+Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
 # $registryfunction = StartUp-Programs
