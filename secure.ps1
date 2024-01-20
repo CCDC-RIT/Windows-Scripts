@@ -1220,3 +1220,4 @@ Write-Host "See " -NoNewline -ForegroundColor Cyan; Write-Host (Join-Path -Path 
 # Block tools which remotely install services, such as psexec!
 # EDIT: Run the command below manually! It does not work in a script. 
 # FOR /F "usebackq tokens=2 delims=:" %a IN (`sc.exe sdshow scmanager`) DO  sc.exe sdset scmanager D:(D;;GA;;;NU)%a
+#Chandi Fortnite
