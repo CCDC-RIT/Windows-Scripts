@@ -117,7 +117,8 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 (New-Object System.Net.WebClient).DownloadFile("https://aka.ms/vs/17/release/vc_redist.x64.exe", (Join-Path -Path $InputPath -ChildPath "vc_redist.64.exe"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Chainsaw downloaded" -ForegroundColor white
 # silently installing dependency library
-vc_redist.x64.exe /install /passive /norestart
+$redistpath = Join-Path -Path $InputPath -ChildPath "vc_redist.64.exe"
+& $redistpath /install /passive /norestart
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] C++ redist installed" -ForegroundColor white
 # hollows hunter
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/hasherezade/hollows_hunter/releases/latest/download/hollows_hunter64.zip", (Join-Path -Path $InputPath -ChildPath "hh64.zip"))
