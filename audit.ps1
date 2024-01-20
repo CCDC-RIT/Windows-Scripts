@@ -741,39 +741,39 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 #Trust Providers 
 $keyvalues = @{
     "HKLM\SOFTWARE\Microsoft\Cryptography\Providers\Trust\FinalPolicy\*" = @();
-    "HKLM\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllGetSignedDataMsg\*" = @()
-    "HKLM\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllVerifyIndirectData\*" = @()
-    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\Providers\Trust\FinalPolicy\*" = @()
-    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllGetSignedDataMsg\*" = @()
+    "HKLM\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllGetSignedDataMsg\*" = @();
+    "HKLM\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllVerifyIndirectData\*" = @();
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\Providers\Trust\FinalPolicy\*" = @();
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllGetSignedDataMsg\*" = @();
     "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllVerifyIndirectData\*" = @()
 }
 Write-KeysValues "----------- Trust Provider Items -----------" $keysvalues $registryPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Trust Provider Items" -ForegroundColor white
 
 $keyvalues = @{
-    "HKCU\Control Panel\Desktop" #Screen Saver 
-    "HKLM\SYSTEM\CurrentControlSet\Control\BootVerificationProgram" #Boot Verification Program
-    "HKCU\txtfile\shell\open\command" #File Extension Hijacking
-    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\TelemetryController" #TelemetryController 
-    "HKCR\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\" #Recycle Bin COM Extension Handler 
-    "HKLM\SOFTWARE\Classes\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\" #Recycle Bin COM Extension Handler
-    "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" #TS Intial
-    "HKCU\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" #TS Intial 
-    "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" #TS Intial
-    "HKLM\SYSTEM\CurrentControlSet\Services\WinSock2\Parameters\AutodialDLL" #Autodial DLL
-    "HKCU\Software\Microsoft\Windows NT\CurrentVersion\Windows" #HKCU Load 
-    "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify" #Winlogon Notification Package 
-    "HKLM\SYSTEM\CurrentControlSet\Control\LsaExtensionConfig\LsaSrv" #LSA Extension
-    "HKCU\Software\Microsoft\Command Processor\AutoRun" #cmd.exe AutoRun
-    "HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters" #ServerLevelPluginDLL
-    "HKLM\SOFTWARE\Microsoft\AMSI\Providers" #AMSI Providers
-    "HKCR\CLSID\{52A2AAAE-085D-4187-97EA-8C30DB990436}\InprocServer32" #hhctrl.ocx
-    "HKCU\Software\Microsoft\HtmlHelp Author" #.chm helper DLL
-    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\" #Disk Cleanup Handler 
-    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\GPExtensions" #Group Policy Client Side Extension
-    "HKLM\System\CurrentControlSet\Control\ContentIndex\Language" #Natural Language 6 DLLs
-    "HKLM\Software\Microsoft\Windows\Windows Error Reporting\Hangs" #WER Debugger 
-    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug" #AeDebug
+    "HKCU\Control Panel\Desktop" = @(); #Screen Saver 
+    "HKLM\SYSTEM\CurrentControlSet\Control\BootVerificationProgram" = @(); #Boot Verification Program
+    "HKCU\txtfile\shell\open\command" = @(); #File Extension Hijacking
+    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\TelemetryController" = @(); #TelemetryController 
+    "HKCR\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\" = @(); #Recycle Bin COM Extension Handler 
+    "HKLM\SOFTWARE\Classes\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\" = @(); #Recycle Bin COM Extension Handler
+    "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" = @(); #TS Intial
+    "HKCU\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" = @(); #TS Intial 
+    "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" = @(); #TS Intial
+    "HKLM\SYSTEM\CurrentControlSet\Services\WinSock2\Parameters\AutodialDLL" = @(); #Autodial DLL
+    "HKCU\Software\Microsoft\Windows NT\CurrentVersion\Windows" = @(); #HKCU Load 
+    "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify" = @(); #Winlogon Notification Package 
+    "HKLM\SYSTEM\CurrentControlSet\Control\LsaExtensionConfig\LsaSrv" = @(); #LSA Extension
+    "HKCU\Software\Microsoft\Command Processor\AutoRun"  = @(); #cmd.exe AutoRun
+    "HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters"  = @(); #ServerLevelPluginDLL
+    "HKLM\SOFTWARE\Microsoft\AMSI\Providers" = @(); #AMSI Providers
+    "HKCR\CLSID\{52A2AAAE-085D-4187-97EA-8C30DB990436}\InprocServer32" = @(); #hhctrl.ocx
+    "HKCU\Software\Microsoft\HtmlHelp Author" = @(); #.chm helper DLL
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\" = @(); #Disk Cleanup Handler 
+    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\GPExtensions" = @(); #Group Policy Client Side Extension
+    "HKLM\System\CurrentControlSet\Control\ContentIndex\Language" = @(); #Natural Language 6 DLLs
+    "HKLM\Software\Microsoft\Windows\Windows Error Reporting\Hangs" = @(); #WER Debugger 
+    "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug" = @() #AeDebug
 }
 Write-KeysValues "----------- Miscellaneous Items -----------" $keysvalues $registryPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Miscellaneous Items on key:" -ForegroundColor white; Write-Host $key -ForegroundColor Magenta
@@ -781,8 +781,8 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 $processes = Get-Process
 foreach ($process in $processes) {
     @keyvalues = @{
-        "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\$process" #Monitoring Silent Process Exit
-        "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$process\" #Monitoring Silent Process Exit 
+        "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\$process" = @(); #Monitoring Silent Process Exit
+        "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$process\" = @() #Monitoring Silent Process Exit 
     }
     Write-KeysValues $keysvalues $registryPath
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Checked for Silent Process Exit Items on Process:" -ForegroundColor white; Write-Host $process -ForegroundColor Magenta; Write-Host " on key: " -ForegroundColor White; Write-Host $key -ForegroundColor Magenta
