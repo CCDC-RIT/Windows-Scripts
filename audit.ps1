@@ -778,15 +778,11 @@ $keyvalues = @{
 Write-KeysValues "----------- Miscellaneous Items -----------" $keysvalues $registryPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Miscellaneous Items on key:" -ForegroundColor white; Write-Host $key -ForegroundColor Magenta
 
-$processes = Get-Process
-foreach ($process in $processes) {
-    $keyvalues = @{
-        "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\$process" = @(); #Monitoring Silent Process Exit
-        "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$process\" = @() #Monitoring Silent Process Exit 
-    }
-    Write-KeysValues $keysvalues $registryPath
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Checked for Silent Process Exit Items on Process:" -ForegroundColor white; Write-Host $process -ForegroundColor Magenta; Write-Host " on key: " -ForegroundColor White; Write-Host $key -ForegroundColor Magenta
+$keyvalues = @{
+    "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\$" = @(); #Monitoring Silent Process Exit
 }
+Write-KeysValues "----------- Silent Process Exit Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Silent Process Exit Items " -ForegroundColor White
 
 
 
