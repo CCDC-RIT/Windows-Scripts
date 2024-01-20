@@ -56,7 +56,8 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC) {
         foreach ($DomainUser in $DomainUsers) {
             if ($DomainUser.Name -in $UserList) {
                 # Enable-ADAccount -Name $DomainUser.Name
-                $DomainUser | Set-ADUser -AllowReversiblePasswordEncryption $false -ChangePasswordAtLogon $false -KerberosEncryptionType AES128,AES256 -PasswordNeverExpires $false -UserMayChangePassword $false -PasswordNotRequired $false -AccountNotDelegated $true
+                # -AccountNotDelegated $true disabled due to competition using delegated accounts
+                $DomainUser | Set-ADUser -AllowReversiblePasswordEncryption $false -ChangePasswordAtLogon $false -KerberosEncryptionType AES128,AES256 -PasswordNeverExpires $false -UserMayChangePassword $false -PasswordNotRequired $false
                 # $DomainUser | Set-ADAccountControl -DoesNotRequirePreAuth $false
                 Disable-ADAccount -Name $DomainUser.Name
                 Write-Host "[INFO]" $DomainUser.Name "disabled"
