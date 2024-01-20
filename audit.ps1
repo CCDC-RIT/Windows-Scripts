@@ -775,6 +775,12 @@ if ($DC) {
     & $pingcastlePath --healthcheck --carto --datefile | Out-Null
     cd $current
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited AD with PingCastle" -ForegroundColor white
+    $keysvalues = @{
+        "HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters" = @("ServerLevelPluginDll")
+    }
+    Write-KeysValues "----------- Server Level Plugin DLLs -----------" $keysvalues $registryPath
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited service run keys" -ForegroundColor white
+    
 }
 # locksmith time
 if ($CA) {
