@@ -354,7 +354,7 @@ Function Invoke-ScheduledTaskChecks {
 Function Write-ScheduledTaskChecks {
     Write-Output "----------- Scheduled Tasks -----------"
     $tasks = Get-ScheduledTask
-    Write-Output $tasks | Select-Object State,TaskName,TaskPath,@{Name="NextRunTime";Expression={$(($_ | Get-ScheduledTaskInfo).NextRunTime)}},@{Name="Command";Expression={$_.Actions.Execute}},@{Name="Arguments";Expression={$_.Actions.Arguments}} | Format-Table -Wrap -AutoSize
+    Write-Output $tasks | Select-Object State,TaskName,TaskPath,@{Name="NextRunTime";Expression={$(($_ | Get-ScheduledTaskInfo).NextRunTime)}},@{Name="Command";Expression={$_.Actions.Execute}},@{Name="Arguments";Expression={$_.Actions.Arguments}} | Format-Table -Wrap -AutoSize |  Out-String -Width 10000 #
     Write-Output "----------- Interesting Scheduled Tasks Properties -----------"
     Invoke-ScheduledTaskChecks -tasks $tasks
     Write-Output "`n"
@@ -537,6 +537,11 @@ Function Start-PrivescCheck {
     $privescpath = Join-Path -Path $currentDir -ChildPath "PrivescCheck.ps1"
     $reportPath = Join-Path -Path $currentDir -ChildPath "results\PrivescCheck"
     . $privescpath; Invoke-PrivescCheck -Extended -Report $reportPath -Format HTML -Force | Out-Null
+}
+
+Function Invoke-Chainsaw {
+    $chainsawpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\chainsaw"
+    & (Join-Path -Path $chainsaw -ChildPath "chainsaw_x86_64-pc-windows-msvc.exe") hunt (Join-Path -Path $env:windir -ChildPath "System32\winevt\Logs") -s (Join-Path -Path $childpath -ChildPath "sigma") -r (Join-Path -Path $chainsawpath -ChildPath "rules") --mapping (Join-Path -Path $chainsawpath -ChildPath "mappings\sigma-event-logs-all.yml") --output (Join-Path -Path $resultsPath -ChildPath "chainsaw_report.txt") | Out-Null
 }
 
 # T1546.007 - Event Triggered Execution: Netsh Helper DLL
@@ -757,6 +762,7 @@ Get-GroupPolicyReport
 Get-PowerShellHistory
 Get-AnsibleAsyncLogs
 Start-PrivescCheck
+Invoke-Chainsaw
 
 Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
 

@@ -3,6 +3,9 @@ param(
     [String]$filepath 
 )
 
+[string]$cmdPath = $MyInvocation.MyCommand.Path
+$currentDir = $cmdPath.substring(0, $cmdPath.IndexOf("usermgmt.ps1"))
+
 try {
     [string[]]$AllowUsers = Get-Content $filepath
 } catch {
@@ -16,10 +19,11 @@ if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
     Write-Host "[INFO] Domain Controller Detected"
 }
 
-Function Set-krbtgt-Password([bool] $IsDC) {
+Function Set-krbtgtPassword([bool] $IsDC) {
     Clear-Host
     if ($IsDC) {
-        # insert code to flick krbtgt password here
+        $krbtgtPath = Join-Path -Path $currentDir -ChildPath "Reset-KrbtgtKeyInteractive.ps1"
+        & $krbtgtPath
     } else {
         Write-Host "[ERROR] Computer is not a domain controller"
         exit
@@ -52,7 +56,8 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC) {
         foreach ($DomainUser in $DomainUsers) {
             if ($DomainUser.Name -in $UserList) {
                 # Enable-ADAccount -Name $DomainUser.Name
-                $DomainUser | Set-ADUser -AllowReversiblePasswordEncryption $false -ChangePasswordAtLogon $false -KerberosEncryptionType AES128,AES256 -PasswordNeverExpires $false -UserMayChangePassword $false -PasswordNotRequired $false -AccountNotDelegated $true
+                # -AccountNotDelegated $true disabled due to competition using delegated accounts
+                $DomainUser | Set-ADUser -AllowReversiblePasswordEncryption $false -ChangePasswordAtLogon $false -KerberosEncryptionType AES128,AES256 -PasswordNeverExpires $false -UserMayChangePassword $false -PasswordNotRequired $false
                 # $DomainUser | Set-ADAccountControl -DoesNotRequirePreAuth $false
                 Disable-ADAccount -Name $DomainUser.Name
                 Write-Host "[INFO]" $DomainUser.Name "disabled"
@@ -80,7 +85,8 @@ while ($true) {
     Write-Host "1. Change passwords for all users in list"
     Write-Host "2. Change password for current user"
     Write-Host "3. Disable all users in list and apply proper user properties"
-    Write-Host "4. Exit"
+    Write-Host "4. Reset krbtgt password"
+    Write-Host "5. Exit"
     $option = Read-Host "Enter an option"
     
     if ($option -eq '1') {
@@ -92,6 +98,8 @@ while ($true) {
     } elseif ($option -eq '3') {
         Set-UserProperties -UserList $AllowUsers -IsDC $DC
     } elseif ($option -eq '4') {
+        Set-krbtgtPassword -IsDC $DC
+    } elseif ($option -eq '5') {
         exit 0
     } else {
         Write-Host "Invalid option, try again"
