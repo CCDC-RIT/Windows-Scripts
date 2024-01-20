@@ -764,8 +764,6 @@ Get-AnsibleAsyncLogs
 Start-PrivescCheck
 Invoke-Chainsaw
 
-Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
-
 # pingcastle time
 if ($DC) {
     $current = Get-Location
@@ -783,6 +781,8 @@ if ($CA) {
 	Invoke-Locksmith -Mode 3
 	cd $current
 }
+
+Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
 # $registryfunction = StartUp-Programs
