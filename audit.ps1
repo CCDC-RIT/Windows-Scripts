@@ -9,6 +9,7 @@ $servicePath = Join-Path -Path $currentDir -ChildPath 'results\serviceaudit.txt'
 $thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\thruntingaudit.txt'
 $filesystemPath = Join-Path -path $currentDir -ChildPath 'results\filesystemaudit.txt'
 $artifactsPath = Join-Path $currentDir -ChildPath 'results\artifacts'
+$CAPath = Join-Path -path $currentDir -ChildPath 'results\certificateauthorityaudit.txt'
 
 $DC = $false
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
@@ -353,7 +354,7 @@ Function Invoke-ScheduledTaskChecks {
 Function Write-ScheduledTaskChecks {
     Write-Output "----------- Scheduled Tasks -----------"
     $tasks = Get-ScheduledTask
-    Write-Output $tasks | Select-Object State,TaskName,TaskPath,@{Name="NextRunTime";Expression={$(($_ | Get-ScheduledTaskInfo).NextRunTime)}},@{Name="Command";Expression={$_.Actions.Execute}},@{Name="Arguments";Expression={$_.Actions.Arguments}} | Format-Table -Wrap -AutoSize
+    Write-Output $tasks | Select-Object State,TaskName,TaskPath,@{Name="NextRunTime";Expression={$(($_ | Get-ScheduledTaskInfo).NextRunTime)}},@{Name="Command";Expression={$_.Actions.Execute}},@{Name="Arguments";Expression={$_.Actions.Arguments}} | Format-Table -Wrap -AutoSize |  Out-String -Width 10000 #
     Write-Output "----------- Interesting Scheduled Tasks Properties -----------"
     Invoke-ScheduledTaskChecks -tasks $tasks
     Write-Output "`n"
@@ -427,7 +428,7 @@ Function Find-PowershellProfiles {
 Function Write-EnvironmentVariables {
     Write-Output "----------- Environment Variables -----------"
     dir env: | format-table -autosize
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Envrionment variables audited" -ForegroundColor white
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Environment variables audited" -ForegroundColor white
 }
 
 function Get-AnsibleAsyncLogs {
@@ -517,7 +518,7 @@ Function Write-FileAndDirectoryChecks {
             Invoke-UnsignedFilesCheck $key
             Invoke-ADSCheck $key
             if ($directories[$key]) {
-                Get-ChildItem -Attributes !Hidden, !System, !ReparsePoint -Recurse -Force -Path $key -Depth 2 | ForEach-Object {
+                Get-ChildItem -Attributes !System, !ReparsePoint -Recurse -Force -Path $key -Depth 2 | ForEach-Object {
                     $SubItem = $_.FullName
                     if (Test-Path $SubItem) {
                         Write-Output $SubItem 
@@ -530,6 +531,17 @@ Function Write-FileAndDirectoryChecks {
             }
         }
     }
+}
+
+Function Start-PrivescCheck {
+    $privescpath = Join-Path -Path $currentDir -ChildPath "PrivescCheck.ps1"
+    $reportPath = Join-Path -Path $currentDir -ChildPath "results\PrivescCheck"
+    . $privescpath; Invoke-PrivescCheck -Extended -Report $reportPath -Format HTML -Force | Out-Null
+}
+
+Function Invoke-Chainsaw {
+    $chainsawpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\chainsaw"
+    & (Join-Path -Path $chainsaw -ChildPath "chainsaw_x86_64-pc-windows-msvc.exe") hunt (Join-Path -Path $env:windir -ChildPath "System32\winevt\Logs") -s (Join-Path -Path $childpath -ChildPath "sigma") -r (Join-Path -Path $chainsawpath -ChildPath "rules") --mapping (Join-Path -Path $chainsawpath -ChildPath "mappings\sigma-event-logs-all.yml") --output (Join-Path -Path $resultsPath -ChildPath "chainsaw_report.txt") | Out-Null
 }
 
 # T1546.007 - Event Triggered Execution: Netsh Helper DLL
@@ -749,6 +761,8 @@ Get-RecentlyRunCommands | Out-File $thruntingPath -Append
 Get-GroupPolicyReport
 Get-PowerShellHistory
 Get-AnsibleAsyncLogs
+Start-PrivescCheck
+Invoke-Chainsaw
 
 Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
 
@@ -764,7 +778,10 @@ if ($DC) {
 }
 # locksmith time
 if ($CA) {
-
+	$resultsPath = Join-Path -Path $currentDir -ChildPath "results"
+    cd $resultsPath
+	Invoke-Locksmith -Mode 3
+	cd $current
 }
 # $registryfunction = Get-StartupFolderItems
 # $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt

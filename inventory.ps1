@@ -21,6 +21,7 @@ function Get-Inventory {
     $CA = $false
     if (Get-Service -Name CertSvc 2>$null) {
         $CA = $true
+        Import-Module ActiveDirectory
         Import-Module ADCSAdministration
         Write-Output "[INFO] CA detected`n"
     }
