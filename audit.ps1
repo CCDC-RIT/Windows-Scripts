@@ -279,12 +279,10 @@ Function Invoke-ServiceChecks {
     param(
         $servicesList
     )
-
     $servicesList | ForEach-Object {
         $extension = [IO.Path]::GetExtension($_.PathName.Split([IO.Path]::GetInvalidFileNameChars()) -join '').Split(' ')[0].Trim()
         $pattern = "(?<=\" + $extension + "\b)"
         $Path = ($_.PathName -split $pattern)[0].Trim('"')
-               
         Find-SuspiciousServiceProperties -service $_ -path $Path
         Start-ACLCheck -Target $Path -ServiceName $_.Name
     }
@@ -455,19 +453,6 @@ function Get-AnsibleAsyncLogs {
 
 Function Invoke-UnsignedFilesCheck {
     param (
-        $directory,
-        $recursion
-    )
-
-    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64.exe"
-    if ($recursion) {
-        & $sigcheckpath -accepteula -nobanner -u -e -s $directory
-    } else {
-        & $sigcheckpath -accepteula -nobanner -u -e $directory
-    }
-}
-Function Invoke-UnsignedFilesCheck {
-    param (
         $directory
     )
     $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64.exe"
@@ -476,6 +461,7 @@ Function Invoke-UnsignedFilesCheck {
         Write-Output $output
     }
 }
+
 Function Invoke-ADSCheck {
     param (
         $directory
@@ -486,12 +472,14 @@ Function Invoke-ADSCheck {
         Write-Output $output
     }
 }
+
 Function Invoke-ModifiedFilesCheck {
     param (
         $directory
     )
     Get-ChildItem $directory -Force | Sort-Object LastWriteTime -Descending | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) }
 }
+
 Function Write-FileAndDirectoryChecks {
     $directories = @{
         "C:\Intel" = $true;
