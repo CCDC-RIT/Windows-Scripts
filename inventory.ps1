@@ -86,7 +86,7 @@ function Get-Inventory {
     # DNS records if DC
     if ($DC){
         Write-Output "----------- DNS Records -----------`n"
-        Write-Output Get-DnsServerResourceRecord
+        Get-DnsServerResourceRecord -ZoneName $($(Get-ADDomain).DNSRoot) | ? {$_.RecordType -notmatch "SRV|NS|SOA" -and $_.HostName -notmatch "@|DomainDnsZones|ForestDnsZones"} | Format-Table
     }
 
     Write-Output "----------- SMB Shares -----------"
