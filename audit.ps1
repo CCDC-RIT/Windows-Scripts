@@ -780,7 +780,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 $processes = Get-Process
 foreach ($process in $processes) {
-    @keyvalues = @{
+    $keyvalues = @{
         "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\$process" = @(); #Monitoring Silent Process Exit
         "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$process\" = @() #Monitoring Silent Process Exit 
     }
