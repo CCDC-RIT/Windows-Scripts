@@ -738,6 +738,18 @@ $keysvalues = @{
 Write-KeysValues "----------- Protocol Filtering/Handling Items -----------" $keysvalues $registryPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited Protocol Filtering & Handling keys" -ForegroundColor white
 
+#Trust Providers 
+$keyvalues = @{
+    "HKLM\SOFTWARE\Microsoft\Cryptography\Providers\Trust\FinalPolicy\*" = @();
+    "HKLM\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllGetSignedDataMsg\*" = @()
+    "HKLM\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllVerifyIndirectData\*" = @()
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\Providers\Trust\FinalPolicy\*" = @()
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllGetSignedDataMsg\*" = @()
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllVerifyIndirectData\*" = @()
+}
+Write-KeysValues "----------- Trust Provider Items -----------" $keysvalues $registryPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Trust Provider Items" -ForegroundColor white
+
 Write-FirewallRules | Out-File $firewallPath
 
 Write-ProcessChecks | Out-File $processPath -Append
