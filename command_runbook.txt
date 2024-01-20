@@ -80,6 +80,14 @@ WevtUtil qe "Microsoft-WindowsPowerShell/Operational" /q:"*[System[(EventID=4104
 # querying logs through powershell example
 # get-eventlog -logname "Windows PowerShell" -computername <your_systemname> | where {$_.eventID -eq 400}
 
+#CA
+#fix Subject supplies altname
+certutil –getreg policyEditFlags
+certutil -config "CA_HOST\CA_NAME" -setreg policy\EditFlags - EDITF_ATTRIBUTESUBJECTALTNAME2
+#Enrollee supplies Subject Certs
+Get-ADobject -Filter { ObjectClass -eq "PKIcertificateTemplate" } -SearchBase (Get-ADRootDSE).ConfigurationNamingContext -prop * | Select Name, mspki-certificate-name-flag, @{ Name = "SupplyInRequest" ; Expression = { $_.'mspki-certificate-name-flag' -band 0x00000001 } }
+
+
 Local Group: gpedit.msc
 Local Security: secpol.msc
 GPO - Domain Group: gpmc.msc
