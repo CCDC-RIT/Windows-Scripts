@@ -112,6 +112,10 @@ function Get-Inventory {
     }
 
     # If CA, list certificates?
+	if ($CA){
+		Write-Output "----------- Certificate Authority Templates -----------"
+		Write-Output certutil -CATemplates
+	}
     
     #Get Installed Applications 
     Write-Output "----------- Installed Applications -----------"
