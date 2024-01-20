@@ -539,6 +539,11 @@ Function Start-PrivescCheck {
     . $privescpath; Invoke-PrivescCheck -Extended -Report $reportPath -Format HTML -Force | Out-Null
 }
 
+Function Invoke-Chainsaw {
+    $chainsawpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\chainsaw"
+    & (Join-Path -Path $chainsaw -ChildPath "chainsaw_x86_64-pc-windows-msvc.exe") hunt (Join-Path -Path $env:windir -ChildPath "System32\winevt\Logs") -s (Join-Path -Path $childpath -ChildPath "sigma") -r (Join-Path -Path $chainsawpath -ChildPath "rules") --mapping (Join-Path -Path $chainsawpath -ChildPath "mappings\sigma-event-logs-all.yml") --output (Join-Path -Path $resultsPath -ChildPath "chainsaw_report.txt") | Out-Null
+}
+
 # T1546.007 - Event Triggered Execution: Netsh Helper DLL
 $keysvalues = @{
     "HKLM\SOFTWARE\Microsoft\NetSh" = @();
@@ -757,6 +762,7 @@ Get-GroupPolicyReport
 Get-PowerShellHistory
 Get-AnsibleAsyncLogs
 Start-PrivescCheck
+Invoke-Chainsaw
 
 Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
 
