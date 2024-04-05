@@ -81,17 +81,17 @@ Function Start-ACLCheck {
             $acl = $null
             $serviceacl = $null
             if (Test-Path -Path $Target -PathType Leaf) {
-                $acl = & $accesscheckPath -wuv -nobanner $Target
+                $acl = & $accesscheckPath -accepteula -wuv -nobanner $Target
             } else {
                 if ($Target -ilike 'hk*') {
-                    $acl = & $accesscheckPath -kwuv -nobanner $Target
+                    $acl = & $accesscheckPath -accepteula -kwuv -nobanner $Target
                 } else {
-                    $acl = & $accesscheckPath -dwuv -nobanner $Target
+                    $acl = & $accesscheckPath -accepteula -dwuv -nobanner $Target
                 }
             }              
 
             if ($ServiceName) {
-                $serviceacl = & $accesscheckPath -cwuv -nobanner $serviceName
+                $serviceacl = & $accesscheckPath -accepteula -cwuv -nobanner $serviceName
             }
         } catch { 
             $null
@@ -486,6 +486,7 @@ Function Write-FileAndDirectoryChecks {
         "C:\Temp" = $true;
         "$env:windir" = $false;
         "$env:windir\System32" = $false;
+        "$env:windir\System32\dns" = $true;
         "C:\Documents and Settings\All Users\Start Menu\Programs\Startup" = $true;
         "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup" = $true
     }
@@ -514,14 +515,14 @@ Function Write-FileAndDirectoryChecks {
                         Start-ACLCheck -Target $SubItem
                         Invoke-UnsignedFilesCheck $SubItem
                         Invoke-ADSCheck $SubItem
-                        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] File was checked: " -ForegroundColor white -NoNewline; Write-Host $SubItem -ForegroundColor Magenta -NoNewLine; Write-Host "in Directory: "; Write-Host $key -ForegroundColor Magenta -NoNewLine
+                        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] File was checked: " -ForegroundColor white -NoNewline; Write-Host $SubItem -ForegroundColor Magenta -NoNewLine; Write-Host "in Directory: "; Write-Host $key -ForegroundColor Magenta
                     }
                     else{
-                        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor red -NoNewLine; Write-Host "] File was not checked: " -ForegroundColor white -NoNewline; Write-Host $SubItem -ForegroundColor Magenta -NoNewLine; Write-Host "in Directory: "; Write-Host $key -ForegroundColor Magenta -NoNewLine
+                        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] File was not checked: " -ForegroundColor white -NoNewline; Write-Host $SubItem -ForegroundColor Magenta -NoNewLine; Write-Host "in Directory: "; Write-Host $key -ForegroundColor Magenta
                     }
                 }
             }
-            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Directory was checked: " -ForegroundColor white -NoNewline; Write-Host $key -ForegroundColor Magenta -NoNewLine
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Directory was checked: " -ForegroundColor white -NoNewline; Write-Host $key -ForegroundColor Magenta
         }
         else{
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Directory was not checked: " -ForegroundColor white -NoNewline; Write-Host $key -ForegroundColor Magenta
@@ -537,7 +538,7 @@ Function Start-PrivescCheck {
 
 Function Invoke-Chainsaw {
     $chainsawpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\chainsaw"
-    & (Join-Path -Path $chainsaw -ChildPath "chainsaw_x86_64-pc-windows-msvc.exe") hunt (Join-Path -Path $env:windir -ChildPath "System32\winevt\Logs") -s (Join-Path -Path $childpath -ChildPath "sigma") -r (Join-Path -Path $chainsawpath -ChildPath "rules") --mapping (Join-Path -Path $chainsawpath -ChildPath "mappings\sigma-event-logs-all.yml") --output (Join-Path -Path $resultsPath -ChildPath "chainsaw_report.txt") | Out-Null
+    & (Join-Path -Path $chainsawpath -ChildPath "chainsaw_x86_64-pc-windows-msvc.exe") hunt (Join-Path -Path $env:windir -ChildPath "System32\winevt\Logs") -s (Join-Path -Path $chainsawpath -ChildPath "sigma") -r (Join-Path -Path $chainsawpath -ChildPath "rules") --mapping (Join-Path -Path $chainsawpath -ChildPath "mappings\sigma-event-logs-all.yml") --output (Join-Path -Path $currentDir -ChildPath "results\chainsaw_report.txt") | Out-Null
 }
 
 # T1546.007 - Event Triggered Execution: Netsh Helper DLL
