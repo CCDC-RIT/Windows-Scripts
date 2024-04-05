@@ -515,10 +515,10 @@ Function Write-FileAndDirectoryChecks {
                         Start-ACLCheck -Target $SubItem
                         Invoke-UnsignedFilesCheck $SubItem
                         Invoke-ADSCheck $SubItem
-                        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] File was checked: " -ForegroundColor white -NoNewline; Write-Host $SubItem -ForegroundColor Magenta -NoNewLine; Write-Host "in Directory: "; Write-Host $key -ForegroundColor Magenta
+                        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] File was checked: " -ForegroundColor white -NoNewline; Write-Host $SubItem -ForegroundColor Magenta -NoNewLine; Write-Host " in Directory: " -NoNewLine; Write-Host $key -ForegroundColor Magenta
                     }
                     else{
-                        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] File was not checked: " -ForegroundColor white -NoNewline; Write-Host $SubItem -ForegroundColor Magenta -NoNewLine; Write-Host "in Directory: "; Write-Host $key -ForegroundColor Magenta
+                        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] File was not checked: " -ForegroundColor white -NoNewline; Write-Host $SubItem -ForegroundColor Magenta -NoNewLine; Write-Host " in Directory: " -NoNewLine; Write-Host $key -ForegroundColor Magenta
                     }
                 }
             }
