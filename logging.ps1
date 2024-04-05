@@ -93,3 +93,4 @@ Remove-Item "C:\Program Files (x86)\ossec-agent\ossec.conf" -Force
 Copy-Item -Path (Join-Path ($currentPath.substring(0,$currentPath.indexOf("logging.ps1"))) "conf\agent_windows.conf") -Destination "C:\Program Files (x86)\ossec-agent\ossec.conf"
 net start Wazuh
 Write-Host "[INFO] Wazuh installed and configured"
+#Chandi Fortnite

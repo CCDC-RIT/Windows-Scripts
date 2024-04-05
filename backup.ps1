@@ -22,3 +22,4 @@ xcopy "C:\Program Files (x86)\ossec-agent\*.pem" $backupPath /H /I /K /S /X
 xcopy "C:\Program Files (x86)\ossec-agent\ossec.log" $backupPath /H /I /K /S /X
 xcopy "C:\Program Files (x86)\ossec-agent\logs\*"  $backupPath\logs\ /H /I /K /S /X
 xcopy "C:\Program Files (x86)\ossec-agent\rids\*"  $backupPath\rids\ /H /I /K /S /X
+#Chandi Fortnite
