@@ -29,10 +29,7 @@ Function Set-krbtgtPassword([bool] $IsDC) {
         exit
     }
 }
-Function Set-Password([string]$UserName, [bool]$IsDC) {
-    Clear-Host
-    $Password = Read-Host -AsSecureString "Password"
-    $Password2 = Read-Host -AsSecureString "Confirm Password"
+Function Set-Password([string]$UserName, [bool]$IsDC, [SecureString]$Password, [SecureString]$Password2) {
     $pwd1_text = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
     $pwd2_text = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password2))
 
@@ -56,10 +53,10 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC) {
         foreach ($DomainUser in $DomainUsers) {
             if ($DomainUser.Name -in $UserList) {
                 # Enable-ADAccount -Name $DomainUser.Name
-                # -AccountNotDelegated $true disabled due to competition using delegated accounts
-                $DomainUser | Set-ADUser -AllowReversiblePasswordEncryption $false -ChangePasswordAtLogon $false -KerberosEncryptionType AES128,AES256 -PasswordNeverExpires $false -UserMayChangePassword $false -PasswordNotRequired $false
-                # $DomainUser | Set-ADAccountControl -DoesNotRequirePreAuth $false
-                Disable-ADAccount -Name $DomainUser.Name
+                # disabled due to competition using delegated accounts
+                $DomainUser | Set-ADUser -AllowReversiblePasswordEncryption $false -ChangePasswordAtLogon $false -KerberosEncryptionType AES128,AES256 -PasswordNeverExpires $false -PasswordNotRequired $false -AccountNotDelegated $true 
+                $DomainUser | Set-ADAccountControl -DoesNotRequirePreAuth $false
+                Disable-ADAccount -Identity $DomainUser
                 Write-Host "[INFO]" $DomainUser.Name "disabled"
             } else {
                 # Write-Host "[INFO]" $DomainUser.Name "disabled"
@@ -90,11 +87,17 @@ while ($true) {
     $option = Read-Host "Enter an option"
     
     if ($option -eq '1') {
+        Clear-Host
+        $Password = Read-Host -AsSecureString "Password"
+        $Password2 = Read-Host -AsSecureString "Confirm Password"
         foreach ($user in $AllowUsers) {
-            Set-Password -UserName $user -IsDC $DC
+            Set-Password -UserName $user -IsDC $DC -Password $Password -Password2 $Password2
         }
     } elseif ($option -eq '2') {
-        Set-Password -UserName $Env:UserName -IsDC $DC
+        Clear-Host
+        $Password = Read-Host -AsSecureString "Password"
+        $Password2 = Read-Host -AsSecureString "Confirm Password"
+        Set-Password -UserName $Env:UserName -IsDC $DC -Password $Password -Password2 $Password2
     } elseif ($option -eq '3') {
         Set-UserProperties -UserList $AllowUsers -IsDC $DC
     } elseif ($option -eq '4') {
