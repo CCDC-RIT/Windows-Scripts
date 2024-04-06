@@ -4,6 +4,10 @@
 # Load zip assembly: [System.Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
 # Unzip file: [System.IO.Compression.ZipFile]::ExtractToDirectory($pathToZip, $targetDir)
 
+# *-WindowsFeature - Roles and Features on Windows Server 2012 R2 and above
+# *-WindowsCapability - Features under Settings > "Optional Features"
+# *-WindowsOptionalFeature - Featuers under Control Panel > "Turn Windows features on or off" (apparently this is compatible with Windows Server)
+
 param (
     [string]$Path = $(throw "-Path is required.")
 )
@@ -41,6 +45,13 @@ $SysPath = Join-Path -Path $ToolsPath -ChildPath "sys"
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Directories created" -ForegroundColor white
 
+# yo i hope this works
+if ((Get-CimInstance -Class Win32_OperatingSystem).Caption -match "Windows Server") {
+    Install-WindowsFeature -Name Windows-Defender
+    # the following feature might not exist based on the windows server version
+    Install-WindowsFeature -Name Windows-Defender-GUI
+}
+
 # Custom tooling downloads
 $ProgressPreference = 'SilentlyContinue'
 # Audit script
@@ -69,6 +80,8 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 # Service tooling 
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') { # DC detection
+    # RSAT tooling (AD management tools + DNS management)
+    Install-WindowsFeature -Name RSAT-AD-Tools,RSAT-DNS-Server,GPMC
     # Domain, Domain Controller, member/client, and Defender GPOs 
     (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BAFB8A9FB-461A-4432-8F89-3847DFBEA45F%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{AFB8A9FB-461A-4432-8F89-3847DFBEA45F}.zip"))
     (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7B5A5FA47B-F8F6-4B0B-84DB-E46EF6C239C0%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{5A5FA47B-F8F6-4B0B-84DB-E46EF6C239C0}.zip"))
@@ -103,8 +116,8 @@ if (Get-Service -Name CertSvc 2>$null) { # ADCS tools
     # Add package manager and repository for PowerShell
     Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
     Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
-    # install dependency for locksmith
-    Add-WindowsCapability -online -Name Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0
+    # install dependency for locksmith (AD PowerShell module) and ADCS management tools
+    Install-WindowsFeature -Name RSAT-AD-PowerShell,RSAT-ADCS-Mgmt
     # install locksmith
     Install-Module -Name Locksmith -Scope CurrentUser
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Locksmith downloaded and installed" -ForegroundColor white
@@ -158,12 +171,24 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/Sysmon.zip", (Join-Path -Path $InputPath -ChildPath "sm.zip"))
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/AccessChk.zip", (Join-Path -Path $InputPath -ChildPath "ac.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SysInternals tools downloaded" -ForegroundColor white
+# yara
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/VirusTotal/yara/releases/download/v4.5.0/yara-master-2251-win64.zip", (Join-Path -Path $InputPath -ChildPath "yara.zip"))
+## yara rules
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/elastic/protections-artifacts/archive/refs/heads/main.zip", (Join-Path -Path $InputPath -ChildPath "elastic.zip"))
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules downloaded" -ForegroundColor white
 
-# Explorer++ (only if Server Core)
+# Server Core Tooling
 if ((Test-Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion") -and (Get-ItemProperty -Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion" | Select-Object -ExpandProperty "InstallationType") -eq "Server Core") {
-    (New-Object System.Net.WebClient).DownloadFile("https://github.com/derceg/explorerplusplus/releases/download/version-1.4.0-beta-2/explorerpp_x64.zip", (Join-Path -Path $UserPath -ChildPath "epp.zip"))
+    # Explorer++
+    (New-Object System.Net.WebClient).DownloadFile("https://github.com/derceg/explorerplusplus/releases/download/version-1.4.0-beta-2/explorerpp_x64.zip", (Join-Path -Path $InputPath -ChildPath "epp.zip"))
     Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "epp.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "epp")
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Explorer++ downloaded and extracted" -ForegroundColor white
+    # Server Core App Compatibility FOD
+    Add-WindowsCapability -Online -Name ServerCore.AppCompatibility~~~~0.0.1.0
+    # NetworkMiner
+    (New-Object System.Net.WebClient).DownloadFile("https://netresec.com/?download=NetworkMiner", (Join-Path -Path $InputPath -ChildPath "nm.zip"))
+    Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "nm.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "nm")
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] NetworkMiner downloaded and extracted" -ForegroundColor white
 }
 
 # Notepad++
@@ -182,28 +207,6 @@ $chromepath = Join-Path -Path $SetupPath -ChildPath "chromeinstall.exe"
 & $chromepath /silent /install
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Google Chrome downloaded and installed" -ForegroundColor white
 
-# yara
-# yara installation
-$yaraPath = Join-Path -Path $SetupPath -ChildPath "yara.zip"
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/VirusTotal/yara/releases/download/v4.5.0/yara-master-2251-win64.zip", $yaraPath)
-Expand-Archive -LiteralPath $yaraPath -DestinationPath (Join-Path -Path $setupPath -ChildPath "yara")
-Remove-Item -LiteralPath (Join-Path -Path $setupPath -ChildPath "yara.zip")
-mkdir "C:\Program Files (x86)\ossec-agent\active-response\bin\yara"
-Copy-Item -LiteralPath (Join-Path -Path $setupPath -ChildPath "yara\yarac64.exe") -Destination "C:\Program Files (x86)\ossec-agent\active-response\bin\yara"
-
-# yara rules
-$yaraRulePath = "C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules"
-mkdir $yaraRulePath
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/elastic/protections-artifacts/archive/refs/heads/main.zip", (Join-Path -Path $yaraRulePath -ChildPath "elastic.zip"))
-Expand-Archive -LiteralPath (Join-Path -Path $yaraRulePath -ChildPath "elastic.zip") -DestinationPath (Join-Path -Path $yaraRulePath -ChildPath "elastic")
-Remove-Item -LiteralPath (Join-Path -Path $yaraRulePath -ChildPath "elastic.zip")
-$rules = Get-ChildItem "C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\elastic\protections-artifacts-main\yara\rules" -File | Where-Object {$_.Name -like "Windows*" -or $_.Name -like "Multi*"} | ForEach-Object {$_.Name} | Out-String
-$rules = $($rules.Replace("`r`n", " ") -split " ")
-& "C:\Program Files (x86)\ossec-agent\active-response\bin\yara\yarac64.exe $rules 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'"
-
-
-
-
 # Extraction
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "ar.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "ar")
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "dll.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "dll")
@@ -220,4 +223,8 @@ Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "hh64.zip") -
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hollows Hunter extracted" -ForegroundColor white
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "cs.zip") -DestinationPath $ToolsPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Chainsaw extracted" -ForegroundColor white
+
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "yara.zip") -DestinationPath $ToolsPath
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "elastic.zip") -DestinationPath $InputPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules extracted" -ForegroundColor white
 #Chandi Fortnite
