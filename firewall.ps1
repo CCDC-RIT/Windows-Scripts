@@ -1,7 +1,7 @@
 # Parameter for enabling/disabling lockout prevention
 param(
     [Parameter(Mandatory=$true)]
-    [bool]$EnableLockoutPrevention
+    [bool]$LockoutPrevention
 )
 
 
@@ -21,7 +21,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # if key doesn't already exist, install WFC
 if (!(Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Windows Firewall Control")) {
     $currentDir = ($MyInvocation.MyCommand.Path).substring(0,($MyInvocation.MyCommand.Path).indexOf("scripts\firewall.ps1"))
-    $toolInstallPath = Join-Path -Path $currentDir -ChildPath "installers\wfcinstall.exe"
+    $toolInstallPath = Join-Path -Path $currentDir -ChildPath "installers\wfcinstall"
     $installerPath = Join-Path -Path $currentDir -ChildPath "installers\wfcsetup.exe"
     & $installerPath -i -r -noshortcuts -norules $toolInstallPath
 }
@@ -225,7 +225,7 @@ netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound | Ou
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Firewall on, set to block for all inbound and outbound traffic" -ForegroundColor white
 
 # Lockout prevention
-if ($EnableLockoutPrevention) {
+if ($LockoutPrevention) {
     timeout 60
     netsh advfirewall set allprofiles state off
 }
