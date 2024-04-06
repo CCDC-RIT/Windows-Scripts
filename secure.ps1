@@ -103,7 +103,7 @@ if ($DC) {
     # secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\dc-secpol.inf'
 
     ## Importing domain GPOs
-    Import-GPO -BackupId "AFB8A9FB-461A-4432-8F89-3847DFBEA45F" -TargetName "common-domain-settings" -CreateIfNeeded -Path $ConfPath
+    Import-GPO -BackupId "E551C230-5021-492F-98FE-EF69071DE0D1" -TargetName "common-domain-settings" -CreateIfNeeded -Path $ConfPath
     Import-GPO -BackupId "5A5FA47B-F8F6-4B0B-84DB-E46EF6C239C0" -TargetName "domain-controller-settings" -CreateIfNeeded -Path $ConfPath
     Import-GPO -BackupId "EBDE39CE-90F2-4119-AA69-E0E48F0FCCAA" -TargetName "member-server-client-settings" -CreateIfNeeded -Path $ConfPath
     Import-GPO -BackupId "BEAA6460-782B-4351-B17D-4DC8076633C9" -TargetName "defender-settings" -CreateIfNeeded -Path $ConfPath
@@ -129,7 +129,7 @@ if ($DC) {
 Write-Host "Creating a backup admin account (name: cucumber)..." -ForegroundColor Cyan
 # prompt for password if one wasn't specified as cli arg
 $promptPassword = $null
-if ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)) -ceq "") {
+if ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)) -eq $null) {
     while ($true) {
         $promptPassword = Read-Host -AsSecureString "Enter a secure password (min. 14 characters)"
         $promptPassword2 = Read-Host -AsSecureString "Confirm password"
