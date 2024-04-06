@@ -73,7 +73,9 @@ $ProgressPreference = 'SilentlyContinue'
 # Secure baseline script
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/secure.ps1", (Join-Path -Path $ScriptPath -ChildPath "secure.ps1"))
 # Wazuh agent config file
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Logging-Scripts/master/agent_windows.conf", (Join-Path -Path $ConfPath -ChildPath "agent_windows.conf"))
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Logging-Scripts/main/agent_windows.conf", (Join-Path -Path $ConfPath -ChildPath "agent_windows.conf"))
+# Yara response script
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Logging-Scripts/main/yara.bat", (Join-Path -Path $ScriptPath -ChildPath "yara.bat"))
 # User Management script
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/usermgmt.ps1", (Join-Path -Path $ScriptPath -ChildPath "usermgmt.ps1"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] System scripts and config files downloaded" -ForegroundColor white

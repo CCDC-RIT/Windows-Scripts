@@ -91,6 +91,15 @@ $content | ForEach-Object { $_ -replace "<address></address>", "<address>$($wazu
 Start-Process -FilePath (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "installers\wazuhagent.msi") -ArgumentList ("/q WAZUH_MANAGER='" + $wazuhIP + "'") -Wait
 Remove-Item "C:\Program Files (x86)\ossec-agent\ossec.conf" -Force
 Copy-Item -Path (Join-Path ($currentPath.substring(0,$currentPath.indexOf("logging.ps1"))) "conf\agent_windows.conf") -Destination "C:\Program Files (x86)\ossec-agent\ossec.conf"
+
+# yara setup
+mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
+mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\'
+Copy-Item (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "tools\yara64.exe") 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
+$rules = Get-ChildItem (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "protections-artifacts-main\yara\rules") -File | Where-Object {$_.Name -like "Windows*" -or $_.Name -like "Multi*"} | ForEach-Object {$_.FullName} | Out-String
+$rules = $($rules.Replace("`r`n", " ") -split " ")
+& (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "tools\yarac64.exe") $rules 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'
+Copy-Item (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "scripts\yara.bat") 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
 net start Wazuh
 Write-Host "[INFO] Wazuh installed and configured"
 #Chandi Fortnite
