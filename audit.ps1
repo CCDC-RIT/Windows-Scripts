@@ -8,8 +8,8 @@ $processPath = Join-Path -Path $currentDir -ChildPath 'results\processaudit.txt'
 $servicePath = Join-Path -Path $currentDir -ChildPath 'results\serviceaudit.txt'
 $thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\thruntingaudit.txt'
 $filesystemPath = Join-Path -path $currentDir -ChildPath 'results\filesystemaudit.txt'
+$certPath = Join-Path -path $currentDir -ChildPath 'results\certaudit.txt'
 $artifactsPath = Join-Path $currentDir -ChildPath 'results\artifacts'
-$CAPath = Join-Path -path $currentDir -ChildPath 'results\certificateauthorityaudit.txt'
 
 $DC = $false
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
@@ -451,6 +451,12 @@ function Get-AnsibleAsyncLogs {
     }
 }
 
+Function Invoke-CertificatesCheck {
+    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64.exe"
+    $output = & $sigcheckpath -accepteula -nobanner -tv * | Out-String
+    Write-Output $output
+}
+
 Function Invoke-UnsignedFilesCheck {
     param (
         $directory
@@ -540,6 +546,7 @@ Function Invoke-Chainsaw {
     $chainsawpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\chainsaw"
     & (Join-Path -Path $chainsawpath -ChildPath "chainsaw_x86_64-pc-windows-msvc.exe") hunt (Join-Path -Path $env:windir -ChildPath "System32\winevt\Logs") -s (Join-Path -Path $chainsawpath -ChildPath "sigma") -r (Join-Path -Path $chainsawpath -ChildPath "rules") --mapping (Join-Path -Path $chainsawpath -ChildPath "mappings\sigma-event-logs-all.yml") --output (Join-Path -Path $currentDir -ChildPath "results\chainsaw_report.txt") | Out-Null
 }
+Invoke-Chainsaw
 
 # T1546.007 - Event Triggered Execution: Netsh Helper DLL
 $keysvalues = @{
@@ -786,7 +793,6 @@ Write-KeysValues "----------- Silent Process Exit Items -----------" $keysvalues
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Silent Process Exit Items " -ForegroundColor White
 
 
-
 Write-FirewallRules | Out-File $firewallPath
 
 Write-ProcessChecks | Out-File $processPath -Append
@@ -807,80 +813,34 @@ Get-GroupPolicyReport
 Get-PowerShellHistory
 Get-AnsibleAsyncLogs
 Start-PrivescCheck
-Invoke-Chainsaw
 
-# pingcastle time
+$current = Get-Location
+$resultsPath = Join-Path -Path $currentDir -ChildPath "results"
+# AD tools time
 if ($DC) {
-    $current = Get-Location
     $pingcastlePath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\pc\PingCastle.exe"
-    $resultsPath = Join-Path -Path $currentDir -ChildPath "results"
-    cd $resultsPath
+    $adalanchePath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\adalanche.exe"
+    Set-Location $resultsPath
     & $pingcastlePath --healthcheck --carto --datefile | Out-Null
-    cd $current
+    & $adalanchePath collect activedirectory | Out-Null
+    Set-Location $current
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited AD with PingCastle" -ForegroundColor white
+    
+    
     $keysvalues = @{
         "HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters" = @("ServerLevelPluginDll")
     }
     Write-KeysValues "----------- Server Level Plugin DLLs -----------" $keysvalues $registryPath
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited service run keys" -ForegroundColor white
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited DNS Server plugins" -ForegroundColor white
     
 }
 # locksmith time
 if ($CA) {
-	$resultsPath = Join-Path -Path $currentDir -ChildPath "results"
-    cd $resultsPath
+    Set-Location $resultsPath
 	Invoke-Locksmith -Mode 3
-	cd $current
+	Set-Location $current
 }
 
+Invoke-CertificatesCheck | Out-File $certPath -Append
 Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
-# $registryfunction = Get-StartupFolderItems
-# $registryfunction | Out-File -FilePath C:\Users\bikel\Desktop\test_output.txt
-# $registryfunction = StartUp-Programs
-# $registryfunction += StratUp-Scripts
-# $registryfunction += Boot-Keys
-# $registryfunction += Startup-Services
-# $registryfunction += Run-Keys
-# $registryfunction += RDP-Debugger-Persistance
-# $registryfunction += COM-Hijacking
-# $registryfunction += Password-Filter
-# $registryfunction += Authentication-Packages
-# $registryfunction += Security-Packages
-# $registryfunction += Security-Providers
-# $registryfunction += Networker-Provider-Order
-# $registryfunction += Netsh-DLL
-# $registryfunction += AppInit-DLL
-# $registryfunction += AppCert-DLL
-# $registryfunction += Winlogon-DLL
-# $registryfunction += Print-Monitor-Ports
-# $registryfunction += Programs-Registry
-# $registryfunction += Uninstall-Keys
-# $registryfunction | Out-File -FilePath $registryPath
-
-# $processfunction = Process-Audit
-# $processfunction += Hidden-Services
-# $processfunction += Scheduled-Tasks
-# $processfunction | Out-File -FilePath $processPath
-
-# $thruntingfunction = Windows-Defender-Exclusions
-# $thruntingfunction += Random-Directories
-# $thruntingfunction += Unsigned-Files
-# $thruntingfunction += Ripper 
-# $thruntingfunction += UnquotedServicePathCheck
-# $thruntingfunction += Recently-Run-Commands
-# $thruntingfunction += Get-ConsoleHostHistory
-# $thruntingfunction | Out-File -FilePath $thruntingPath
-
-# $windowsfunction = Get-Installed
-# $windowsfunction += Current-local-gpo
-# $windowsfunction += Windows-Features
-# $windowsfunction | Out-File -FilePath $windowsPath
-
-# $aclfunction = Get-Process-ACL
-# $aclfunction = Get-Registry-ACL
-# $aclfunction = Get-ScheduledTask-ACL
-# $aclfunction = Get-Startup-ACL
-# $aclfunction | Out-File -FilePath $aclPath
-
-#TODO: Print user properties
 #Chandi Fortnite
