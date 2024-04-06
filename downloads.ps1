@@ -182,6 +182,28 @@ $chromepath = Join-Path -Path $SetupPath -ChildPath "chromeinstall.exe"
 & $chromepath /silent /install
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Google Chrome downloaded and installed" -ForegroundColor white
 
+# yara
+# yara installation
+$yaraPath = Join-Path -Path $SetupPath -ChildPath "yara.zip"
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/VirusTotal/yara/releases/download/v4.5.0/yara-master-2251-win64.zip", $yaraPath)
+Expand-Archive -LiteralPath $yaraPath -DestinationPath (Join-Path -Path $setupPath -ChildPath "yara")
+Remove-Item -LiteralPath (Join-Path -Path $setupPath -ChildPath "yara.zip")
+mkdir "C:\Program Files (x86)\ossec-agent\active-response\bin\yara"
+Copy-Item -LiteralPath (Join-Path -Path $setupPath -ChildPath "yara\yarac64.exe") -Destination "C:\Program Files (x86)\ossec-agent\active-response\bin\yara"
+
+# yara rules
+$yaraRulePath = "C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules"
+mkdir $yaraRulePath
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/elastic/protections-artifacts/archive/refs/heads/main.zip", (Join-Path -Path $yaraRulePath -ChildPath "elastic.zip"))
+Expand-Archive -LiteralPath (Join-Path -Path $yaraRulePath -ChildPath "elastic.zip") -DestinationPath (Join-Path -Path $yaraRulePath -ChildPath "elastic")
+Remove-Item -LiteralPath (Join-Path -Path $yaraRulePath -ChildPath "elastic.zip")
+$rules = Get-ChildItem "C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\elastic\protections-artifacts-main\yara\rules" -File | Where-Object {$_.Name -like "Windows*" -or $_.Name -like "Multi*"} | ForEach-Object {$_.Name} | Out-String
+$rules = $($rules.Replace("`r`n", " ") -split " ")
+& "C:\Program Files (x86)\ossec-agent\active-response\bin\yara\yarac64.exe $rules 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'"
+
+
+
+
 # Extraction
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "ar.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "ar")
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "dll.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "dll")
