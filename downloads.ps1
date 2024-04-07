@@ -98,9 +98,9 @@ if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') { 
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DC tools downloaded" -ForegroundColor white
     # Pingcastle, GPO extraction
     Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "pc.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "pc") 
-    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{AFB8A9FB-461A-4432-8F89-3847DFBEA45F}.zip") -DestinationPath $ConfPath
-    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{5A5FA47B-F8F6-4B0B-84DB-E46EF6C239C0}.zip") -DestinationPath $ConfPath
-    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{EBDE39CE-90F2-4119-AA69-E0E48F0FCCAA}.zip") -DestinationPath $ConfPath
+    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip") -DestinationPath $ConfPath
+    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip") -DestinationPath $ConfPath
+    Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip") -DestinationPath $ConfPath
     Expand-Archive -LiteralPath (Join-Path -Path $ConfPath -ChildPath "{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip") -DestinationPath $ConfPath
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DC tools extracted" -ForegroundColor white
 } else { # Member server/client tools
