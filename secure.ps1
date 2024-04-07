@@ -103,9 +103,9 @@ if ($DC) {
     # secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\dc-secpol.inf'
 
     ## Importing domain GPOs
-    Import-GPO -BackupId "E551C230-5021-492F-98FE-EF69071DE0D1" -TargetName "common-domain-settings" -CreateIfNeeded -Path $ConfPath
-    Import-GPO -BackupId "5A5FA47B-F8F6-4B0B-84DB-E46EF6C239C0" -TargetName "domain-controller-settings" -CreateIfNeeded -Path $ConfPath
-    Import-GPO -BackupId "EBDE39CE-90F2-4119-AA69-E0E48F0FCCAA" -TargetName "member-server-client-settings" -CreateIfNeeded -Path $ConfPath
+    Import-GPO -BackupId "CE481B23-EF29-45A3-8E0F-24C18FB9F251" -TargetName "common-domain-settings" -CreateIfNeeded -Path $ConfPath
+    Import-GPO -BackupId "40E1EAFA-8121-4FFA-B6FE-BC348636AB83" -TargetName "domain-controller-settings" -CreateIfNeeded -Path $ConfPath
+    Import-GPO -BackupId "6136C3E1-B316-4C46-9B8B-8C1FC373F73C" -TargetName "member-server-client-settings" -CreateIfNeeded -Path $ConfPath
     Import-GPO -BackupId "BEAA6460-782B-4351-B17D-4DC8076633C9" -TargetName "defender-settings" -CreateIfNeeded -Path $ConfPath
     
     $distinguishedName = (Get-ADDomain -Identity (Get-ADDomain -Current LocalComputer).DNSRoot).DistinguishedName
