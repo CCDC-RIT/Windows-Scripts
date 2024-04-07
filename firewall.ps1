@@ -4,6 +4,10 @@ param(
     [bool]$LockoutPrevention
 )
 
+if (!((Get-Service -Name "MpsSvc").Status -eq "Running")) {
+    Start-Service -Name MpsSvc
+    Write-Host "[INFO] Windows Defender Firewall service started"
+}
 
 # Delete all rules
 netsh advfirewall set allprofiles state off | Out-Null

@@ -12,7 +12,7 @@ param(
 # Turn on Event log service if it's stopped
 if (!((Get-Service -Name "EventLog").Status -eq "Running")) {
     Start-Service -Name EventLog
-    Write-Host "[INFO] Windows Event Log Service Started"
+    Write-Host "[INFO] Windows Event Log service started"
 }
 
 # setting up logging
