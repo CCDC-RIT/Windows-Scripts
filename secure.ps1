@@ -4,6 +4,7 @@ param (
 )
 
 # Lorge secure script
+# Author: Chandi Kanhai (@Chandi-95)
 $Error.Clear()
 $ErrorActionPreference = "Continue"
 
@@ -267,6 +268,9 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 ## Requiring a password on wakeup
 powercfg -SETACVALUEINDEX SCHEME_BALANCED SUB_NONE CONSOLELOCK 1 | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled password required on wakeup" -ForegroundColor white 
+## Disable WPBT (Windows Platform Binary Table) functionality
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v DisableWpbtExecution /t REG_DWORD /d 1 /f | Out-Null
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled WPBT" -ForegroundColor white
 
 # Explorer/file settings
 ## Changing file associations to make sure they have to be executed manually
@@ -411,6 +415,10 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 sc.exe sdset scmanager "D:(A;;CC;;;AU)(A;;CCLCRPRC;;;IU)(A;;CCLCRPRC;;;SU)(A;;CCLCRPWPRC;;;SY)(A;;KA;;;BA)(A;;CC;;;AC)S:(AU;FA;KA;;;WD)(AU;OIIOFA;GA;;;WD)" | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Reset SCM SDDL" -ForegroundColor white 
 
+# ----------- Subvert Trust Controls: Install Root Certificate (T1553.004) ------------
+reg add "HKLM\SOFTWARE\Policies\Microsoft\SystemCertificates\Root\ProtectedRoots" /f | Out-Null
+reg add "HKLM\SOFTWARE\Policies\Microsoft\SystemCertificates\Root\ProtectedRoots" /v Flags /t REG_DWORD /d 1 /f | Out-Null
+
 # ----------- WINDOWS DEFENDER/antimalware settings ------------
 ## Enabling early launch antimalware boot-start driver scan (good, unknown, and bad but critical)
 reg add "HKLM\SYSTEM\CurrentControlSet\Policies\EarlyLaunch" /v "DriverLoadPolicy" /t REG_DWORD /d 3 /f | Out-Null
@@ -425,6 +433,18 @@ if(!(Get-MpComputerStatus | Select-Object AntivirusEnabled)) {
 }
 ## Enabling Windows Defender sandboxing
 cmd /c "setx /M MP_FORCE_USE_SANDBOX 1" | Out-Null
+# EnableDnsSinkhole + other MpPreference settings
+Set-MpPreference -UILockdown $false
+Set-MpPreference -DisableDatagramProcessing $false
+Set-MpPreference -DisableDnsOverTcpParsing $false
+Set-MpPreference -DisableDnsParsing $false
+Set-MpPreference -DisableFtpParsing $false
+Set-MpPreference -DisableHttpParsing $false
+Set-MpPreference -DisableRdpParsing $false
+Set-MpPreference -DisableSmtpParsing 0
+Set-MpPreference -DisableSshParsing $false
+Set-MpPreference -DisableTlsParsing $false
+Set-MpPreference -EnableDnsSinkhole $true
 ## Enabling a bunch of configuration settings
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableAntiSpyware" /t REG_DWORD /d 0 /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "HideExclusionsFromLocalAdmins" /t REG_DWORD /d 0 /f | Out-Null
@@ -1164,18 +1184,26 @@ if ($DC) {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Deleted VSS shadow copies" -ForegroundColor white
 
     ## TODO: Split DNS secure settings into own category
+    # Preventing cache poisoning attacks
+    reg add "HKLM\System\CurrentControlSet\Services\DNS\Parameters" /v SecureResponses /t REG_DWORD /d 1 /f | Out-Null
     # SIGRed - CVE-2020-1350
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters" /v TcpReceivePacketSize /t REG_DWORD /d 0xFF00 /f | Out-Null
     # CVE-2020-25705
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters" /v MaximumUdpPacketSize /t REG_DWORD /d 0x4C5 /f | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] CVE-2020-1350 and CVE-2020-25705 mitigations in place" -ForegroundColor white   
     # Enabling global query block list (disabled IPv6 to IPv4 tunneling)
-    dnscmd /config /enableglobalqueryblocklist 1 | Out-Null
+    Set-DnsServerGlobalQueryBlockList -Enable $true | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled global query block list for DNS" -ForegroundColor white   
     # Enabling response rate limiting
     Set-DnsServerRRL -Mode Enable -Force | Out-Null
-    Set-DnsServerResponseRateLimiting -ResetToDefault -Force | Out-Null
+    Set-DnsServerRRL -ResetToDefault -Force | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Response rate limiting enabled" -ForegroundColor white   
+    # TODO: Ensure DNS server restarts after failure + other settings
+    Set-DnsServerCache -PollutionProtection $true
+    Set-DnsServerDiagnostics -EventLogLevel 3
+    dnscmd /config /EnableVersionQuery 0
+    Set-DnsServerRecursion -Enable $false
+    sc.exe failure DNS reset= 10 actions= restart/10000/restart/10000/restart/10000
     net stop DNS
     net start DNS
 }

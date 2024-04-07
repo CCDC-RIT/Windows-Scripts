@@ -56,11 +56,11 @@ Write-Host "[INFO] Sysmon installed and configured"
 
 # DNS server logging
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
-    dnscmd /config /loglevel 0x8000F301
+    Set-DnsServerDiagnostics -DebugLogging 0x8000F301 -EventLogLevel 2 -EnableLoggingToFile $true
     dnscmd /config /logfilemaxsize 0xC800000
-    # Enabling logging for 
-    Set-DnsServerDiagnostics -EnableLoggingForPluginDllEvent $true | Out-Null
-
+    Set-DnsServerDiagnostics -EnableLoggingForPluginDllEvent $true -EnableLoggingForServerStartStopEvent $true -EnableLoggingForLocalLookupEvent $true -EnableLoggingForRecursiveLookupEvent $true -EnableLoggingForRemoteServerEvent $true -EnableLoggingForZoneDataWriteEvent $true -EnableLoggingForZoneLoadingEvent $true | Out-Null
+    net stop DNS
+    net start DNS
     Write-Host "[INFO] DNS Server logging configured"
 }
 
