@@ -47,7 +47,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 # yo i hope this works
 if ((Get-CimInstance -Class Win32_OperatingSystem).Caption -match "Windows Server") {
-    Install-WindowsFeature -Name Windows-Defender
+    Install-WindowsFeature -Name Bitlocker,Windows-Defender
     # the following feature might not exist based on the windows server version
     Install-WindowsFeature -Name Windows-Defender-GUI
 }
@@ -125,8 +125,21 @@ if (Get-Service -Name CertSvc 2>$null) { # ADCS tools
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Locksmith downloaded and installed" -ForegroundColor white
 }
 
-# Third-party tooling for every system
+# Server Core Tooling
+if ((Test-Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion") -and (Get-ItemProperty -Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion" | Select-Object -ExpandProperty "InstallationType") -eq "Server Core") {
+    # Explorer++
+    (New-Object System.Net.WebClient).DownloadFile("https://github.com/derceg/explorerplusplus/releases/download/version-1.4.0-beta-2/explorerpp_x64.zip", (Join-Path -Path $InputPath -ChildPath "epp.zip"))
+    Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "epp.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "epp")
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Explorer++ downloaded and extracted" -ForegroundColor white
+    # Server Core App Compatibility FOD
+    Add-WindowsCapability -Online -Name ServerCore.AppCompatibility~~~~0.0.1.0
+    # NetworkMiner
+    (New-Object System.Net.WebClient).DownloadFile("https://netresec.com/?download=NetworkMiner", (Join-Path -Path $InputPath -ChildPath "nm.zip"))
+    Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "nm.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "nm")
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] NetworkMiner downloaded and extracted" -ForegroundColor white
+}
 
+# Third-party tooling for every system
 # Get-InjectedThread and Stop-Thread
 (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1", (Join-Path -Path $ScriptPath -ChildPath "Get-InjectedThread.ps1"))
 (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Stop-Thread.ps1", (Join-Path -Path $ScriptPath -ChildPath "Stop-Thread.ps1"))
@@ -178,20 +191,6 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 ## yara rules
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/elastic/protections-artifacts/archive/refs/heads/main.zip", (Join-Path -Path $InputPath -ChildPath "elastic.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules downloaded" -ForegroundColor white
-
-# Server Core Tooling
-if ((Test-Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion") -and (Get-ItemProperty -Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion" | Select-Object -ExpandProperty "InstallationType") -eq "Server Core") {
-    # Explorer++
-    (New-Object System.Net.WebClient).DownloadFile("https://github.com/derceg/explorerplusplus/releases/download/version-1.4.0-beta-2/explorerpp_x64.zip", (Join-Path -Path $InputPath -ChildPath "epp.zip"))
-    Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "epp.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "epp")
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Explorer++ downloaded and extracted" -ForegroundColor white
-    # Server Core App Compatibility FOD
-    Add-WindowsCapability -Online -Name ServerCore.AppCompatibility~~~~0.0.1.0
-    # NetworkMiner
-    (New-Object System.Net.WebClient).DownloadFile("https://netresec.com/?download=NetworkMiner", (Join-Path -Path $InputPath -ChildPath "nm.zip"))
-    Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "nm.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "nm")
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] NetworkMiner downloaded and extracted" -ForegroundColor white
-}
 
 # Notepad++
 $npppath = Join-Path -Path $SetupPath -ChildPath "notepadpp_installer.exe"
