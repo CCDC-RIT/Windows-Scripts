@@ -9,6 +9,12 @@ param(
 # Variable for the file's current path
 [string]$currentPath = $MyInvocation.MyCommand.Path
 
+# Turn on Event log service if it's stopped
+if (!((Get-Service -Name "EventLog").Status -eq "Running")) {
+    Start-Service -Name EventLog
+    Write-Host "[INFO] Windows Event Log Service Started"
+}
+
 # setting up logging
 WevtUtil sl Application /ms:256000
 WevtUtil sl System /ms:256000
@@ -72,16 +78,16 @@ if (Get-Service -Name W3SVC 2>$null) {
     }
 }
 
-# TODO: CA auditing 
 if (Get-Service -Name CertSvc 2>$null) {
     auditpol /set /subcategory:"Certification Services" /success:enable /failure:enable
     certutil -setreg policy\EditFlags +EDITF_AUDITCERTTEMPLATELOAD
-    Write-Host "[ERROR] CA logging enabled"
+    # Enabling ADCS auditing
+    $domain = (Get-ADDomain).DistinguishedName
+    $searchBase = "CN=Configuration,$domain"
+    $caName = ((Get-ADObject -LDAPFilter "(objectClass=pKIEnrollmentService)" -SearchBase $searchBase).Name | Out-String).Trim()
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration\$caName" /v AuditFilter /t REG_DWORD /d 127 /f | Out-Null
+    Write-Host "[INFO] CA logging enabled"
 }
-
-# Turns on Event log service if it's stopped
-Start-Service -Name EventLog
-Write-Host "[INFO] Windows Event Log Service Started"
 
 $file = Join-Path -Path ($currentPath.substring(0,$currentPath.indexOf("logging.ps1"))) -ChildPath "conf\agent_windows.conf"
 $content = Get-Content $file
