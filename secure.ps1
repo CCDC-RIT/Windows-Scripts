@@ -60,7 +60,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # Uninstalling Windows capabilities
 $capabilities = @("OpenSSH.Client~~~~0.0.1.0", "OpenSSH.Server~~~~0.0.1.0")
 foreach ($capability in $capabilities) {
-    if ((Get-WindowsCapability -Online -Name $capability | Select-Object "State") -eq "Installed") {
+    if ((Get-WindowsCapability -Online -Name $capability | Select-Object -ExpandProperty "State") -eq "Installed") {
         Remove-WindowsCapability -Online -Name $capability
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Uninstalled $capability" -ForegroundColor white 
     }
@@ -69,9 +69,9 @@ foreach ($capability in $capabilities) {
 ## Yeeting unneeded Windows features 
 $features = @("MicrosoftWindowsPowerShellV2", "MicrosoftWindowsPowerShellV2Root", "SMB1Protocol")
 foreach ($feature in $features) {
-    if ((Get-WindowsOptionalFeature -Online -FeatureName $feature | Select-Object "State") -eq "Enabled") {
+    if ((Get-WindowsOptionalFeature -Online -FeatureName $feature | Select-Object -ExpandProperty "State") -eq "Enabled") {
         Disable-WindowsOptionalFeature -Online -FeatureName $feature -norestart
-        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Uninstalled $feature" -ForegroundColor white 
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled $feature" -ForegroundColor white 
     }
 }
 
@@ -103,7 +103,7 @@ if ($DC) {
     # secedit /configure /db $env:windir\security\local.sdb /cfg 'conf\dc-secpol.inf'
 
     ## Importing domain GPOs
-    Import-GPO -BackupId "CE481B23-EF29-45A3-8E0F-24C18FB9F251" -TargetName "common-domain-settings" -CreateIfNeeded -Path $ConfPath
+    Import-GPO -BackupId "EE3B9E95-9783-474A-86A5-907E93E64F57" -TargetName "common-domain-settings" -CreateIfNeeded -Path $ConfPath
     Import-GPO -BackupId "40E1EAFA-8121-4FFA-B6FE-BC348636AB83" -TargetName "domain-controller-settings" -CreateIfNeeded -Path $ConfPath
     Import-GPO -BackupId "6136C3E1-B316-4C46-9B8B-8C1FC373F73C" -TargetName "member-server-client-settings" -CreateIfNeeded -Path $ConfPath
     Import-GPO -BackupId "BEAA6460-782B-4351-B17D-4DC8076633C9" -TargetName "defender-settings" -CreateIfNeeded -Path $ConfPath
@@ -981,11 +981,12 @@ if ($DC) {
     Set-ADDomain -Identity $env:USERDNSDOMAIN -Replace @{"ms-DS-MachineAccountQuota"="0"} | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] nopac mitigations in place" -ForegroundColor white
 
-    # Enforcing LDAP server signing (always)
-    reg add "HKLM\System\CurrentControlSet\Services\NTDS\Parameters" /v "LDAPServerIntegrity" /t REG_DWORD /d 2 /f | Out-Null
+    # set these settings to 2 to enable them always
+    # Enforcing LDAP server signing
+    reg add "HKLM\System\CurrentControlSet\Services\NTDS\Parameters" /v "LDAPServerIntegrity" /t REG_DWORD /d 1 /f | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled enforcement of signing for LDAP server" -ForegroundColor white
-    # Enabling extended protection for LDAP authentication (always)
-    reg add "HKLM\System\CurrentControlSet\Services\NTDS\Parameters" /v LdapEnforceChannelBinding /t REG_DWORD /d 2 /f | Out-Null
+    # Enabling extended protection for LDAP authentication
+    reg add "HKLM\System\CurrentControlSet\Services\NTDS\Parameters" /v LdapEnforceChannelBinding /t REG_DWORD /d 1 /f | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled extended protection for LDAP authentication" -ForegroundColor white
 
     # Only allowing DSRM Administrator account to be used when ADDS is stopped 

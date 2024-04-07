@@ -85,7 +85,7 @@ if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') { 
     # RSAT tooling (AD management tools + DNS management)
     Install-WindowsFeature -Name RSAT-AD-Tools,RSAT-DNS-Server,GPMC
     # Domain, Domain Controller, member/client, and Defender GPOs 
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BCE481B23-EF29-45A3-8E0F-24C18FB9F251%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{CE481B23-EF29-45A3-8E0F-24C18FB9F251}.zip"))
+    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BEE3B9E95-9783-474A-86A5-907E93E64F57%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"))
     (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7B40E1EAFA-8121-4FFA-B6FE-BC348636AB83%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"))
     (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7B6136C3E1-B316-4C46-9B8B-8C1FC373F73C%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"))
     (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BBEAA6460-782B-4351-B17D-4DC8076633C9%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"))
