@@ -56,8 +56,8 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC) {
                 # disabled due to competition using delegated accounts
                 $DomainUser | Set-ADUser -AllowReversiblePasswordEncryption $false -ChangePasswordAtLogon $false -KerberosEncryptionType AES128,AES256 -PasswordNeverExpires $false -PasswordNotRequired $false -AccountNotDelegated $true 
                 $DomainUser | Set-ADAccountControl -DoesNotRequirePreAuth $false
-                Disable-ADAccount -Identity $DomainUser
-                Write-Host "[INFO]" $DomainUser.Name "disabled"
+                # Disable-ADAccount -Identity $DomainUser
+                Write-Host "[INFO]" $DomainUser.Name "secured"
             } else {
                 # Write-Host "[INFO]" $DomainUser.Name "disabled"
             }
@@ -68,8 +68,8 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC) {
             if ($LocalUser.Name -in $UserList) {
                 # Enable-LocalUser -Name $LocalUser.Name
                 $LocalUser | Set-LocalUser -PasswordNeverExpires $false -UserMayChangePassword $true -AccountNeverExpires
-                Disable-LocalUser -Name $LocalUser.Name
-                Write-Host "[INFO]" $LocalUser.Name "disabled"
+                # Disable-LocalUser -Name $LocalUser.Name
+                Write-Host "[INFO]" $LocalUser.Name "secured"
             } else { 
                 # Write-Host "[INFO]" $LocalUser.Name "disabled"
             }
