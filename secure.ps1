@@ -1198,7 +1198,7 @@ if ($DC) {
     Set-DnsServerRRL -Mode Enable -Force | Out-Null
     Set-DnsServerRRL -ResetToDefault -Force | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Response rate limiting enabled" -ForegroundColor white   
-    # TODO: Ensure DNS server restarts after failure + other settings
+    # Ensure DNS server restarts after failure + other settings
     Set-DnsServerCache -PollutionProtection $true
     Set-DnsServerDiagnostics -EventLogLevel 3
     dnscmd /config /EnableVersionQuery 0
@@ -1206,6 +1206,7 @@ if ($DC) {
     sc.exe failure DNS reset= 10 actions= restart/10000/restart/10000/restart/10000
     net stop DNS
     net start DNS
+    Write-Host "[INFO] AD/DNS hardening in place"
 }
 
 # IIS security
