@@ -1,7 +1,9 @@
 # Parameter for enabling/disabling lockout prevention
 param(
     [Parameter(Mandatory=$true)]
-    [bool]$LockoutPrevention
+    [bool]$LockoutPrevention,
+    [Parameter(Mandatory=$false)]
+    [array]$list
 )
 
 if (!((Get-Service -Name "MpsSvc").Status -eq "Running")) {
@@ -72,83 +74,136 @@ if (Get-Service -Name CertSvc 2>$null) {
 netsh adv f a r n=CA-Client dir=out act=allow prof=any prot=tcp remoteport=135 | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority client firewall rule set" -ForegroundColor white
 
-## ICMP/Ping
-# netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any 
-# netsh adv f a r n=ICMP-Out dir=out act=allow prof=any prot=icmpv4:8,any 
-
-## HTTP(S) (might have to open server for CA)
-# netsh adv f a r n=HTTP-Server dir=in act=allow prof=any prot=tcp localport=80,443
-# netsh adv f a r n=HTTP-Client dir=out act=allow prof=any prot=tcp remoteport=80,443
-
+# All possible ports needed to be allowed through firewall for various services/scorechecks
+# Determined by $list parameter
+if($list.count -ne 0){
+    foreach ($exception in $list){
+        if($exception -ieq "icmp"){
+            ## ICMP/Ping
+            netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any 
+            netsh adv f a r n=ICMP-Out dir=out act=allow prof=any prot=icmpv4:8,any
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP firewall rules set" -ForegroundColor white 
+        }
+        elseif($exception -ieq "http"){
+            ## HTTP(S) (might have to open server for CA)
+            netsh adv f a r n=HTTP-Server dir=in act=allow prof=any prot=tcp localport=80,443
+            netsh adv f a r n=HTTP-Client dir=out act=allow prof=any prot=tcp remoteport=80,443
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] HTTP(S) firewall rules set" -ForegroundColor white 
+        }
+        # Remoting Services
+        elseif($exception -ieq "rdp"){
+            # RDP out
+            netsh adv f a r n=RDP-TCP-Client dir=out act=allow prof=any prot=tcp remoteport=3389 
+            netsh adv f a r n=RDP-UDP-Client dir=out act=allow prof=any prot=udp remoteport=3389
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] RDP outbound firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "winrm"){
+            # WinRM out
+            netsh adv f a r n=WinRM-Client dir=out act=allow prof=any prot=tcp remoteport=5985,5986
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM outbound firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "ssh"){
+            # SSH 
+            netsh adv f a r n=SSH-Client dir=out act=allow prof=any prot=tcp remoteport=22
+            netsh adv f a r n=SSH-Server dir=in act=allow prof=any prot=tcp localport=22
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SSH firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "vnc"){
+            # VNC
+            netsh adv f a r n=VNC-Server-TCP dir=in act=allow prof=any prot=tcp localport=5900 | Out-Null
+            netsh adv f a r n=VNC-Server-UDP dir=in act=allow prof=any prot=udp localport=5900 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] VNC firewall rules set" -ForegroundColor white
+        }
+        #Uncommon Services
+        elseif($exception -ieq "ldap"){
+            # LDAP
+            netsh adv f a r n=LDAP-Client dir=out act=allow prof=any prot=tcp remoteport=389
+            netsh adv f a r n=LDAP-Server dir=in act=allow prof=any prot=tcp localport=389
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LDAP firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "smb"){
+            # SMB
+            netsh adv f a r n=SMB-Client dir=out act=allow prof=any prot=tcp remoteport=445
+            netsh adv f a r n=SMB-Server dir=in act=allow prof=any prot=tcp localport=445
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SMB firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "dhcp"){
+            # DHCP 
+            netsh adv f a r n=DHCP-Client dir=out act=allow prof=any prot=udp remoteport=67,68
+            netsh adv f a r n=DHCP-Server dir=in act=allow prof=any prot=udp localport=67,68
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DHCP firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "ftp"){
+            # S(FTP)
+            netsh adv f a r n=FTP-Client dir=out act=allow prof=any prot=tcp remoteport=20,21
+            netsh adv f a r n=SFTP-Client dir=out act=allow prof=any prot=tcp remoteport=22
+            netsh adv f a r n=FTP-Server dir=in act=allow prof=any prot=tcp localport=20,21
+            netsh adv f a r n=SFTP-Server dir=in act=allow prof=any prot=tcp localport=22
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] S(FTP) firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "openvpn"){
+            # OpenVPN
+            netsh adv f a r n=OpenVPN-Client-UDP dir=out act=allow prof=any prot=udp remoteport=1194
+            netsh adv f a r n=OpenVPN-Client-TCP dir=out act=allow prof=any prot=tcp remoteport=443
+            netsh adv f a r n=OpenVPN-Server-UDP dir=in act=allow prof=any prot=udp localport=1194
+            netsh adv f a r n=OpenVPN-Server-TCP dir=in act=allow prof=any prot=tcp localport=443
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] OpenVPN firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "hyperv"){
+            # Hyper-V VM Console
+            netsh adv f a r n=Hyper-V-Client dir=out act=allow prof=any prot=tcp remoteport=2179
+            netsh adv f a r n=Hyper-V-Server dir=in act=allow prof=any prot=tcp localport=2179
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hyper-V VM Console firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "smtp"){
+            # SMTP(S)
+            netsh adv f a r n=SMTP-Client dir=out act=allow prof=any prot=tcp remoteport=25
+            netsh adv f a r n=SMTPS-Client dir=out act=allow prof=any prot=tcp remoteport=465,587
+            netsh adv f a r n=SMTP-Server dir=out act=allow prof=any prot=tcp localport=25
+            netsh adv f a r n=SMTPS-Server dir=out act=allow prof=any prot=tcp localport=465,587
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SMTP(S) firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "imap"){
+            # IMAP
+            netsh adv f a r n=IMAP-Client dir=out act=allow prof=any prot=tcp remoteport=143
+            netsh adv f a r n=IMAPS-Client dir=out act=allow prof=any prot=tcp remoteport=993
+            netsh adv f a r n=IMAP-Server dir=in act=allow prof=any prot=tcp localport=143
+            netsh adv f a r n=IMAPS-Server dir=in act=allow prof=any prot=tcp localport=993
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] IMAP firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "pop3"){
+            ## POP3
+            netsh adv f a r n=POP3-Client dir=out act=allow prof=any prot=tcp remoteport=110
+            netsh adv f a r n=POP3S-Client dir=out act=allow prof=any prot=tcp remoteport=995
+            netsh adv f a r n=POP3-Server dir=in act=allow prof=any prot=tcp localport=110
+            netsh adv f a r n=POP3S-Server dir=in act=allow prof=any prot=tcp localport=995
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] POP3 firewall rules set" -ForegroundColor white
+        }
+        #Logging
+        elseif($exception -ieq "pandora"){
+            # Pandora 
+            netsh adv f a r n=Pandora-Client dir=out act=allow prof=any prot=tcp remoteport=41121
+            netsh adv f a r n=Pandora-Server dir=in act=allow prof=any prot=tcp localport=41121
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Pandora firewall rules set" -ForegroundColor white
+        }
+        elseif($exception -ieq "syslog"){
+            # Syslog
+            netsh adv f a r n=Syslog-Client dir=out act=allow prof=any prot=udp remoteport=514
+            netsh adv f a r n=Syslog-Server dir=in act=allow prof=any prot=udp localport=514
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SysLog firewall rules set" -ForegroundColor white
+        }
+    }
+}
 # Remoting Protocols
 
-## RDP
-# netsh adv f a r n=RDP-TCP-Client dir=out act=allow prof=any prot=tcp remoteport=3389 
-# netsh adv f a r n=RDP-UDP-Client dir=out act=allow prof=any prot=udp remoteport=3389 
+## RDP in
 netsh adv f a r n=RDP-TCP-Server dir=in act=allow prof=any prot=tcp localport=3389 | Out-Null
 netsh adv f a r n=RDP-UDP-Server dir=in act=allow prof=any prot=udp localport=3389 | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] RDP inbound firewall rules set" -ForegroundColor white
 
 ## WinRM
-# netsh adv f a r n=WinRM-Client dir=out act=allow prof=any prot=tcp remoteport=5985,5986
 netsh adv f a r n=WinRM-Server dir=in act=allow prof=any prot=tcp localport=5985,5986 | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM inbound firewall rule set" -ForegroundColor white
-
-## SSH 
-# netsh adv f a r n=SSH-Client dir=out act=allow prof=any prot=tcp remoteport=22
-# netsh adv f a r n=SSH-Server dir=in act=allow prof=any prot=tcp localport=22
-
-## VNC
-# netsh adv f a r n=VNC-Server-TCP dir=in act=allow prof=any prot=tcp localport=5900 | Out-Null
-# netsh adv f a r n=VNC-Server-UDP dir=in act=allow prof=any prot=udp localport=5900 | Out-Null
-# Write-Host "[INFO] VNC inbound rules set"
-
-# Uncommon Services
-## LDAP
-# netsh adv f a r n=LDAP-Client dir=out act=allow prof=any prot=tcp remoteport=389
-# netsh adv f a r n=LDAP-Server dir=in act=allow prof=any prot=tcp localport=389
-
-## SMB
-# netsh adv f a r n=SMB-Client dir=out act=allow prof=any prot=tcp remoteport=445
-# netsh adv f a r n=SMB-Server dir=in act=allow prof=any prot=tcp localport=445
-
-## DHCP 
-# netsh adv f a r n=DHCP-Client dir=out act=allow prof=any prot=udp remoteport=67,68
-# netsh adv f a r n=DHCP-Server dir=in act=allow prof=any prot=udp localport=67,68
-
-## S(FTP)
-# netsh adv f a r n=FTP-Client dir=out act=allow prof=any prot=tcp remoteport=20,21
-# netsh adv f a r n=SFTP-Client dir=out act=allow prof=any prot=tcp remoteport=22
-# netsh adv f a r n=FTP-Server dir=in act=allow prof=any prot=tcp localport=20,21
-# netsh adv f a r n=SFTP-Server dir=in act=allow prof=any prot=tcp localport=22
-
-## OpenVPN
-# netsh adv f a r n=OpenVPN-Client-UDP dir=out act=allow prof=any prot=udp remoteport=1194
-# netsh adv f a r n=OpenVPN-Client-TCP dir=out act=allow prof=any prot=tcp remoteport=443
-# netsh adv f a r n=OpenVPN-Server-UDP dir=in act=allow prof=any prot=udp localport=1194
-# netsh adv f a r n=OpenVPN-Server-TCP dir=in act=allow prof=any prot=tcp localport=443
-
-## Hyper-V VM Console
-# netsh adv f a r n=Hyper-V-Client dir=out act=allow prof=any prot=tcp remoteport=2179
-# netsh adv f a r n=Hyper-V-Server dir=in act=allow prof=any prot=tcp localport=2179
-
-## SMTP(S)
-# netsh adv f a r n=SMTP-Client dir=out act=allow prof=any prot=tcp remoteport=25
-# netsh adv f a r n=SMTPS-Client dir=out act=allow prof=any prot=tcp remoteport=465,587
-# netsh adv f a r n=SMTP-Server dir=out act=allow prof=any prot=tcp localport=25
-# netsh adv f a r n=SMTPS-Server dir=out act=allow prof=any prot=tcp localport=465,587
-
-## IMAP
-# netsh adv f a r n=IMAP-Client dir=out act=allow prof=any prot=tcp remoteport=143
-# netsh adv f a r n=IMAPS-Client dir=out act=allow prof=any prot=tcp remoteport=993
-# netsh adv f a r n=IMAP-Server dir=in act=allow prof=any prot=tcp localport=143
-# netsh adv f a r n=IMAPS-Server dir=in act=allow prof=any prot=tcp localport=993
-
-## POP3
-# netsh adv f a r n=POP3-Client dir=out act=allow prof=any prot=tcp remoteport=110
-# netsh adv f a r n=POP3S-Client dir=out act=allow prof=any prot=tcp remoteport=995
-# netsh adv f a r n=POP3-Server dir=in act=allow prof=any prot=tcp localport=110
-# netsh adv f a r n=POP3S-Server dir=in act=allow prof=any prot=tcp localport=995
 
 # Logging Protocols
 ## Wazuh 
@@ -157,13 +212,6 @@ netsh adv f a r n=Wazuh-Client dir=out act=allow prof=any prot=tcp remoteport=15
 netsh adv f a r n=Wazuh-Agent-Enrollment dir=out prof=any prot=tcp remoteport=1515 | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh firewall rules set" -ForegroundColor white
 
-## Pandora 
-# netsh adv f a r n=Pandora-Client dir=out act=allow prof=any prot=tcp remoteport=41121
-# netsh adv f a r n=Pandora-Server dir=in act=allow prof=any prot=tcp localport=41121
-
-## Syslog
-# netsh adv f a r n=Syslog-Client dir=out act=allow prof=any prot=udp remoteport=514
-# netsh adv f a r n=Syslog-Server dir=in act=allow prof=any prot=udp localport=514
 
 # blocking win32/64 lolbins from making network connections when they shouldn't
 netsh advfirewall firewall add rule name="Block appvlp.exe netconns" program="C:\Program Files (x86)\Microsoft Office\root\client\AppVLP.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
