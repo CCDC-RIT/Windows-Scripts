@@ -77,63 +77,134 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # All possible ports needed to be allowed through firewall for various services/scorechecks
 # Determined by $extrarules parameter
 if($extrarules.count -ne 0){
-    foreach ($exception in $extrarules){
-        if($exception -ieq "icmp"){
+    switch -exact ($extrarules){
+        "icmpi" {
+            ## ICMP/Ping inbound
+            netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP inbound firewall rules set" -ForegroundColor white 
+        }
+        "icmpo" {
+            ## ICMP/Ping outbound
+            netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP outbound firewall rules set" -ForegroundColor white 
+        }
+        "icmpio" {
             ## ICMP/Ping
             netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any | Out-Null
-            netsh adv f a r n=ICMP-Out dir=out act=allow prof=any prot=icmpv4:8,any | Out-Null
+            netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP firewall rules set" -ForegroundColor white 
         }
-        elseif($exception -ieq "http"){
-            ## HTTP(S) (might have to open server for CA)
+        "httpi" {
+            ## HTTP(S) inbound (might have to open server for CA)
+            netsh adv f a r n=HTTP-Server dir=in act=allow prof=any prot=tcp localport=80,443 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] HTTP(S) inbound firewall rules set" -ForegroundColor white 
+        }
+        "httpo" {
+            ## HTTP(S) outbound(might have to open server for CA)
+            netsh adv f a r n=HTTP-Client dir=out act=allow prof=any prot=tcp remoteport=80,443 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] HTTP(S) outbound firewall rules set" -ForegroundColor white 
+        }
+        "httpio" {
+            ## HTTP(S) outbound(might have to open server for CA)
             netsh adv f a r n=HTTP-Server dir=in act=allow prof=any prot=tcp localport=80,443 | Out-Null
             netsh adv f a r n=HTTP-Client dir=out act=allow prof=any prot=tcp remoteport=80,443 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] HTTP(S) firewall rules set" -ForegroundColor white 
         }
-        # Remoting Services
-        elseif($exception -ieq "rdp"){
+        # remoting services
+        "rdpo" {
             # RDP out
             netsh adv f a r n=RDP-TCP-Client dir=out act=allow prof=any prot=tcp remoteport=3389 | Out-Null
             netsh adv f a r n=RDP-UDP-Client dir=out act=allow prof=any prot=udp remoteport=3389 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] RDP outbound firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "winrm"){
+        "winrmo" {
             # WinRM out
             netsh adv f a r n=WinRM-Client dir=out act=allow prof=any prot=tcp remoteport=5985,5986 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM outbound firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "ssh"){
-            # SSH 
-            netsh adv f a r n=SSH-Client dir=out act=allow prof=any prot=tcp remoteport=22 | Out-Null
+        "sshi" {
+            # SSH inbound
             netsh adv f a r n=SSH-Server dir=in act=allow prof=any prot=tcp localport=22 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SSH inbound firewall rules set" -ForegroundColor white
+        }
+        "ssho" {
+            # SSH outbound
+            netsh adv f a r n=SSH-Client dir=out act=allow prof=any prot=tcp remoteport=22 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SSH outbound firewall rules set" -ForegroundColor white
+        }
+        "sshio" {
+            # SSH
+            netsh adv f a r n=SSH-Client dir=out act=allow prof=any prot=tcp remoteport=22 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SSH firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "vnc"){
-            # VNC
+        "vnci" {
+            # VNC in
             netsh adv f a r n=VNC-Server-TCP dir=in act=allow prof=any prot=tcp localport=5900 | Out-Null
             netsh adv f a r n=VNC-Server-UDP dir=in act=allow prof=any prot=udp localport=5900 | Out-Null
-            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] VNC firewall rules set" -ForegroundColor white
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] VNC inbound firewall rules set" -ForegroundColor white
         }
         #Uncommon Services
-        elseif($exception -ieq "ldap"){
-            # LDAP
-            netsh adv f a r n=LDAP-Client dir=out act=allow prof=any prot=tcp remoteport=389 | Out-Null
+        "ldapi" {
+            # LDAP in
             netsh adv f a r n=LDAP-Server dir=in act=allow prof=any prot=tcp localport=389 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LDAP inbound firewall rules set" -ForegroundColor white
+        }
+        "ldapo" {
+            # LDAP out
+            netsh adv f a r n=LDAP-Client dir=out act=allow prof=any prot=tcp remoteport=389 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LDAP outbound firewall rules set" -ForegroundColor white
+        }
+        "ldapio" {
+            # LDAP
+            netsh adv f a r n=LDAP-Server dir=in act=allow prof=any prot=tcp localport=389 | Out-Null
+            netsh adv f a r n=LDAP-Client dir=out act=allow prof=any prot=tcp remoteport=389 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LDAP firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "smb"){
+        "smbi" {
+            # SMB in
+            netsh adv f a r n=SMB-Server dir=in act=allow prof=any prot=tcp localport=445 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SMB inbound firewall rules set" -ForegroundColor white
+        }
+        "smbo" {
+            # SMB out
+            netsh adv f a r n=SMB-Client dir=out act=allow prof=any prot=tcp remoteport=445 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SMB outbound firewall rules set" -ForegroundColor white
+        }
+        "smbio" {
             # SMB
             netsh adv f a r n=SMB-Client dir=out act=allow prof=any prot=tcp remoteport=445 | Out-Null
             netsh adv f a r n=SMB-Server dir=in act=allow prof=any prot=tcp localport=445 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SMB firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "dhcp"){
-            # DHCP 
+        "dhcpi" {
+            # DHCP in
+            netsh adv f a r n=DHCP-Server dir=in act=allow prof=any prot=udp localport=67,68 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DHCP inbound firewall rules set" -ForegroundColor white
+        }
+        "dhcpo" {
+            # DHCP out
+            netsh adv f a r n=DHCP-Client dir=out act=allow prof=any prot=udp remoteport=67,68 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DHCP outbound firewall rules set" -ForegroundColor white
+        }
+        "dhcpio" {
+            # DHCP
             netsh adv f a r n=DHCP-Client dir=out act=allow prof=any prot=udp remoteport=67,68 | Out-Null
             netsh adv f a r n=DHCP-Server dir=in act=allow prof=any prot=udp localport=67,68 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DHCP firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "ftp"){
+        "ftpi" {
+            # S(FTP) in
+            netsh adv f a r n=FTP-Server dir=in act=allow prof=any prot=tcp localport=20,21 | Out-Null
+            netsh adv f a r n=SFTP-Server dir=in act=allow prof=any prot=tcp localport=22 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] S(FTP) inbound firewall rules set" -ForegroundColor white
+        }
+        "ftpo" {
+            # S(FTP) out
+            netsh adv f a r n=FTP-Client dir=out act=allow prof=any prot=tcp remoteport=20,21 | Out-Null
+            netsh adv f a r n=SFTP-Client dir=out act=allow prof=any prot=tcp remoteport=22 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] S(FTP) outbound firewall rules set" -ForegroundColor white
+        }
+        "ftpio" {
             # S(FTP)
             netsh adv f a r n=FTP-Client dir=out act=allow prof=any prot=tcp remoteport=20,21 | Out-Null
             netsh adv f a r n=SFTP-Client dir=out act=allow prof=any prot=tcp remoteport=22 | Out-Null
@@ -141,7 +212,19 @@ if($extrarules.count -ne 0){
             netsh adv f a r n=SFTP-Server dir=in act=allow prof=any prot=tcp localport=22 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] S(FTP) firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "openvpn"){
+        "openvpni" {
+            # OpenVPN in
+            netsh adv f a r n=OpenVPN-Server-UDP dir=in act=allow prof=any prot=udp localport=1194 | Out-Null
+            netsh adv f a r n=OpenVPN-Server-TCP dir=in act=allow prof=any prot=tcp localport=443 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] OpenVPN inbound firewall rules set" -ForegroundColor white
+        }
+        "openvpno" {
+            # OpenVPN out
+            netsh adv f a r n=OpenVPN-Client-UDP dir=out act=allow prof=any prot=udp remoteport=1194 | Out-Null
+            netsh adv f a r n=OpenVPN-Client-TCP dir=out act=allow prof=any prot=tcp remoteport=443 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] OpenVPN outbound firewall rules set" -ForegroundColor white
+        }
+        "openvpnio" {
             # OpenVPN
             netsh adv f a r n=OpenVPN-Client-UDP dir=out act=allow prof=any prot=udp remoteport=1194 | Out-Null
             netsh adv f a r n=OpenVPN-Client-TCP dir=out act=allow prof=any prot=tcp remoteport=443 | Out-Null
@@ -149,21 +232,55 @@ if($extrarules.count -ne 0){
             netsh adv f a r n=OpenVPN-Server-TCP dir=in act=allow prof=any prot=tcp localport=443 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] OpenVPN firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "hyperv"){
+        "hypervi" {
+            # Hyper-V VM Console in
+            netsh adv f a r n=Hyper-V-Server dir=in act=allow prof=any prot=tcp localport=2179 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hyper-V VM Console inbound firewall rules set" -ForegroundColor white
+        }
+        "hypervo" {
+            # Hyper-V VM Console out
+            netsh adv f a r n=Hyper-V-Client dir=out act=allow prof=any prot=tcp remoteport=2179 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hyper-V VM Console outbound firewall rules set" -ForegroundColor white
+        }
+        "hypervio" {
             # Hyper-V VM Console
             netsh adv f a r n=Hyper-V-Client dir=out act=allow prof=any prot=tcp remoteport=2179 | Out-Null
             netsh adv f a r n=Hyper-V-Server dir=in act=allow prof=any prot=tcp localport=2179 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hyper-V VM Console firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "smtp"){
+        "smtpi" {
+            # SMTP(S) in
+            netsh adv f a r n=SMTP-Server dir=in act=allow prof=any prot=tcp localport=25 | Out-Null
+            netsh adv f a r n=SMTPS-Server dir=in act=allow prof=any prot=tcp localport=465,587 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SMTP(S) inbound firewall rules set" -ForegroundColor white
+        }
+        "smtpo" {
+            # SMTP(S) out
+            netsh adv f a r n=SMTP-Client dir=out act=allow prof=any prot=tcp remoteport=25 | Out-Null
+            netsh adv f a r n=SMTPS-Client dir=out act=allow prof=any prot=tcp remoteport=465,587 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SMTP(S) outbound firewall rules set" -ForegroundColor white
+        }
+        "smtpio" {
             # SMTP(S)
             netsh adv f a r n=SMTP-Client dir=out act=allow prof=any prot=tcp remoteport=25 | Out-Null
             netsh adv f a r n=SMTPS-Client dir=out act=allow prof=any prot=tcp remoteport=465,587 | Out-Null
-            netsh adv f a r n=SMTP-Server dir=out act=allow prof=any prot=tcp localport=25 | Out-Null
-            netsh adv f a r n=SMTPS-Server dir=out act=allow prof=any prot=tcp localport=465,587 | Out-Null
+            netsh adv f a r n=SMTP-Server dir=in act=allow prof=any prot=tcp localport=25 | Out-Null
+            netsh adv f a r n=SMTPS-Server dir=in act=allow prof=any prot=tcp localport=465,587 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SMTP(S) firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "imap"){
+        "imapi" {
+            # IMAP in
+            netsh adv f a r n=IMAP-Server dir=in act=allow prof=any prot=tcp localport=143 | Out-Null
+            netsh adv f a r n=IMAPS-Server dir=in act=allow prof=any prot=tcp localport=993 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] IMAP inbound firewall rules set" -ForegroundColor white
+        }
+        "imapo" {
+            # IMAP out
+            netsh adv f a r n=IMAP-Client dir=out act=allow prof=any prot=tcp remoteport=143 | Out-Null
+            netsh adv f a r n=IMAPS-Client dir=out act=allow prof=any prot=tcp remoteport=993 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] IMAP outbound firewall rules set" -ForegroundColor white
+        }
+        "imapio" {
             # IMAP
             netsh adv f a r n=IMAP-Client dir=out act=allow prof=any prot=tcp remoteport=143 | Out-Null
             netsh adv f a r n=IMAPS-Client dir=out act=allow prof=any prot=tcp remoteport=993 | Out-Null
@@ -171,7 +288,19 @@ if($extrarules.count -ne 0){
             netsh adv f a r n=IMAPS-Server dir=in act=allow prof=any prot=tcp localport=993 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] IMAP firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "pop3"){
+        "pop3i" {
+            ## POP3 in
+            netsh adv f a r n=POP3-Server dir=in act=allow prof=any prot=tcp localport=110 | Out-Null
+            netsh adv f a r n=POP3S-Server dir=in act=allow prof=any prot=tcp localport=995 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] POP3 inbound firewall rules set" -ForegroundColor white
+        }
+        "pop3o" {
+            ## POP3 out
+            netsh adv f a r n=POP3-Client dir=out act=allow prof=any prot=tcp remoteport=110 | Out-Null
+            netsh adv f a r n=POP3S-Client dir=out act=allow prof=any prot=tcp remoteport=995 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] POP3 outbound firewall rules set" -ForegroundColor white
+        }
+        "pop3io" {
             ## POP3
             netsh adv f a r n=POP3-Client dir=out act=allow prof=any prot=tcp remoteport=110 | Out-Null
             netsh adv f a r n=POP3S-Client dir=out act=allow prof=any prot=tcp remoteport=995 | Out-Null
@@ -179,14 +308,34 @@ if($extrarules.count -ne 0){
             netsh adv f a r n=POP3S-Server dir=in act=allow prof=any prot=tcp localport=995 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] POP3 firewall rules set" -ForegroundColor white
         }
-        #Logging
-        elseif($exception -ieq "pandora"){
+        "pandorai" {
+            # Pandora in
+            netsh adv f a r n=Pandora-Server dir=in act=allow prof=any prot=tcp localport=41121 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Pandora inbound firewall rules set" -ForegroundColor white
+        }
+        #logging
+        "pandorao" {
+            # Pandora out 
+            netsh adv f a r n=Pandora-Client dir=out act=allow prof=any prot=tcp remoteport=41121 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Pandora outbound firewall rules set" -ForegroundColor white
+        }
+        "pandoraio" {
             # Pandora 
             netsh adv f a r n=Pandora-Client dir=out act=allow prof=any prot=tcp remoteport=41121 | Out-Null
             netsh adv f a r n=Pandora-Server dir=in act=allow prof=any prot=tcp localport=41121 | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Pandora firewall rules set" -ForegroundColor white
         }
-        elseif($exception -ieq "syslog"){
+        "syslogi" {
+            # Syslog in
+            netsh adv f a r n=Syslog-Server dir=in act=allow prof=any prot=udp localport=514 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SysLog inbound firewall rules set" -ForegroundColor white
+        }
+        "syslogo" {
+            # Syslog out
+            netsh adv f a r n=Syslog-Client dir=out act=allow prof=any prot=udp remoteport=514 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SysLog outbound firewall rules set" -ForegroundColor white
+        }
+        "syslogio" {
             # Syslog
             netsh adv f a r n=Syslog-Client dir=out act=allow prof=any prot=udp remoteport=514 | Out-Null
             netsh adv f a r n=Syslog-Server dir=in act=allow prof=any prot=udp localport=514 | Out-Null
