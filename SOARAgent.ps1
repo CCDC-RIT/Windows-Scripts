@@ -70,13 +70,13 @@ function checkDLLs(){
     [array]$goodnetshDLLs = "ifmon.dll","rasmontr.dll","authfwcfg.dll","dhcpmonitor.dll","dot3cfg.dll","fwcfg.dll","hnetmon.dll","nettrace.dll","netiohlp.dll","nshhttp.dll","nshipsec.dll","nshwfp.dll","peerdistsh.dll","rpcnsh.dll","whhelper.dll","wshelper.dll","wwancfg.dll","netprofm.dll","p2pnetsh.dll","wcnetsh.dll","wlancfg.dll"
     [array]$goodAppCertDLLs = ""
     [array]$goodAppInitDLLS = ""
-    [array]$goodLsaDLLS = ""
-    [array]$goodWinlogonDLLs = ""
-    [array]$goodLocalPortDLLs = ""
-    [array]$goodIPPortDLLs = ""
-    [array]$goodUSBMonitorDLLs = ""
-    [array]$goodWSDPortDLLs = ""
-    [hash]$hashTable = @{"NetSh" = $goodnetshDLLs; "Windows" = $goodAppInitDLLs; "Lsa" = $goodLsaDLLs; "Winlogon" = $goodWinlogonDLLs;"Local Port" = $goodLocalPortDLLs; "IP Port" = $goodIPPortDLLs; "USB Monitor" = $goodUSBMonitorDLLs; "WSD Port" = $goodWSDPortDLLs;}
+    [array]$goodLsaDLLS = "{msv1_0}",""
+    [array]$goodWinlogonDLLs = "explorer.exe","C:\Windows\System32\userinit.exe"
+    [array]$goodLocalPortDLLs = "localspl.dll"
+    [array]$goodIPPortDLLs = "tcpmon.dll"
+    [array]$goodUSBMonitorDLLs = "usbmon.dll"
+    [array]$goodWSDPortDLLs = "APMon.dll"
+    [hashtable]$hashTable = @{"NetSh" = $goodnetshDLLs; "Windows" = $goodAppInitDLLs; "Lsa" = $goodLsaDLLs; "Winlogon" = $goodWinlogonDLLs;"Local Port" = $goodLocalPortDLLs; "IP Port" = $goodIPPortDLLs; "USB Monitor" = $goodUSBMonitorDLLs; "WSD Port" = $goodWSDPortDLLs;}
     # This loop iterates through every line in the file registryaudit.txt. If the line is a registry key, then it updates the currentKey variable
     # If the current key is a key that we have a list of known good dll's for, and the line is a line that contains a dll, the dll on that line
     # is checked against the list of the known good DLL's. If it is not in the list, then an alert is triggered, and the user has the option 
@@ -93,7 +93,8 @@ function checkDLLs(){
                 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Potentially Malicious NETSH Helper DLL Found: " -ForegroundColor white -NoNewLine; Write-Host $tokens[-1] -ForegroundColor Red
                 $answer = Read-Host "Take Action? [yes/no]"
                 if($answer -ieq "yes"){
-                    # TODO: Figure out how to remove the malicious DLL
+                    # Hopefully this works
+                    regsvr32 /u $tokens[-1]
                     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] Malicious DLL " -ForegroundColor white -NoNewLine; Write-Host $tokens[-1] -ForegroundColor Red -NoNewLine; Write-Host " removed" -ForegroundColor white 
                 }
             }
