@@ -90,7 +90,7 @@ function checkDLLs(){
         }
         elseif((!($line -eq "" -or $tokens[-1] -ieq ":")) -and $currentKey -in $hashTable.Keys){
             if(!($tokens[-1]) -in $hashTable.$currentKey){
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Potentially Malicious NETSH Helper DLL Found: " -ForegroundColor white -NoNewLine; Write-Host $tokens[-1] -ForegroundColor Red
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Potentially Malicious " -ForegroundColor White -NoNewline; Write-Host $currentKey -ForegroundColor White -NoNewline; Write-Host " DLL Found: " -ForegroundColor white -NoNewLine; Write-Host $tokens[-1] -ForegroundColor Red
                 $answer = Read-Host "Take Action? [yes/no]"
                 if($answer -ieq "yes"){
                     # Hopefully this works
@@ -99,5 +99,60 @@ function checkDLLs(){
                 }
             }
         }
+    }
+}
+
+function checkProcessesServices {
+    $processAuditPath = Join-Path -Path $auditResultsPath -ChildPath "processaudit.txt"
+    $serviceAuditPath = Join-Path -Path $auditResultsPath -ChildPath "serviceaudit.txt"
+    [array]$currentProcesses = Get-content $processAuditPath
+
+    foreach($line in $currentProcesses){
+        # TODO: Figure out how to streamline this, and figure out what it looks like
+        # when hollows hunter finds a suspicious process. 
+        
+        # let $suspiciousProcess be a malicious process that hollows hunter finds from a line that has a suspicious process
+        [array]$tokens = $line.split(" ")
+        # Get process name and PID
+        [string]$process = $tokens[-1]
+        [string]$PID = $tokens[2]
+
+        # Get Service name from process
+        [string]$query = "ProcessId='" + $PID + "'"
+        $serviceInfo = Get-WmiObject Win32_Service -Filter $query
+        
+
+        # Get path of process/service from PID
+        $path = Get-process -id $PID | select-object -expandproperty path
+
+        # Inform User of the malicious process/service and ask if program should take action
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Malicious Process " -ForegroundColor white -NoNewLine
+        Write-Host $process -ForegroundColor Red -NoNewLine; Write-Host " with PID: " -ForegroundColor White -NoNewLine; Write-Host $PID -ForegroundColor Red -NoNewLine
+        if($serviceInfo){
+            Write-Host " With Service Name: " -ForegroundColor White -NoNewline; Write-Host $serviceInfo.Name -ForegroundColor Red -NoNewLine
+        }
+        Write-Host " and Path: " -ForegroundColor White -NoNewline; Write-Host $path -ForegroundColor Red
+
+        # Get the owner of the process, for IR purposes
+        $processTable = get-process -id $PID -IncludeUserName
+        $processOwner = $processTable.UserName
+        Write-Host "Owner of the Process is " -ForegroundColor White -NoNewline; Write-Host $processOwner -ForegroundColor Red
+
+        $answer = Read-Host "Take Action? [yes/no]"
+            if($answer -ieq "yes"){
+                Stop-Process -ID $PID -Force
+                if($serviceInfo){
+                    stop-service -Name $serviceInfo.Name -Force
+                    if($PSVersionTable.PSVersion.Major -ge 6){
+                        # if powershell is version 6 or up
+                        remove-service -name $serviceInfo.Name -Force
+                    }
+                }
+                Remove-Item -path $path
+                if(!(Test-Path -LiteralPath $path)){
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] Process/Service " -ForegroundColor white -NoNewLine; 
+                    Write-Host $process -ForegroundColor Red -NoNewLine; Write-Host " with PID: " -ForegroundColor White -NoNewline; Write-Host $PID -ForegroundColor Red -NoNewline; Write-Host " removed" -ForegroundColor white 
+                }
+            }
     }
 }
