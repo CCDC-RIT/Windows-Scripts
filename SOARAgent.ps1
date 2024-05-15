@@ -29,7 +29,7 @@ elseif($IIS){
     $goodusers += "IUSR"
 }
 
-function runDefenderScan(){
+function runDefenderScan{
     start-mpscan -scantype QuickScan
     Get-MpThreatDetection
     #prompt if we should delete or not
@@ -38,7 +38,7 @@ function runDefenderScan(){
 
 # This function goes through the current list of local users, and checks against a predetermined list to see if they are potentially malicious or not. 
 # User is then given the option to disable the user, do nothing, or add them to the predetermined list if they.
-function auditLocalUsers(){
+function auditLocalUsers{
     [array]$users = Get-LocalUser
     
     foreach($user in $users){
@@ -59,7 +59,7 @@ function auditLocalUsers(){
     }
 }
 
-function checkDLLs(){
+function checkDLLs{
     $registryAuditPath = Join-Path -Path $auditResultsPath -ChildPath "registryaudit.txt"
     # Get all of content from registryaudit.txt, which holds all of the results of the Dll's that were audited from the audit script 
     [array]$currentDLLs = Get-Content -Path $registryAuditPath
@@ -102,57 +102,71 @@ function checkDLLs(){
     }
 }
 
-function checkProcessesServices {
-    $processAuditPath = Join-Path -Path $auditResultsPath -ChildPath "processaudit.txt"
-    $serviceAuditPath = Join-Path -Path $auditResultsPath -ChildPath "serviceaudit.txt"
-    [array]$currentProcesses = Get-content $processAuditPath
+Function removeProcessesServices{
+    param(
+        $ProcessID
+    )
 
-    foreach($line in $currentProcesses){
-        # TODO: Figure out how to streamline this, and figure out what it looks like
-        # when hollows hunter finds a suspicious process. 
-        
-        # let $suspiciousProcess be a malicious process that hollows hunter finds from a line that has a suspicious process
-        [array]$tokens = $line.split(" ")
-        # Get process name and PID
-        [string]$process = $tokens[-1]
-        [string]$PID = $tokens[2]
+    [string]$processName = (Get-Process -Id $ProcessID).ProcessName
 
-        # Get Service name from process
-        [string]$query = "ProcessId='" + $PID + "'"
-        $serviceInfo = Get-WmiObject Win32_Service -Filter $query
-        
+    # Get Service name from process
+    [string]$query = "ProcessId='" + $ProcessID + "'"
+    $serviceInfo = Get-WmiObject Win32_Service -Filter $query
+    
 
-        # Get path of process/service from PID
-        $path = Get-process -id $PID | select-object -expandproperty path
+    # Get path of process/service from PID
+    $path = Get-process -id $ProcessID | select-object -expandproperty path
 
-        # Inform User of the malicious process/service and ask if program should take action
-        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Malicious Process " -ForegroundColor white -NoNewLine
-        Write-Host $process -ForegroundColor Red -NoNewLine; Write-Host " with PID: " -ForegroundColor White -NoNewLine; Write-Host $PID -ForegroundColor Red -NoNewLine
+    # Inform User of the malicious process/service and ask if program should take action
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Malicious Process " -ForegroundColor white -NoNewLine
+    Write-Host $processName -ForegroundColor Red -NoNewLine; Write-Host " with PID: " -ForegroundColor White -NoNewLine; Write-Host $ProcessID -ForegroundColor Red -NoNewLine
+    if($serviceInfo){
+        Write-Host " With Service Name: " -ForegroundColor White -NoNewline; Write-Host $serviceInfo.Name -ForegroundColor Red -NoNewLine
+    }
+    Write-Host " and Path: " -ForegroundColor White -NoNewline; Write-Host $path -ForegroundColor Red
+
+    # Get the owner of the process, for IR purposes
+    $processTable = get-process -id $ProcessID -IncludeUserName
+    $processOwner = $processTable.UserName
+    Write-Host "Owner of the Process is " -ForegroundColor White -NoNewline; Write-Host $processOwner -ForegroundColor Red
+
+    $answer = Read-Host "Take Action? [yes/no]"
+    if($answer -ieq "yes"){
+        Stop-Process -ID $ProcessID -Force
         if($serviceInfo){
-            Write-Host " With Service Name: " -ForegroundColor White -NoNewline; Write-Host $serviceInfo.Name -ForegroundColor Red -NoNewLine
-        }
-        Write-Host " and Path: " -ForegroundColor White -NoNewline; Write-Host $path -ForegroundColor Red
-
-        # Get the owner of the process, for IR purposes
-        $processTable = get-process -id $PID -IncludeUserName
-        $processOwner = $processTable.UserName
-        Write-Host "Owner of the Process is " -ForegroundColor White -NoNewline; Write-Host $processOwner -ForegroundColor Red
-
-        $answer = Read-Host "Take Action? [yes/no]"
-            if($answer -ieq "yes"){
-                Stop-Process -ID $PID -Force
-                if($serviceInfo){
-                    stop-service -Name $serviceInfo.Name -Force
-                    if($PSVersionTable.PSVersion.Major -ge 6){
-                        # if powershell is version 6 or up
-                        remove-service -name $serviceInfo.Name -Force
-                    }
-                }
-                Remove-Item -path $path
-                if(!(Test-Path -LiteralPath $path)){
-                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] Process/Service " -ForegroundColor white -NoNewLine; 
-                    Write-Host $process -ForegroundColor Red -NoNewLine; Write-Host " with PID: " -ForegroundColor White -NoNewline; Write-Host $PID -ForegroundColor Red -NoNewline; Write-Host " removed" -ForegroundColor white 
-                }
+            stop-service -Name $serviceInfo.Name -Force
+            if($PSVersionTable.PSVersion.Major -ge 6){
+                # if powershell is version 6 or up
+                remove-service -name $serviceInfo.Name -Force
             }
+        }
+        Remove-Item -path $path
+        if(!(Test-Path -LiteralPath $path)){
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] Process/Service " -ForegroundColor white -NoNewLine; 
+            Write-Host $process -ForegroundColor Red -NoNewLine; Write-Host " with PID: " -ForegroundColor White -NoNewline; Write-Host $ProcessID -ForegroundColor Red -NoNewline; Write-Host " removed" -ForegroundColor white 
+        }
+    }
+}
+
+Function checkProcessesServices {
+    $processAuditPath = Join-Path -Path $auditResultsPath -ChildPath "processaudit.txt"
+
+    # Hopefully there shouldn't be more than 40 suspicious processes found by hollos hunter
+    [array]$hollowsHunterProcesses = Get-content $processAuditPath -Tail 40
+
+    # Iterate through all of the lines grabbed
+    for ($i = 0; $i -lt 40; $i++){
+        [array]$tokens = ($hollowsHunterProcesses[$i]).split(" ")
+        
+        if($tokens[0] -eq "[*]" -and $tokens[2] -eq "suspicious:"){
+            # Once the line is found that indicates therea are suspicious processes, iterate through the processes
+            # Get their PID, and call the removeProcessesServices Function with the PID of the suspicious process.
+            for($j = 0; $j -lt $tokens[-1]; $j++){
+                [array]$processTokens = ($hollowsHunterProcesses[$i + $j + 2]).split(" ")
+                $ProcessID = ($processTokens[2]).trim(",")
+                removeProcessesServices -ProcessID $ProcessID
+            }
+            break
+        }
     }
 }
