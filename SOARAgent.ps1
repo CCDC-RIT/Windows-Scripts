@@ -76,7 +76,7 @@ function checkDLLs{
     [array]$goodIPPortDLLs = "tcpmon.dll"
     [array]$goodUSBMonitorDLLs = "usbmon.dll"
     [array]$goodWSDPortDLLs = "APMon.dll"
-    [hashtable]$hashTable = @{"NetSh" = $goodnetshDLLs; "Windows" = $goodAppInitDLLs; "Lsa" = $goodLsaDLLs; "Winlogon" = $goodWinlogonDLLs;"Local Port" = $goodLocalPortDLLs; "IP Port" = $goodIPPortDLLs; "USB Monitor" = $goodUSBMonitorDLLs; "WSD Port" = $goodWSDPortDLLs;}
+    [hashtable]$hashTable = @{"NetSh" = $goodnetshDLLs; "AppCertDLLs" = $goodAppCertDLLs; "Windows" = $goodAppInitDLLs; "Lsa" = $goodLsaDLLs; "Winlogon" = $goodWinlogonDLLs;"Local Port" = $goodLocalPortDLLs; "IP Port" = $goodIPPortDLLs; "USB Monitor" = $goodUSBMonitorDLLs; "WSD Port" = $goodWSDPortDLLs;}
     # This loop iterates through every line in the file registryaudit.txt. If the line is a registry key, then it updates the currentKey variable
     # If the current key is a key that we have a list of known good dll's for, and the line is a line that contains a dll, the dll on that line
     # is checked against the list of the known good DLL's. If it is not in the list, then an alert is triggered, and the user has the option 
@@ -151,6 +151,8 @@ Function removeProcessesServices{
 Function checkProcessesServices {
     $processAuditPath = Join-Path -Path $auditResultsPath -ChildPath "processaudit.txt"
 
+    # Removing processes deemed to be suspicious by hollows hunter
+
     # Hopefully there shouldn't be more than 40 suspicious processes found by hollos hunter
     [array]$hollowsHunterProcesses = Get-content $processAuditPath -Tail 40
 
@@ -159,7 +161,7 @@ Function checkProcessesServices {
         [array]$tokens = ($hollowsHunterProcesses[$i]).split(" ")
         
         if($tokens[0] -eq "[*]" -and $tokens[2] -eq "suspicious:"){
-            # Once the line is found that indicates therea are suspicious processes, iterate through the processes
+            # Once the line is found that indicates there are suspicious processes, iterate through the processes
             # Get their PID, and call the removeProcessesServices Function with the PID of the suspicious process.
             for($j = 0; $j -lt $tokens[-1]; $j++){
                 [array]$processTokens = ($hollowsHunterProcesses[$i + $j + 2]).split(" ")
@@ -167,6 +169,25 @@ Function checkProcessesServices {
                 removeProcessesServices -ProcessID $ProcessID
             }
             break
+        }
+    }
+
+    # Removing processes found with known bad names
+
+    [array]$knownBadProcessNames = "MeshAgent.exe","tacticalrmm.exe"
+
+    [array]$allProcesses = Get-Content $processAuditPath
+
+    foreach($line in $allProcesses){
+        if($line -eq "----------- Interesting Process ACLs -----------"){
+            break
+        }
+        elseif($line -ne ""){
+            $line = $line.strip()
+            $tokens = $line.split(" ")
+            if($tokens[1] -in $knownBadProcessNames){
+                removeProcessesServices -ProcessID $tokens[0]
+            }
         }
     }
 }
