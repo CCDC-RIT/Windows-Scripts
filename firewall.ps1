@@ -85,13 +85,13 @@ if($extrarules.count -ne 0){
         }
         "icmpo" {
             ## ICMP/Ping outbound
-            netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any | Out-Null
+            netsh adv f a r n=ICMP-In dir=out act=allow prof=any prot=icmpv4:8,any | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP outbound firewall rules set" -ForegroundColor white 
         }
         "icmpio" {
             ## ICMP/Ping
             netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any | Out-Null
-            netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any | Out-Null
+            netsh adv f a r n=ICMP-Out dir=out act=allow prof=any prot=icmpv4:8,any | Out-Null
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP firewall rules set" -ForegroundColor white 
         }
         "httpi" {
