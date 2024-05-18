@@ -1,4 +1,33 @@
-# Security Orchestration and Automated Response tool, built to run as a standalone agent on a system. 
+# RIT CCDC Security Orchestration and Automated Response tool
+
+# Built to run on every windows machine in a domain. If the server parameter is set to true, it will send all of it's alerts to the
+# Server, which is built to handle alerts from all of the clients in the domain. If it is set to false, all alerts will be sent to the local machine,
+# where the user operating the machine will have the option to take action or not. 
+
+param(
+    [Parameter(Mandatory=$true)]
+    [boolean]$server,
+    [Parameter(Mandatory=$false)]
+    [string]$serverIP
+)
+
+Function connectToServer {
+    # Set up TCP connection to the server if needed
+
+    $tcpConnection = New-Object System.Net.Sockets.TcpClient($serverIP, 1738)
+    $tcpStream = $tcpConnection.GetStream()
+    $reader = New-Object System.IO.StreamReader($tcpStream)
+    $writer = New-Object System.IO.StreamWriter($tcpStream)
+    $writer.AutoFlush = $true
+}
+
+Function takeDownConnection {
+    # Take down the TCP connection at the end of its use
+
+    $reader.Close()
+    $writer.Close()
+    $tcpConnection.Close()
+}
 
 $currentDir = (($MyInvocation.MyCommand.Path).Substring(0,($MyInvocation.MyCommand.Path).IndexOf("SOARAgent.ps1")))
 $auditResultsPath = Join-Path -Path $currentDir -ChildPath "results"
@@ -44,8 +73,17 @@ function auditLocalUsers{
     foreach($user in $users){
         if($user.enabled){
             if(!($user.Name -in $goodusers)){
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Unauthorized user " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor Red -NoNewLine; Write-Host " detected" -ForegroundColor white 
-                $answer = Read-Host "Take Action? [yes/no/add (adds user to authorized user list)]"
+                if($server){
+                    $buf = "user "
+                    $buf += $user.name
+                    $writer.WriteLine($buf)
+                    $answer = $reader.ReadLine()
+                }
+                else{
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Unauthorized user " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor Red -NoNewLine; Write-Host " detected" -ForegroundColor white 
+                    $answer = Read-Host "Take Action? [yes/no/add (adds user to authorized user list)]"
+                }
+                
                 if($answer -ieq "yes"){
                     Disable-LocalUser $user
                     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] Unauthorized user " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor Red -NoNewLine; Write-Host " removed" -ForegroundColor white 
@@ -90,8 +128,19 @@ function checkDLLs{
         }
         elseif((!($line -eq "" -or $tokens[-1] -ieq ":")) -and $currentKey -in $hashTable.Keys){
             if(!($tokens[-1]) -in $hashTable.$currentKey){
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Potentially Malicious " -ForegroundColor White -NoNewline; Write-Host $currentKey -ForegroundColor White -NoNewline; Write-Host " DLL Found: " -ForegroundColor white -NoNewLine; Write-Host $tokens[-1] -ForegroundColor Red
-                $answer = Read-Host "Take Action? [yes/no]"
+                if($server){
+                    $buf = "dll "
+                    $buf += $currentKey
+                    $buf += " "
+                    $buf += $tokens[-1]
+                    $writer.WriteLine($buf)
+                    $answer = $reader.ReadLine()
+                }
+                else{
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Potentially Malicious " -ForegroundColor White -NoNewline; Write-Host $currentKey -ForegroundColor White -NoNewline; Write-Host " DLL Found: " -ForegroundColor white -NoNewLine; Write-Host $tokens[-1] -ForegroundColor Red
+                    $answer = Read-Host "Take Action? [yes/no]"
+                }
+
                 if($answer -ieq "yes"){
                     # Hopefully this works
                     regsvr32 /u $tokens[-1]
@@ -118,19 +167,46 @@ Function removeProcessesServices{
     $path = Get-process -id $ProcessID | select-object -expandproperty path
 
     # Inform User of the malicious process/service and ask if program should take action
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Malicious Process " -ForegroundColor white -NoNewLine
-    Write-Host $processName -ForegroundColor Red -NoNewLine; Write-Host " with PID: " -ForegroundColor White -NoNewLine; Write-Host $ProcessID -ForegroundColor Red -NoNewLine
-    if($serviceInfo){
-        Write-Host " With Service Name: " -ForegroundColor White -NoNewline; Write-Host $serviceInfo.Name -ForegroundColor Red -NoNewLine
+
+    if($server){
+        $buf = "process "
+        $buf += $processName
+        $buf += " "
+        $buf += $processID
+        $buf += " "
+        if($serviceInfo){
+            $buf += $true
+            $buf += " "
+            $buf += $serviceInfo.name
+            $buf += " "
+        }
+        else{
+            $buf += $false
+            $buf += " "
+            $buf += "a"
+            $buf += " "
+        }
+        $buf += $path
+        $buf += " "
+        $buf += $processOwner
+        $writer.WriteLine($buf)
+        $answer = $reader.ReadLine()
     }
-    Write-Host " and Path: " -ForegroundColor White -NoNewline; Write-Host $path -ForegroundColor Red
+    else{
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Malicious Process " -ForegroundColor white -NoNewLine
+        Write-Host $processName -ForegroundColor Red -NoNewLine; Write-Host " with PID: " -ForegroundColor White -NoNewLine; Write-Host $ProcessID -ForegroundColor Red -NoNewLine
+        if($serviceInfo){
+            Write-Host " With Service Name: " -ForegroundColor White -NoNewline; Write-Host $serviceInfo.Name -ForegroundColor Red -NoNewLine
+        }
+        Write-Host " and Path: " -ForegroundColor White -NoNewline; Write-Host $path -ForegroundColor Red
 
-    # Get the owner of the process, for IR purposes
-    $processTable = get-process -id $ProcessID -IncludeUserName
-    $processOwner = $processTable.UserName
-    Write-Host "Owner of the Process is " -ForegroundColor White -NoNewline; Write-Host $processOwner -ForegroundColor Red
+        # Get the owner of the process, for IR purposes
+        $processTable = get-process -id $ProcessID -IncludeUserName
+        $processOwner = $processTable.UserName
+        Write-Host "Owner of the Process is " -ForegroundColor White -NoNewline; Write-Host $processOwner -ForegroundColor Red
 
-    $answer = Read-Host "Take Action? [yes/no]"
+        $answer = Read-Host "Take Action? [yes/no]"
+    }
     if($answer -ieq "yes"){
         Stop-Process -ID $ProcessID -Force
         if($serviceInfo){
