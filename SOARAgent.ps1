@@ -97,6 +97,44 @@ function auditLocalUsers{
     }
 }
 
+# All of the authorized users for the highly privileged AD groups
+$authorizedEnterpriseAdmins = "black-team","blackteam"
+$authorizedSchemaAdmins = "black-team","blackteam"
+$authorizedDnsAdmins = "black-team","blackteam"
+
+$authorizedPrivilegedGroups = $authorizedEnterpriseAdmins, $authorizedSchemaAdmins, $authorizedDnsAdmins
+
+Function auditDomainUsers {
+    # This function finds all of the members of the Enterprise Admins, Schema Admins, and DNS Admins. 
+    # The user operating the Domain controller an then remove users from these accounts as they see
+    # fit to follow the principle of least privilege
+    $enterpriseAdmins = Get-ADGroupMember -Identity "Enterprise Admins"
+    $schemaAdmins = Get-ADGroupMember -Identity "Schema Admins"
+    $dnsAdmins = Get-ADGroupMember -Identity "DnsAdmins"
+
+    $privilegedGroups = $enterpriseAdmins, $schemaAdmins, $dnsAdmins
+
+    $i = 0
+    foreach($group in $privilegedGroups){
+        $i++
+        foreach($user in $group){
+            if(!($user.name -in $authorizedPrivilegedGroups[$i])){
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor white -NoNewLine; Write-Host " is a member of " -ForegroundColor white -NoNewline; Write-Host $group.Name -ForegroundColor White
+                $answer = Read-Host "Remove from group? [yes/no/add (adds user to authorized user list)]"
+
+                if($answer -ieq "yes"){
+                    Remove-ADGroupMember -Identity $group.Name -Members $user.Name -Confirm:$false
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor White -NoNewLine; Write-Host " removed from " -ForegroundColor white -NoNewline; Write-Host $group.Name -ForegroundColor White 
+                }
+                elseif($answer -ieq "add"){
+                    $authorizedPrivilegedGroups[$i] += $user.Name
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor White -NoNewLine; Write-Host " is an authorized member of " -ForegroundColor white -NoNewline; Write-Host $group.Name -ForegroundColor
+                }
+            }
+        }
+    }
+}
+
 function checkDLLs{
     $registryAuditPath = Join-Path -Path $auditResultsPath -ChildPath "registryaudit.txt"
     # Get all of content from registryaudit.txt, which holds all of the results of the Dll's that were audited from the audit script 
