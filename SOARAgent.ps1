@@ -202,6 +202,10 @@ Function checkProcessesServices {
     # Hopefully there shouldn't be more than 40 suspicious processes found by hollos hunter
     [array]$hollowsHunterProcesses = Get-content $processAuditPath -Tail 40
 
+    # Array for all of the processes removed, just in case we hit them again when
+    # iterating through the list and checking the names
+    [array]$removedProcesses = @()
+
     # Iterate through all of the lines grabbed
     for ($i = 0; $i -lt 40; $i++){
         [array]$tokens = ($hollowsHunterProcesses[$i]).split(" ")
@@ -212,6 +216,7 @@ Function checkProcessesServices {
             for($j = 0; $j -lt $tokens[-1]; $j++){
                 [array]$processTokens = ($hollowsHunterProcesses[$i + $j + 2]).split(" ")
                 $ProcessID = ($processTokens[2]).trim(",")
+                $removedProcesses += $ProcessID
                 removeProcessesServices -ProcessID $ProcessID
             }
             break
@@ -231,7 +236,7 @@ Function checkProcessesServices {
         elseif($line -ne ""){
             $line = $line.strip()
             $tokens = $line.split(" ")
-            if($tokens[1] -in $knownBadProcessNames){
+            if($tokens[1] -in $knownBadProcessNames -and !($tokens[0] -in $removedProcesses)){
                 removeProcessesServices -ProcessID $tokens[0]
             }
         }
