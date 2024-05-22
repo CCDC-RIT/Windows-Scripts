@@ -71,7 +71,7 @@ $authorizedDnsAdmins = "black-team","blackteam"
 
 $authorizedPrivilegedGroups = $authorizedEnterpriseAdmins, $authorizedSchemaAdmins, $authorizedDnsAdmins
 
-Function auditDomainUsers {
+Function auditOverPrivilegedDomainUsers {
     # This function finds all of the members of the Enterprise Admins, Schema Admins, and DNS Admins. 
     # The user operating the Domain controller an then remove users from these accounts as they see
     # fit to follow the principle of least privilege
@@ -99,6 +99,105 @@ Function auditDomainUsers {
                 }
             }
         }
+    }
+}
+
+$goodDomainUsers = "blackteam","black-team","krbtgt"
+
+Function auditDomainUsers {
+    # Thanks UCI for this idea
+    # Credit: https://github.com/UCI-CCDC/CCDC/blob/master/Windows/BackdoorHound.ps1
+
+    $users = Get-ADUser -Filter * -Properties description,company,department
+
+    # Get the average lengths of all 3 properties
+    $descriptionTotal = 0
+    $companyTotal = 0
+    $departmentTotal = 0
+    foreach($user in $users){
+        $descriptionTotal += $user.description.Length
+        $companyTotal += $user.company.Length
+        $departmentTotal += $user.department.Length
+    }
+    $descriptionAverage = $descriptionTotal / $users.Count
+    $companyAverage = $companyTotal / $users.Count
+    $departmentAverage = $departmentTotal / $users.Count
+
+    # Get the standard deviations of all 3 properties
+    $descriptionSumSquaresTotal = 0
+    $companySumSquaresTotal = 0
+    $departmentSumSquaresTotal = 0
+    foreach($user in $users){
+        $descriptionSumSquaresTotal += ($user.description.length - $descriptionAverage) * ($user.description.length - $descriptionAverage)
+        $companySumSquaresTotal += ($user.company.length - $companyAverage) * ($user.company.length - $companyAverage)
+        $departmentSumSquaresTotal += ($user.department.length - $departmentAverage) * ($user.department.length - $departmentAverage)
+    }
+    $descriptionStDev = $descriptionSumSquaresTotal / ($users.count - 1)
+    $companyStDev = $companySumSquaresTotal / ($user.count - 1)
+    $departmentStDev = $departmentSumSquaresTotal / ($users.count - 1)
+
+    # 0 = User is not suspicious at all
+    # 1 = User has description/company/department that is an outlier, potentially suspicious
+    # 2 = Almost all users have a description, and this user does not. Very suspicious
+    $isUserSus = 0
+
+    $descriptionLower = $descriptionAverage - (2.5 * $descriptionStDev)
+    $descriptionUpper = $descriptionAverage + (2.5 * $descriptionStDev)
+    $companyLower = $companyAverage - (2.5 * $companyStDev)
+    $companyUpper = $companyAverage + (2.5 * $companyStDev)
+    $departmentLower = $departmentAverage - (2.5 * $departmentStDev)
+    $departmentUpper = $departmentAVerage + (2.5 * $departmentStDev)
+
+    # The 3 default domain accounts (guest, administrator, and krbtgt) have descriptions with a total length of 149. 
+    # If each user has a description, then it should be at least 2 characters even if it is an acryonym
+    # If the average description is greater than (155 + # of users - 3  * 2)/# of users 
+    # Then it can be assumed that users should have something in the description field, so if it is blank, then this is highly suspicious.
+
+    $haveDescriptions = $false
+    $magicNum = ((149 + (($users.count - 3) * 2))/$users.count)
+    if($descriptionAverage -ge $magicNum){
+        $haveDescriptions = $true
+    }
+
+    foreach($user in $users){
+        # If any User has a description/company/department that is an outlier (more than 2.5 st. dv's away), send an alert
+        if($user.description.length -le $descriptionLower -or $user.description.length -ge $descriptionUpper){
+            $isuserSus = 1
+        }
+        elseif($user.company.length -le $companyLower -or $user.company.length -ge $companyUpper){
+            $isUserSus = 1
+        }
+        elseif($user.department.length -le $departmentLower -or $user.department.length -ge $departmentUpper){
+            $isUserSus = 1
+        }
+        if($haveDescriptions){
+            if($user.description.length -eq 0){
+                $isUserSus = 2
+            }
+        }
+        $answer = "no"
+        if($isUserSus -eq 1){
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Potentially malicious Domain User " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor white
+            $answer = Read-Host "Deactivate user? [yes/no/add (adds user to authorized user list)]"
+        }
+        elseif($isUserSus -eq 2){
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Highly potentially malicious Domain User " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor white
+            $answer = Read-Host "Deactivate user? [yes/no/add (adds user to authorized user list)]"
+        }
+
+        if($answer -ieq "yes"){
+            Disable-ADAccount -Identity $user.Name
+            $disabledUser = get-aduser -identity $user.name
+            if(!($disabledUser.enabled)){
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] Disabled user " -ForegroundColor White -NoNewline; Write-Host $user.name -ForegroundColor White
+            }
+        }
+        elseif($answer -ieq "add"){
+            $goodDomainUsers += $user.name
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor Green -NoNewLine; Write-Host " is now authorized" -ForegroundColor white 
+        }
+
+        $isUserSus = 0
     }
 }
 
