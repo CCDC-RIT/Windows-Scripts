@@ -211,10 +211,10 @@ if($extrarules.count -ne 0){
                     # Rule is only tcp or udp
 
                     if($direction -eq "in"){
-                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=($ruleObject.Protocol) localport=($ruleObject.Ports) | Out-Null
+                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
                     }
                     else{
-                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=($ruleObject.Protocol) remoteport=($ruleObject.Ports) | Out-Null
+                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
                     }
                 }
                 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] " -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -NoNewLine; Write-Host " " -NoNewLine; Write-Host $direction -NoNewline; Write-Host "bound firewall rules set"
