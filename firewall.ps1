@@ -3,7 +3,13 @@ param(
     [Parameter(Mandatory=$true)]
     [bool]$LockoutPrevention,
     [Parameter(Mandatory=$false)]
-    [array]$extrarules
+    [array]$extrarules,
+    [Parameter(Mandatory=$false)]
+    [string]$ansibleIP="any",
+    [Parameter(Mandatory=$false)]
+    [string]$wazuhIP="any",
+    [Parameter(Mandatory=$false)]
+    [array]$scoringIP = @("protocol","0.0.0.0")
 )
 
 if (!((Get-Service -Name "MpsSvc").Status -eq "Running")) {
@@ -76,6 +82,133 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 # All possible ports needed to be allowed through firewall for various services/scorechecks
 # Determined by $extrarules parameter
+
+# This array contains all of the possible services that we would want to allow in the firewall, along with what protocol and ports they use
+$protocolArray = @(
+    [pscustomobject]@{Service="icmp";Protocol="none";Ports="none"}
+    [pscustomobject]@{Service="http";Protocol="tcp";Ports="80,443"}
+    [pscustomobject]@{Service="rdp";Protocol="both";Ports="3389"}
+    [pscustomobject]@{Service="winrm";Protocol="tcp";Ports="5985,5986"}
+    [pscustomobject]@{Service="ssh";Protocol="tcp";Ports="22"}
+    [pscustomobject]@{Service="vnc";Protocol="both";Ports="5900"}
+    [pscustomobject]@{Service="ldap";Protocol="tcp";Ports="389"}
+    [pscustomobject]@{Service="smb";Protocol="tcp";Ports="445"}
+    [pscustomobject]@{Service="dhcp";Protocol="udp";Ports="67,68"}
+    [pscustomobject]@{Service="ftp";Protocol="tcp";Ports="20,21"}
+    [pscustomobject]@{Service="sftp";Protocol="tcp";Ports="22"}
+    [pscustomobject]@{Service="openvpn";Protocol="udp";Ports="1194"}
+    [pscustomobject]@{Service="hyperv";Protocol="tcp";Ports="2179"}
+    [pscustomobject]@{Service="smtp";Protocol="tcp";Ports="25"}
+    [pscustomobject]@{Service="smtps";Protocol="tcp";Ports="465,587"}
+    [pscustomobject]@{Service="imap";Protocol="tcp";Ports="143"}
+    [pscustomobject]@{Service="imaps";Protocol="tcp";Ports="993"}
+    [pscustomobject]@{Service="pop3";Protocol="tcp";Ports="110"}
+    [pscustomobject]@{Service="pop3s";Protocol="tcp";Ports="995"}
+    [pscustomobject]@{Service="pandora";Protocol="tcp";Ports="41121"}
+    [pscustomobject]@{Service="syslog";Protocol="udp";Ports="514"}
+
+)
+$protocolArray = @("http","tcp","80,443")
+if($extrarules.count -ne 0){
+    foreach($rule in $extrarules){
+        # in, out, or both
+        $direction = "both"
+        $service = ""
+        # The if/else statement below determines if the extra rule is meant as inbound/outbound, and for what protocol
+        if($rule[-1] -eq "i"){
+            $direction = "in"
+            $service = $rule.substring(0,$rule.length-1)
+        }
+        elseif($rule[-1] -eq "o"){
+            if($rule[$rule.length-2] -eq "i"){
+                $direction = "both"
+                $service = $rule.substring(0,$rule.length-2)
+            }
+            else{
+                $direction = "out"
+                $service = $rule.substring(0,$rule.length-1)
+            }
+        }
+
+        $ruleObject = ($protocolArray | Where-Object {$_.Service -eq $service})
+
+        if($ruleObject.Service -eq "icmp"){
+            # Is the service ICMP? Logic is different because ICMP is only layers 1-3, no ports are used
+            
+            if($direction -eq "both"){
+                netsh adv f a r n=ICMP-In dir=in act=allow prof=any prot=icmpv4:8,any | Out-Null
+                netsh adv f a r n=ICMP-Out dir=out act=allow prof=any prot=icmpv4:8,any | Out-Null
+            }
+            else{
+                $name = "ICMP-" + $direction
+                netsh adv f a r n=$name dir=$direction act=allow prof=any prot=icmpv4:8,any | Out-Null
+            }
+        }
+        else{
+            # All other Services possible
+
+            if($direction -eq "both"){
+                # rule should be applied both inbound and outbound
+
+                $nameServer = $service + "-Server"
+                $nameClient = $service + "-Client"
+
+                if($ruleObject.protocol -eq "both"){
+                    # Rule should be applied for both tcp and udp ports
+
+                    $tcpNameServer = $nameServer + "-tcp"
+                    $tcpNameClient = $nameServer + "-tcp"
+                    $udpNameServer = $nameServer + "-udp"
+                    $udpNameClient = $nameServer + "-udp"
+
+                    netsh adv f a r n=$tcpNameServer dir=in act=allow prof=any prot=tcp localport=$ruleObject.ports | Out-Null
+                    netsh adv f a r n=$tcpNameClient dir=out act=allow prof=any prot=tcp remoteport=$ruleObject.ports | Out-Null
+                    netsh adv f a r n=$udpNameServer dir=in act=allow prof=any prot=udp localport=$ruleObject.ports | Out-Null
+                    netsh adv f a r n=$udpNameClient dir=out act=allow prof=any prot=udp remoteport=$ruleObject.ports | Out-Null
+                }
+                else{
+                    # Rule is only tcp or udp
+
+                    netsh adv f a r n=$nameServer dir=in act=allow prof=any prot=$ruleObject.protocol localport=$ruleObject.ports | Out-Null
+                    netsh adv f a r n=$nameClient dir=out act=allow prof=any prot=$ruleObject.protocol remoteport=$ruleObject.ports | Out-Null
+                }
+
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "]" -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -ForegroundColor White -NoNewLine; Write-Host " firewall rules set" -ForegroundColor white 
+            }
+            else{
+                # Rule should only be applied one way
+                
+                $name = $service + "-" + $direction
+                if($ruleObject.protocol -eq "both"){
+                    # Rule should be applied for both tcp and udp ports
+                    $tcpName = $name + "-tcp"
+                    $udpName = $name + "-udp"
+                    
+                    if($direction -eq "in"){
+                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp localport=$ruleObject.ports | Out-Null
+                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp localport=$ruleObject.ports | Out-Null
+                    }
+                    else{
+                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp remoteport=$ruleObject.ports | Out-Null
+                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp remoteport=$ruleObject.ports | Out-Null
+                    }
+                }
+                else{
+                    # Rule is only tcp or udp
+
+                    if($direction -eq "in"){
+                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=$ruleObject.protocol localport=$ruleObject.ports | Out-Null
+                    }
+                    else{
+                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=$ruleObject.protocol remoteport=$ruleObject.ports | Out-Null
+                    }
+                }
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "]" -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -ForegroundColor White -NoNewLine; Write-Host $direction -ForegroundColor White -NoNewline; Write-Host "bound firewall rules set" -ForegroundColor white 
+            }
+        }
+    }
+}
+
 if($extrarules.count -ne 0){
     switch -exact ($extrarules){
         "icmpi" {
@@ -351,14 +484,17 @@ netsh adv f a r n=RDP-UDP-Server dir=in act=allow prof=any prot=udp localport=33
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] RDP inbound firewall rules set" -ForegroundColor white
 
 ## WinRM
-netsh adv f a r n=WinRM-Server dir=in act=allow prof=any prot=tcp localport=5985,5986 | Out-Null
+netsh adv f a r n=WinRM-Server dir=in act=allow prof=any prot=tcp remoteip=$ansibleIP localport=5985,5986 | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM inbound firewall rule set" -ForegroundColor white
 
 # Logging Protocols
 ## Wazuh 
-netsh adv f a r n=Wazuh-Client dir=out act=allow prof=any prot=tcp remoteport=1514 | Out-Null
+netsh adv f a r n=Wazuh-Client dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=1514 | Out-Null
+if($wazuhIP -ne "Any"){
+    netsh adv f a r n=Wazuh-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=80,443 | Out-Null
+}
 ### Temporary rule to allow enrollment of an agent
-netsh adv f a r n=Wazuh-Agent-Enrollment dir=out prof=any prot=tcp remoteport=1515 | Out-Null
+netsh adv f a r n=Wazuh-Agent-Enrollment dir=out prof=any prot=tcp removeip=$wazuhIP remoteport=1515 | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh firewall rules set" -ForegroundColor white
 
 
