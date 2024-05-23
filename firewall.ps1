@@ -1,7 +1,7 @@
 # Parameter for enabling/disabling lockout prevention
 param(
-    [Parameter(Mandatory=$true)]
-    [bool]$LockoutPrevention,
+    [Parameter(Mandatory=$false)]
+    [bool]$LockoutPrevention=$false,
     [Parameter(Mandatory=$false)]
     [array]$extrarules,
     [Parameter(Mandatory=$false)]
@@ -9,7 +9,9 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$wazuhIP="any",
     [Parameter(Mandatory=$false)]
-    [array]$scoringIP = @("protocol","0.0.0.0")
+    [array]$scoringIP = @("protocol","0.0.0.0"),
+    [Parameter(Mandatory=$false)]
+    [array]$scoringIP2 = @("protocol","0.0.0.0")
 )
 
 if (!((Get-Service -Name "MpsSvc").Status -eq "Running")) {
@@ -132,17 +134,27 @@ if($extrarules.count -ne 0){
 
         $ruleObject = ($protocolArray | Where-Object {$_.Service -eq $service})
 
+        # If the scoring IP parameter is used and the scored service is equal to the current service being set, 
+        # then the remote port ips are restricted to just the scoring ip.
+        $remoteIP = "any"
+        if($scoringIP[0].toLower() -eq $service){
+            $remoteIP = $scoringIP[1]
+        }
+        elseif($scoringIP2[0].toLower() -eq $service){
+            $remoteIP = $scoringIP2[1]
+        }
+
         if($ruleObject.Service -eq "icmp"){
             # Is the service ICMP? Logic is different because ICMP is only layers 1-3, no ports are used
             
             if($direction -eq "both"){
-                netsh adv f a r n=ICMP-IN dir=in act=allow prof=any prot=icmpv4:8,any | Out-Null
-                netsh adv f a r n=ICMP-OUT dir=out act=allow prof=any prot=icmpv4:8,any | Out-Null
+                netsh adv f a r n=ICMP-IN dir=in act=allow prof=any remoteip=$remoteIP prot=icmpv4:8,any | Out-Null
+                netsh adv f a r n=ICMP-OUT dir=out act=allow prof=any remoteip=$remoteIP prot=icmpv4:8,any | Out-Null
                 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP firewall Rules Set" 
             }
             else{
                 $name = "ICMP-" + $direction.toUpper()
-                netsh adv f a r n=$name dir=$direction act=allow prof=any prot=icmpv4:8,any | Out-Null
+                netsh adv f a r n=$name dir=$direction act=allow prof=any remoteip=$remoteIP prot=icmpv4:8,any | Out-Null
                 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP " -ForegroundColor White -NoNewLine ; Write-Host $direction -NoNewline; Write-Host "bound firewall rules set"
             }
         }
@@ -163,16 +175,16 @@ if($extrarules.count -ne 0){
                     $udpNameServer = $nameServer + "-TCP"
                     $udpNameClient = $nameServer + "-UDP"
 
-                    netsh adv f a r n=$tcpNameServer dir=in act=allow prof=any prot=tcp localport=($ruleObject.Ports) | Out-Null
-                    netsh adv f a r n=$tcpNameClient dir=out act=allow prof=any prot=tcp remoteport=($ruleObject.Ports) | Out-Null
-                    netsh adv f a r n=$udpNameServer dir=in act=allow prof=any prot=udp localport=($ruleObject.Ports) | Out-Null
-                    netsh adv f a r n=$udpNameClient dir=out act=allow prof=any prot=udp remoteport=($ruleObject.Ports) | Out-Null
+                    netsh adv f a r n=$tcpNameServer dir=in act=allow prof=any prot=tcp remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
+                    netsh adv f a r n=$tcpNameClient dir=out act=allow prof=any prot=tcp remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
+                    netsh adv f a r n=$udpNameServer dir=in act=allow prof=any prot=udp remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
+                    netsh adv f a r n=$udpNameClient dir=out act=allow prof=any prot=udp remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
                 }
                 else{
                     # Rule is only tcp or udp
 
-                    netsh adv f a r n=$nameServer dir=in act=allow prof=any prot=($ruleObject.Protocol) localport=($ruleObject.Ports) | Out-Null
-                    netsh adv f a r n=$nameClient dir=out act=allow prof=any prot=($ruleObject.Protocol) remoteport=($ruleObject.Ports) | Out-Null
+                    netsh adv f a r n=$nameServer dir=in act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
+                    netsh adv f a r n=$nameClient dir=out act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
                 }
 
                 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] " -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -NoNewLine; Write-Host " firewall rules set" 
@@ -187,12 +199,12 @@ if($extrarules.count -ne 0){
                     $udpName = $name + "-UDP"
                     
                     if($direction -eq "in"){
-                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp localport=($ruleObject.Ports) | Out-Null
-                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp localport=($ruleObject.Ports) | Out-Null
+                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
+                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
                     }
                     else{
-                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp remoteport=($ruleObject.Ports) | Out-Null
-                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp remoteport=($ruleObject.Ports) | Out-Null
+                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
+                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
                     }
                 }
                 else{
