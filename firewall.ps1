@@ -108,7 +108,6 @@ $protocolArray = @(
     [pscustomobject]@{Service="syslog";Protocol="udp";Ports="514"}
 
 )
-$protocolArray = @("http","tcp","80,443")
 if($extrarules.count -ne 0){
     foreach($rule in $extrarules){
         # in, out, or both
@@ -129,6 +128,7 @@ if($extrarules.count -ne 0){
                 $service = $rule.substring(0,$rule.length-1)
             }
         }
+        $service = $service.toLower()
 
         $ruleObject = ($protocolArray | Where-Object {$_.Service -eq $service})
 
@@ -150,60 +150,60 @@ if($extrarules.count -ne 0){
             if($direction -eq "both"){
                 # rule should be applied both inbound and outbound
 
-                $nameServer = $service + "-Server"
-                $nameClient = $service + "-Client"
+                $nameServer = $service.toUpper() + "-Server"
+                $nameClient = $service.toUpper() + "-Client"
 
                 if($ruleObject.protocol -eq "both"){
                     # Rule should be applied for both tcp and udp ports
 
-                    $tcpNameServer = $nameServer + "-tcp"
-                    $tcpNameClient = $nameServer + "-tcp"
-                    $udpNameServer = $nameServer + "-udp"
-                    $udpNameClient = $nameServer + "-udp"
+                    $tcpNameServer = $nameServer + "-TCP"
+                    $tcpNameClient = $nameServer + "-TCP"
+                    $udpNameServer = $nameServer + "-TCP"
+                    $udpNameClient = $nameServer + "-UDP"
 
-                    netsh adv f a r n=$tcpNameServer dir=in act=allow prof=any prot=tcp localport=$ruleObject.ports | Out-Null
-                    netsh adv f a r n=$tcpNameClient dir=out act=allow prof=any prot=tcp remoteport=$ruleObject.ports | Out-Null
-                    netsh adv f a r n=$udpNameServer dir=in act=allow prof=any prot=udp localport=$ruleObject.ports | Out-Null
-                    netsh adv f a r n=$udpNameClient dir=out act=allow prof=any prot=udp remoteport=$ruleObject.ports | Out-Null
+                    netsh adv f a r n=$tcpNameServer dir=in act=allow prof=any prot=tcp localport=($ruleObject.Ports) | Out-Null
+                    netsh adv f a r n=$tcpNameClient dir=out act=allow prof=any prot=tcp remoteport=($ruleObject.Ports) | Out-Null
+                    netsh adv f a r n=$udpNameServer dir=in act=allow prof=any prot=udp localport=($ruleObject.Ports) | Out-Null
+                    netsh adv f a r n=$udpNameClient dir=out act=allow prof=any prot=udp remoteport=($ruleObject.Ports) | Out-Null
                 }
                 else{
                     # Rule is only tcp or udp
 
-                    netsh adv f a r n=$nameServer dir=in act=allow prof=any prot=$ruleObject.protocol localport=$ruleObject.ports | Out-Null
-                    netsh adv f a r n=$nameClient dir=out act=allow prof=any prot=$ruleObject.protocol remoteport=$ruleObject.ports | Out-Null
+                    netsh adv f a r n=$nameServer dir=in act=allow prof=any prot=($ruleObject.Protocol) localport=($ruleObject.Ports) | Out-Null
+                    netsh adv f a r n=$nameClient dir=out act=allow prof=any prot=($ruleObject.Protocol) remoteport=($ruleObject.Ports) | Out-Null
                 }
 
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "]" -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -ForegroundColor White -NoNewLine; Write-Host " firewall rules set" -ForegroundColor white 
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] " -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -NoNewLine; Write-Host " firewall rules set" 
             }
             else{
                 # Rule should only be applied one way
                 
-                $name = $service + "-" + $direction
+                $name = $service.toUpper() + "-" + $direction.toUpper()
                 if($ruleObject.protocol -eq "both"){
                     # Rule should be applied for both tcp and udp ports
-                    $tcpName = $name + "-tcp"
-                    $udpName = $name + "-udp"
+                    $tcpName = $name + "-TCP"
+                    $udpName = $name + "-UDP"
                     
                     if($direction -eq "in"){
-                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp localport=$ruleObject.ports | Out-Null
-                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp localport=$ruleObject.ports | Out-Null
+                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp localport=($ruleObject.Ports) | Out-Null
+                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp localport=($ruleObject.Ports) | Out-Null
                     }
                     else{
-                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp remoteport=$ruleObject.ports | Out-Null
-                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp remoteport=$ruleObject.ports | Out-Null
+                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp remoteport=($ruleObject.Ports) | Out-Null
+                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp remoteport=($ruleObject.Ports) | Out-Null
                     }
                 }
                 else{
                     # Rule is only tcp or udp
 
                     if($direction -eq "in"){
-                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=$ruleObject.protocol localport=$ruleObject.ports | Out-Null
+                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=($ruleObject.Protocol) localport=($ruleObject.Ports) | Out-Null
                     }
                     else{
-                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=$ruleObject.protocol remoteport=$ruleObject.ports | Out-Null
+                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=($ruleObject.Protocol) remoteport=($ruleObject.Ports) | Out-Null
                     }
                 }
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "]" -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -ForegroundColor White -NoNewLine; Write-Host $direction -ForegroundColor White -NoNewline; Write-Host "bound firewall rules set" -ForegroundColor white 
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] " -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -NoNewLine; Write-Host " " -NoNewLine; Write-Host $direction -NoNewline; Write-Host "bound firewall rules set"
             }
         }
     }
