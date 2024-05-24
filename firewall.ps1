@@ -164,16 +164,16 @@ if($extrarules.count -ne 0){
             if($direction -eq "both"){
                 # rule should be applied both inbound and outbound
 
-                $nameServer = $service.toUpper() + "-Server"
-                $nameClient = $service.toUpper() + "-Client"
+                $nameServer = $service.toUpper() + "-In"
+                $nameClient = $service.toUpper() + "-Out"
 
                 if($ruleObject.protocol -eq "both"){
                     # Rule should be applied for both tcp and udp ports
 
                     $tcpNameServer = $nameServer + "-TCP"
-                    $tcpNameClient = $nameServer + "-TCP"
-                    $udpNameServer = $nameServer + "-TCP"
-                    $udpNameClient = $nameServer + "-UDP"
+                    $tcpNameClient = $nameClient + "-TCP"
+                    $udpNameServer = $nameServer + "-UCP"
+                    $udpNameClient = $nameClient + "-UDP"
 
                     netsh adv f a r n=$tcpNameServer dir=in act=allow prof=any prot=tcp remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
                     netsh adv f a r n=$tcpNameClient dir=out act=allow prof=any prot=tcp remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
