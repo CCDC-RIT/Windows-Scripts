@@ -30,9 +30,11 @@ $ErrorActionPreference = "Continue"
 New-Item -Path $InputPath -Name "scripts" -ItemType "directory" | Out-Null
 New-Item -Path $InputPath -Name "installers" -ItemType "directory" | Out-Null
 New-Item -Path $InputPath -Name "tools" -ItemType "directory" | Out-Null
+New-Item -Path $InputPath -Name "zipped" -ItemType "directory" | Out-Null
 $ScriptPath = Join-Path -Path $InputPath -ChildPath "scripts"
 $SetupPath = Join-Path -Path $InputPath -ChildPath "installers"
 $ToolsPath = Join-Path -Path $InputPath -ChildPath "tools"
+$ZippedPath = Join-Path -Path $InputPath -ChildPath "zipped"
 
 New-Item -Path $ScriptPath -Name "conf" -ItemType "directory" | Out-Null
 New-Item -Path $ScriptPath -Name "results" -ItemType "directory" | Out-Null
@@ -230,4 +232,11 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "yara.zip") -DestinationPath $ToolsPath
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "elastic.zip") -DestinationPath $InputPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules extracted" -ForegroundColor white
+
+foreach($file in (Get-childItem -Path $InputPath)){
+    if($file.name -match ".zip"){
+        Move-item -path (Join-Path -path $InputPath -ChildPath $file.name) -Destination $zippedPath
+    }
+}
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Cleaned up zipped Files" -ForegroundColor white
 #Chandi Fortnite
