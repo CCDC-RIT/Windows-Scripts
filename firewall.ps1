@@ -14,6 +14,22 @@ param(
     [array]$scoringIP2 = @("protocol","0.0.0.0")
 )
 
+Function handleErrors {
+    param(
+        [array]$errorString,
+        [int]$numRules,
+        [string]$ruleType
+    )
+    for($i = 0; $i -lt $numRules; $i ++){
+        $j = $i * 2
+        if($errorString[$j] -ne "Ok."){
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "Error" -ForegroundColor red -NoNewLine; Write-Host "] Error When Setting " -ForegroundColor White -NoNewline; Write-Host $ruleType -NoNewline; Write-Host " rules: " -NoNewline; Write-Host $errorString[$j + 1]
+            return $false
+        }
+    }
+    return $true
+}
+
 if (!((Get-Service -Name "MpsSvc").Status -eq "Running")) {
     Start-Service -Name MpsSvc
     Write-Host "[INFO] Windows Defender Firewall service started"
@@ -45,42 +61,56 @@ if (!(Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall
 ## Domain Controller Rules (includes DNS server)
 if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType = "2")') {
     ## Inbound rules
-    netsh adv f a r n=DC-TCP-In dir=in act=allow prof=any prot=tcp localport=88,135,389,445,464,636,3268 | Out-Null
-    netsh adv f a r n=DC-UDP-In dir=in act=allow prof=any prot=udp localport=88,123,135,389,445,464,636 | Out-Null
-    netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp localport=rpc | Out-Null
-    netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp localport=rpc-epmap | Out-Null
-    netsh adv f a r n=DNS-Server dir=in act=allow prof=any prot=udp localport=53 | Out-Null
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Domain Controller firewall rules set" -ForegroundColor white
+    $errorChecking = netsh adv f a r n=DC-TCP-In dir=in act=allow prof=any prot=tcp localport=88,135,389,445,464,636,3268
+    $errorChecking += netsh adv f a r n=DC-UDP-In dir=in act=allow prof=any prot=udp localport=88,123,135,389,445,464,636
+    $errorChecking += netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp localport=rpc
+    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp localport=rpc-epmap
+    $errorChecking += netsh adv f a r n=DNS-Server dir=in act=allow prof=any prot=udp localport=53
+    if(handleErrors -errorString $errorChecking -numRules 5 -ruleType "Domain Controller"){
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Domain Controller firewall rules set" -ForegroundColor white
+    }
 
     ## Outbound rules (for cross-forest trust w/RHEL IdM)
     ## TODO: test
-    netsh adv f a r n=Domain-Trust-TCP-Out dir=out act=allow prof=any prot=tcp remoteport=88,135,138,139,389,445,464,3268 | Out-Null
-    netsh adv f a r n=Domain-Trust-UDP-Out dir=out act=allow prof=any prot=udp remoteport=88,138,139,389,445,464 | Out-Null
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Cross-forest trust firewall rules set" -ForegroundColor white
+    $errorChecking = netsh adv f a r n=Domain-Trust-TCP-Out dir=out act=allow prof=any prot=tcp remoteport=88,135,138,139,389,445,464,3268
+    $errorChecking += netsh adv f a r n=Domain-Trust-UDP-Out dir=out act=allow prof=any prot=udp remoteport=88,138,139,389,445,464
+    if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "Cross-Forest Trust"){
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Cross-forest trust firewall rules set" -ForegroundColor white
+    }
 } else {
     ## If not a DC it's probably domain-joined so add client rules
-    netsh adv f a r n=DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteport=88,135,389,445,636,3268 | Out-Null
-    netsh adv f a r n=DC-UDP-Out dir=out act=allow prof=any prot=udp remoteport=88,123,135,389,445,636 | Out-Null
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Domain-joined system firewall rules set" -ForegroundColor white
+    $errorChecking = netsh adv f a r n=DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteport=88,135,389,445,636,3268
+    $errorChecking += netsh adv f a r n=DC-UDP-Out dir=out act=allow prof=any prot=udp remoteport=88,123,135,389,445,636
+    if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "Domain Client"){
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Domain-joined system firewall rules set" -ForegroundColor white
+    }
 }
 
 # DNS client
-netsh adv f a r n=DNS-Client dir=out act=allow prof=any prot=udp remoteport=53 | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DNS Client firewall rules set" -ForegroundColor white
+$errorChecking = netsh adv f a r n=DNS-Client dir=out act=allow prof=any prot=udp remoteport=53
+if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "DNS Client"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DNS Client firewall rules set" -ForegroundColor white
+}
 
 # LSASS (needed for authentication and NLA)
 # is this a bad idea? probably. keep an eye on network connections made by this program
-netsh adv f a r n=LSASS-Out dir=out act=allow prof=any prog="C:\Windows\System32\lsass.exe" | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LSASS firewall rule set" -ForegroundColor white
+$errorChecking = netsh adv f a r n=LSASS-Out dir=out act=allow prof=any prog="C:\Windows\System32\lsass.exe"
+if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "LSASS"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LSASS firewall rule set" -ForegroundColor white
+}
 
 ## Certificate Authority
 if (Get-Service -Name CertSvc 2>$null) {
-    netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp localport=rpc | Out-Null
-    netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp localport=rpc-epmap | Out-Null
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority server firewall rule set" -ForegroundColor white
+    $errorChecking = netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp localport=rpc
+    $errorChecing += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp localport=rpc-epmap
+    if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "Certificate Authority"){
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority server firewall rule set" -ForegroundColor white
+    }
 }
-netsh adv f a r n=CA-Client dir=out act=allow prof=any prot=tcp remoteport=135 | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority client firewall rule set" -ForegroundColor white
+$errorString = netsh adv f a r n=CA-Client dir=out act=allow prof=any prot=tcp remoteport=135
+if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "CA Client"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority client firewall rule set" -ForegroundColor white
+}
 
 # All possible ports needed to be allowed through firewall for various services/scorechecks
 # Determined by $extrarules parameter
@@ -170,24 +200,30 @@ if($extrarules.count -ne 0){
                 if($ruleObject.protocol -eq "both"){
                     # Rule should be applied for both tcp and udp ports
 
+                    $numRules = 4
+
                     $tcpNameServer = $nameServer + "-TCP"
                     $tcpNameClient = $nameClient + "-TCP"
                     $udpNameServer = $nameServer + "-UCP"
                     $udpNameClient = $nameClient + "-UDP"
 
-                    netsh adv f a r n=$tcpNameServer dir=in act=allow prof=any prot=tcp remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
-                    netsh adv f a r n=$tcpNameClient dir=out act=allow prof=any prot=tcp remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
-                    netsh adv f a r n=$udpNameServer dir=in act=allow prof=any prot=udp remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
-                    netsh adv f a r n=$udpNameClient dir=out act=allow prof=any prot=udp remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
+                    $errorString = netsh adv f a r n=$tcpNameServer dir=in act=allow prof=any prot=tcp remoteip=$remoteIP localport=($ruleObject.Ports)
+                    $errorString += netsh adv f a r n=$tcpNameClient dir=out act=allow prof=any prot=tcp remoteip=$remoteIP remoteport=($ruleObject.Ports)
+                    $errorString += netsh adv f a r n=$udpNameServer dir=in act=allow prof=any prot=udp remoteip=$remoteIP localport=($ruleObject.Ports)
+                    $errorString += netsh adv f a r n=$udpNameClient dir=out act=allow prof=any prot=udp remoteip=$remoteIP remoteport=($ruleObject.Ports)
                 }
                 else{
                     # Rule is only tcp or udp
 
-                    netsh adv f a r n=$nameServer dir=in act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
-                    netsh adv f a r n=$nameClient dir=out act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
-                }
+                    $numRules = 2
 
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] " -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -NoNewLine; Write-Host " firewall rules set" 
+                    $errorString = netsh adv f a r n=$nameServer dir=in act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP localport=($ruleObject.Ports)
+                    $errorString += netsh adv f a r n=$nameClient dir=out act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP remoteport=($ruleObject.Ports)
+                }
+                
+                if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType $service.ToUpper()){
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] " -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -NoNewLine; Write-Host " firewall rules set" 
+                }
             }
             else{
                 # Rule should only be applied one way
@@ -197,27 +233,33 @@ if($extrarules.count -ne 0){
                     # Rule should be applied for both tcp and udp ports
                     $tcpName = $name + "-TCP"
                     $udpName = $name + "-UDP"
+
+                    $numRules = 2
                     
                     if($direction -eq "in"){
-                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
-                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
+                        $errorString = netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp remoteip=$remoteIP localport=($ruleObject.Ports)
+                        $errorString += netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp remoteip=$remoteIP localport=($ruleObject.Ports)
                     }
                     else{
-                        netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
-                        netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
+                        $errorString = netsh adv f a r n=$tcpName dir=$direction act=allow prof=any prot=tcp remoteip=$remoteIP remoteport=($ruleObject.Ports)
+                        $errorString += netsh adv f a r n=$udpName dir=$direction act=allow prof=any prot=udp remoteip=$remoteIP remoteport=($ruleObject.Ports)
                     }
                 }
                 else{
                     # Rule is only tcp or udp
 
+                    $numRules = 1
+
                     if($direction -eq "in"){
-                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP localport=($ruleObject.Ports) | Out-Null
+                        $errorString = netsh adv f a r n=$name dir=$direction act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP localport=($ruleObject.Ports)
                     }
                     else{
-                        netsh adv f a r n=$name dir=$direction act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP remoteport=($ruleObject.Ports) | Out-Null
+                        $errorString = netsh adv f a r n=$name dir=$direction act=allow prof=any prot=($ruleObject.Protocol) remoteip=$remoteIP remoteport=($ruleObject.Ports)
                     }
                 }
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] " -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -NoNewLine; Write-Host " " -NoNewLine; Write-Host $direction -NoNewline; Write-Host "bound firewall rules set"
+                if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType $service.ToUpper){
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] " -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -NoNewLine; Write-Host " " -NoNewLine; Write-Host $direction -NoNewline; Write-Host "bound firewall rules set"
+                }
             }
         }
     }
@@ -226,23 +268,32 @@ if($extrarules.count -ne 0){
 # Remoting Protocols
 
 ## RDP in
-netsh adv f a r n=RDP-TCP-Server dir=in act=allow prof=any prot=tcp localport=3389 | Out-Null
-netsh adv f a r n=RDP-UDP-Server dir=in act=allow prof=any prot=udp localport=3389 | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] RDP inbound firewall rules set" -ForegroundColor white
+$errorString = netsh adv f a r n=RDP-TCP-Server dir=in act=allow prof=any prot=tcp localport=3389
+$errorString += netsh adv f a r n=RDP-UDP-Server dir=in act=allow prof=any prot=udp localport=3389
+if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "RDP"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] RDP inbound firewall rules set" -ForegroundColor white
+}
 
 ## WinRM
-netsh adv f a r n=WinRM-Server dir=in act=allow prof=any prot=tcp remoteip=$ansibleIP localport=5985,5986 | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM inbound firewall rule set" -ForegroundColor white
+$errorString = netsh adv f a r n=WinRM-Ansible-Server dir=in act=allow prof=any prot=tcp remoteip=$ansibleIP localport=5985,5986
+if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "WinRM"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM inbound firewall rule set" -ForegroundColor white
+}
 
 # Logging Protocols
 ## Wazuh 
+$numRules = 2
 netsh adv f a r n=Wazuh-Client dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=1514 | Out-Null
 if($wazuhIP -ne "Any"){
     netsh adv f a r n=Wazuh-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=80,443 | Out-Null
+    $numRules++
 }
 ### Temporary rule to allow enrollment of an agent
 netsh adv f a r n=Wazuh-Agent-Enrollment dir=out prof=any prot=tcp removeip=$wazuhIP remoteport=1515 | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh firewall rules set" -ForegroundColor white
+
+if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Wazuh"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh firewall rules set" -ForegroundColor white
+}
 
 
 # blocking win32/64 lolbins from making network connections when they shouldn't
