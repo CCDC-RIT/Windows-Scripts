@@ -285,11 +285,11 @@ if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "WinRM"){
 $numRules = 2
 $errorChecking = netsh adv f a r n=Wazuh-Client dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=1514
 if($wazuhIP -ne "Any"){
-    $errorChecking += netsh adv f a r n=Wazuh-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=80,443 | Out-Null
+    $errorChecking += netsh adv f a r n=Wazuh-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=80,443
     $numRules++
 }
 ### Temporary rule to allow enrollment of an agent
-$errorChecking += netsh adv f a r n=Wazuh-Agent-Enrollment dir=out prof=any prot=tcp removeip=$wazuhIP remoteport=1515
+$errorChecking += netsh adv f a r n=Wazuh-Agent-Enrollment dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=1515
 
 if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Wazuh"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh firewall rules set" -ForegroundColor white
