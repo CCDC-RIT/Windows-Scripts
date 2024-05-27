@@ -9,6 +9,8 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$wazuhIP="any",
     [Parameter(Mandatory=$false)]
+    [string]$rdpIP="any",
+    [Parameter(Mandatory=$false)]
     [array]$scoringIP = @("protocol","0.0.0.0"),
     [Parameter(Mandatory=$false)]
     [array]$scoringIP2 = @("protocol","0.0.0.0")
@@ -272,8 +274,8 @@ if($extrarules.count -ne 0){
 # Remoting Protocols
 
 ## RDP in
-$errorChecking = netsh adv f a r n=RDP-TCP-Server dir=in act=allow prof=any prot=tcp localport=3389
-$errorChecking += netsh adv f a r n=RDP-UDP-Server dir=in act=allow prof=any prot=udp localport=3389
+$errorChecking = netsh adv f a r n=RDP-TCP-Server dir=in act=allow prof=any prot=tcp remoteip=$rdpIP localport=3389
+$errorChecking += netsh adv f a r n=RDP-UDP-Server dir=in act=allow prof=any prot=udp remoteip=$rdpIP localport=3389
 if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "RDP"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] RDP inbound firewall rules set" -ForegroundColor white
 }
