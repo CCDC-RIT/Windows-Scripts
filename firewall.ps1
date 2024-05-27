@@ -178,14 +178,18 @@ if($extrarules.count -ne 0){
             # Is the service ICMP? Logic is different because ICMP is only layers 1-3, no ports are used
             
             if($direction -eq "both"){
-                netsh adv f a r n=ICMP-IN dir=in act=allow prof=any remoteip=$remoteIP prot=icmpv4:8,any | Out-Null
-                netsh adv f a r n=ICMP-OUT dir=out act=allow prof=any remoteip=$remoteIP prot=icmpv4:8,any | Out-Null
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP firewall Rules Set" 
+                $errorChecking = netsh adv f a r n=ICMP-IN dir=in act=allow prof=any remoteip=$remoteIP prot=icmpv4:8,any
+                $errorChecking += netsh adv f a r n=ICMP-OUT dir=out act=allow prof=any remoteip=$remoteIP prot=icmpv4:8,any
+                if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "ICMP"){
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP firewall Rules Set" 
+                }
             }
             else{
                 $name = "ICMP-" + $direction.toUpper()
-                netsh adv f a r n=$name dir=$direction act=allow prof=any remoteip=$remoteIP prot=icmpv4:8,any | Out-Null
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP " -ForegroundColor White -NoNewLine ; Write-Host $direction -NoNewline; Write-Host "bound firewall rules set"
+                $errorChecking = netsh adv f a r n=$name dir=$direction act=allow prof=any remoteip=$remoteIP prot=icmpv4:8,any
+                if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "ICMP"){
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ICMP " -ForegroundColor White -NoNewLine ; Write-Host $direction -NoNewline; Write-Host "bound firewall rules set"
+                }
             }
         }
         else{
