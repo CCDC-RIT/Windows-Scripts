@@ -1,8 +1,6 @@
 # Optional parameter for password
 param (
-    [SecureString]$Password,
-    [Parameter(Mandatory=$false)]
-    [bool]$runByAnsible=$false
+    [SecureString]$Password
 )
 
 # Lorge secure script
@@ -96,14 +94,7 @@ if ($DC) {
     $DomainGPO = Get-GPO -All
     foreach ($GPO in $DomainGPO) {
         ## Prompt user to decide which GPOs to disable
-        # If being run by ansible, the gpo's are automatically disabled
-        if($runByAnsible){
-            $Ans = "y"
-        }
-        else{
-            $Ans = Read-Host "Reset $($GPO.DisplayName) (y/N)?"
-        }
-
+        $Ans = Read-Host "Reset $($GPO.DisplayName) (y/N)?"
         if ($Ans.ToLower() -eq "y") {
             $GPO.gpostatus = "AllSettingsDisabled"
         }
