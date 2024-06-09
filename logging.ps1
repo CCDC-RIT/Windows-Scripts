@@ -12,8 +12,8 @@ param(
 function printSuccessOrError{
     param(
         [string]$name,
-        [string]$result,
-        [string]$desiredResult,
+        $result,
+        $desiredResult,
         [bool]$multiple
     )
     if($multiple){
@@ -78,17 +78,17 @@ Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewlin
 # TODO: import audit policy
 [string]$auditpolPath = (Join-Path -Path $scriptDir -ChildPath "\conf\auditpol.csv")
 $result = auditpol /restore /file:$auditpolPath
-printSuccessOrError -Name "System Audit Policy Set" -result $result -desiredResult "The command was successfully executed" -multiple $false
+printSuccessOrError -Name "System Audit Policy Set" -result $result -desiredResult "The command was successfully executed." -multiple $true
 
 # Sysmon setup
 [string]$sysmonPath = (Join-Path -Path $rootDir -ChildPath "tools\sys\sm\sysmon64.exe")
 [string]$xmlPath = (Join-Path -Path $scriptDir -ChildPath "\conf\sysmon.xml")
 $result = & $sysmonPath -accepteula -i $xmlPath
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
-if($result[$result.length - 2] -eq "The Service Sysmon64 is already registered. Uninstall Sysmon before reinstalling"){
-    Write-Host "[" -NoNewline; Write-Host "INFO" -ForegroundColor White -NoNewline; Write-Host "] Sysmon already installed and configured" -ForegroundColor White
+if("The service Sysmon64 is already registered. Uninstall Sysmon before reinstalling." -in $result){
+    Write-Host "[" -NoNewline; Write-Host "INFO" -ForegroundColor Yellow -NoNewline; Write-Host "] Sysmon already installed and configured" -ForegroundColor White
 }
-elseif ($result[$result.length - 1] -eq "sysmon64 started.") {
+elseif ("sysmon64 started." -in $result) {
     Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] Sysmon installed and configured" -ForegroundColor White
 }
 else{
@@ -98,14 +98,15 @@ else{
 
 # DNS server logging
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
-    Set-DnsServerDiagnostics -DebugLogging 0x8000F301 -EventLogLevel 2 -EnableLoggingToFile $true
+    $serverDiag1 = Set-DnsServerDiagnostics -EventLogLevel 2 -UseSystemEventLog
     $logFileResult = dnscmd /config /logfilemaxsize 0xC800000
-    $ServerDiag = Set-DnsServerDiagnostics -EnableLoggingForPluginDllEvent $true -EnableLoggingForServerStartStopEvent $true -EnableLoggingForLocalLookupEvent $true -EnableLoggingForRecursiveLookupEvent $true -EnableLoggingForRemoteServerEvent $true -EnableLoggingForZoneDataWriteEvent $true -EnableLoggingForZoneLoadingEvent $true | Out-Null
+    $ServerDiag2 = Set-DnsServerDiagnostics -EnableLoggingForPluginDllEvent $true -EnableLoggingForServerStartStopEvent $true -EnableLoggingForLocalLookupEvent $true -EnableLoggingForRecursiveLookupEvent $true -EnableLoggingForRemoteServerEvent $true -EnableLoggingForZoneDataWriteEvent $true -EnableLoggingForZoneLoadingEvent $true
     $stopDNS = net stop DNS
     $startDNS = net start DNS
 
     printSuccessOrError -name "Log file Max Size Set" -result $logFileResult -desiredResult "Registry property logfilemaxsize successfully reset." -multiple $true
-    printSuccessOrError -name "DNS Server Diagnostics" -result $ServerDiag -desiredResult "" -multiple $false
+    printSuccessOrError -name "DNS Server Logging to Event log set" -result $ServerDiag1 -desiredResult $Null -multiple $false
+    printSuccessOrError -name "DNS Server Logging Settings set" -result $ServerDiag2 -desiredResult $Null -multiple $false
     printSuccessOrError -name "DNS Server Stopped" -result $stopDNS -desiredResult "The DNS Server service was stopped successfully." -multiple $true
     printSuccessOrError -name "DNS Server Started" -result $startDNS -desiredResult "The DNS Server service was started successfully." -multiple $true
 }
@@ -132,7 +133,7 @@ if (Get-Service -Name CertSvc 2>$null) {
     $searchBase = "CN=Configuration,$domain"
     $caName = ((Get-ADObject -LDAPFilter "(objectClass=pKIEnrollmentService)" -SearchBase $searchBase).Name | Out-String).Trim()
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration\$caName" /v AuditFilter /t REG_DWORD /d 127 /f | Out-Null
-    Write-Host "[INFO] CA logging enabled"
+    Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] CA Logging Enabled" -ForegroundColor White
 }
 
 # Fix Wazuh config file
@@ -148,8 +149,13 @@ Remove-Item "C:\Program Files (x86)\ossec-agent\ossec.conf" -Force
 Copy-Item -Path (Join-Path -Path $scriptDir -ChildPath "conf\agent_windows.conf") -Destination "C:\Program Files (x86)\ossec-agent\ossec.conf"
 
 # yara setup
-mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\' | Out-Null
-mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\' | Out-Null
+if(!(Test-Path 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\')){
+    mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
+}
+if(!(Test-Path 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\')){
+    mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\'
+}
+
 Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "tools\yara64.exe") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
 $rules = Get-ChildItem (Join-Path -Path $rootDir -ChildPath "protections-artifacts-main\yara\rules") -File | Where-Object {$_.Name -like "Windows*" -or $_.Name -like "Multi*"} | ForEach-Object {$_.FullName} | Out-String
 $rules = $($rules.Replace("`r`n", " ") -split " ")
@@ -160,5 +166,5 @@ Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "scripts\yara.bat") -Destin
 
 # Start the wazuh agent
 $result = net start Wazuh
-printSuccessOrError -name "Wazuh Service Started" -result $result -desiredResult "The Wazuh service was started successfully" -multiple $true
+printSuccessOrError -name "Wazuh Service Started" -result $result -desiredResult "The Wazuh service was started successfully." -multiple $true
 #Chandi Fortnite
