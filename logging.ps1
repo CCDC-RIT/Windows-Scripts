@@ -1,13 +1,13 @@
 # Parameter for Wazuh Manager IP Address
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateNotNullOrEmpty()]
-    [string]
-    $wazuhIP
+    [string]$wazuhIP
 )
 
-# Variable for the file's current path
-[string]$currentPath = $MyInvocation.MyCommand.Path
+# Variables for different paths
+[string]$currentFullPath = $MyInvocation.MyCommand.Path
+[string]$scriptDir = ($currentFullPath.substring(0, $currentFullPath.IndexOf("logging.ps1")))
+[string]$rootDir = ($scriptDir.substring(0, $scriptDir.IndexOf("scripts")))
 
 # Turn on Event log service if it's stopped
 if (!((Get-Service -Name "EventLog").Status -eq "Running")) {
@@ -43,13 +43,13 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 Write-Host "[INFO] PowerShell and command-line logging set"
 
 # TODO: import audit policy
-[string]$auditpolPath = (Join-Path ($currentPath.substring(0, $currentPath.IndexOf("logging.ps1"))) "\conf\auditpol.csv")
+[string]$auditpolPath = (Join-Path -Path $scriptDir -ChildPath "\conf\auditpol.csv")
 auditpol /restore /file:$auditpolPath
 Write-Host "[INFO] System audit policy set"
 
 # Sysmon setup
-[string]$sysmonPath = (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "tools\sys\sm\sysmon64.exe")
-[string]$xmlPath = (Join-Path ($currentPath.substring(0,$currentPath.IndexOf("logging.ps1"))) "\conf\sysmon.xml")
+[string]$sysmonPath = (Join-Path -Path $rootDir -ChildPath "tools\sys\sm\sysmon64.exe")
+[string]$xmlPath = (Join-Path -Path $scriptDir -ChildPath "\conf\sysmon.xml")
 & $sysmonPath -accepteula -i $xmlPath
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
 Write-Host "[INFO] Sysmon installed and configured"
@@ -89,23 +89,25 @@ if (Get-Service -Name CertSvc 2>$null) {
     Write-Host "[INFO] CA logging enabled"
 }
 
-$file = Join-Path -Path ($currentPath.substring(0,$currentPath.indexOf("logging.ps1"))) -ChildPath "conf\agent_windows.conf"
+$file = Join-Path -Path $scriptDir -ChildPath "conf\agent_windows.conf"
 $content = Get-Content $file
+# This line is a work in progress
+# $content | ForEach-Object { $_ -replace "<address></address>", "<address>$($wazuhIP)</address>"; $_ -replace "<config-profile>windows, windows2019, windows-server, windows-server-2019</config-profile>", "<config-profile></config-profile>" } | Set-Content $file
 $content | ForEach-Object { $_ -replace "<address></address>", "<address>$($wazuhIP)</address>" } | Set-Content $file
 
 # setup wazuh agent, config file, backup
-Start-Process -FilePath (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "installers\wazuhagent.msi") -ArgumentList ("/q WAZUH_MANAGER='" + $wazuhIP + "'") -Wait
+Start-Process -FilePath (Join-Path -Path $rootDir -ChildPath "installers\wazuhagent.msi") -ArgumentList ("/q WAZUH_MANAGER='" + $wazuhIP + "'") -Wait
 Remove-Item "C:\Program Files (x86)\ossec-agent\ossec.conf" -Force
-Copy-Item -Path (Join-Path ($currentPath.substring(0,$currentPath.indexOf("logging.ps1"))) "conf\agent_windows.conf") -Destination "C:\Program Files (x86)\ossec-agent\ossec.conf"
+Copy-Item -Path (Join-Path -Path $scriptDir -ChildPath "conf\agent_windows.conf") -Destination "C:\Program Files (x86)\ossec-agent\ossec.conf"
 
 # yara setup
 mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
 mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\'
-Copy-Item (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "tools\yara64.exe") 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
-$rules = Get-ChildItem (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "protections-artifacts-main\yara\rules") -File | Where-Object {$_.Name -like "Windows*" -or $_.Name -like "Multi*"} | ForEach-Object {$_.FullName} | Out-String
+Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "tools\yara64.exe") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
+$rules = Get-ChildItem (Join-Path -Path $rootDir -ChildPath "protections-artifacts-main\yara\rules") -File | Where-Object {$_.Name -like "Windows*" -or $_.Name -like "Multi*"} | ForEach-Object {$_.FullName} | Out-String
 $rules = $($rules.Replace("`r`n", " ") -split " ")
-& (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "tools\yarac64.exe") $rules 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'
-Copy-Item (Join-Path ($currentPath.Substring(0,$currentPath.IndexOf("scripts\logging.ps1"))) "scripts\yara.bat") 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
+& (Join-Path -Path $rootDir -ChildPath "tools\yarac64.exe") $rules 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'
+Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "scripts\yara.bat") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
 net start Wazuh
 Write-Host "[INFO] Wazuh installed and configured"
 #Chandi Fortnite
