@@ -98,7 +98,7 @@ else{
 
 # DNS server logging
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
-    $serverDiag1 = Set-DnsServerDiagnostics -EventLogLevel 2 -UseSystemEventLog
+    $serverDiag1 = Set-DnsServerDiagnostics -EventLogLevel 2 -UseSystemEventLog $true
     $logFileResult = dnscmd /config /logfilemaxsize 0xC800000
     $ServerDiag2 = Set-DnsServerDiagnostics -EnableLoggingForPluginDllEvent $true -EnableLoggingForServerStartStopEvent $true -EnableLoggingForLocalLookupEvent $true -EnableLoggingForRecursiveLookupEvent $true -EnableLoggingForRemoteServerEvent $true -EnableLoggingForZoneDataWriteEvent $true -EnableLoggingForZoneLoadingEvent $true
     $stopDNS = net stop DNS
