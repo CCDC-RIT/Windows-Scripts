@@ -47,31 +47,56 @@ Function Set-Password([string]$UserName, [bool]$IsDC, [SecureString]$Password, [
     }
 }
 
-Function Set-UserProperties([string[]]$UserList, [bool]$IsDC) {
+Function Set-UserProperties([string[]]$UserList, [bool]$IsDC, [string]$action) {
     if ($IsDC) {
         $DomainUsers = Get-ADUser -filter *
         foreach ($DomainUser in $DomainUsers) {
             if ($DomainUser.Name -in $UserList) {
-                # Enable-ADAccount -Name $DomainUser.Name
-                # disabled due to competition using delegated accounts
-                $DomainUser | Set-ADUser -AllowReversiblePasswordEncryption $false -ChangePasswordAtLogon $false -KerberosEncryptionType AES128,AES256 -PasswordNeverExpires $false -PasswordNotRequired $false -AccountNotDelegated $true 
-                $DomainUser | Set-ADAccountControl -DoesNotRequirePreAuth $false
-                # Disable-ADAccount -Identity $DomainUser
-                Write-Host "[INFO]" $DomainUser.Name "secured"
-            } else {
-                # Write-Host "[INFO]" $DomainUser.Name "disabled"
+                if($action -eq "Enable"){
+                    Enable-ADAccount -Name $DomainUser.Name
+                    if($DomainUser.enabled){
+                        Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($DomainUser.name) Enabled" -ForegroundColor White
+                    }
+                    else{
+                        Write-Host "[" -NoNewline; Write-Host "Error" -ForegroundColor Red -NoNewline; Write-Host "] $($DomainUser.name) Could not be enabled" -ForegroundColor White
+                    }
+                } elseif($action -eq "Secure"){
+                    $DomainUser | Set-ADUser -AllowReversiblePasswordEncryption $false -ChangePasswordAtLogon $false -KerberosEncryptionType AES128,AES256 -PasswordNeverExpires $false -PasswordNotRequired $false -AccountNotDelegated $true 
+                    $DomainUser | Set-ADAccountControl -DoesNotRequirePreAuth $false
+                    Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($DomainUser.name) Secured" -ForegroundColor White
+                } else{
+                    Disable-ADAccount -Identity $DomainUser
+                    if(!($DomainUser.enabled)){
+                        Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($DomainUser.name) Disabled" -ForegroundColor White
+                    }
+                    else{
+                        Write-Host "[" -NoNewline; Write-Host "Error" -ForegroundColor Red -NoNewline; Write-Host "] $($DomainUser.name) Could not be disabled" -ForegroundColor White
+                    }
+                }
             }
         }
     } else {
         $LocalUsers = Get-WmiObject -Class Win32_UserAccount -Filter "LocalAccount='True' and name!='$Env:Username'"
         foreach ($LocalUser in $LocalUsers) {
             if ($LocalUser.Name -in $UserList) {
-                # Enable-LocalUser -Name $LocalUser.Name
-                $LocalUser | Set-LocalUser -PasswordNeverExpires $false -UserMayChangePassword $true -AccountNeverExpires
-                # Disable-LocalUser -Name $LocalUser.Name
-                Write-Host "[INFO]" $LocalUser.Name "secured"
-            } else { 
-                # Write-Host "[INFO]" $LocalUser.Name "disabled"
+                if($action -eq "Enable"){
+                    Enable-LocalUser -Name $LocalUser.Name
+                    if(!($LocalUser.disabled)){
+                        Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUseUser.name) Enabled" -ForegroundColor White
+                    } else {
+                        Write-Host "[" -NoNewline; Write-Host "ERROR" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUser.name) Could not be enabled" -ForegroundColor White
+                    }
+                } elseif($action -eq "Secure"){
+                    $LocalUser | Set-LocalUser -PasswordNeverExpires $false -UserMayChangePassword $true -AccountNeverExpires
+                    Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUser.name) Secured" -ForegroundColor White
+                } else {
+                    Disable-LocalUser -Name $LocalUser.Name
+                    if($LocalUser.disabled){
+                        Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUser.name) Disabled" -ForegroundColor White
+                    } else {
+                        Write-Host "[" -NoNewline; Write-Host "ERROR" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUser.name) Could not be disabled" -ForegroundColor White
+                    }
+                }
             }
         }
     }
@@ -81,9 +106,11 @@ while ($true) {
     Write-Host "Options:"
     Write-Host "1. Change passwords for all users in list"
     Write-Host "2. Change password for current user"
-    Write-Host "3. Disable all users in list and apply proper user properties"
-    Write-Host "4. Reset krbtgt password"
-    Write-Host "5. Exit"
+    Write-Host "3. Disable all users in list"
+    Write-Host "4. Secure all users in list"
+    Write-Host "5. Enable all users in list"
+    Write-Host "6. Reset krbtgt password"
+    Write-Host "7. Exit"
     $option = Read-Host "Enter an option"
     
     if ($option -eq '1') {
@@ -99,10 +126,14 @@ while ($true) {
         $Password2 = Read-Host -AsSecureString "Confirm Password"
         Set-Password -UserName $Env:UserName -IsDC $DC -Password $Password -Password2 $Password2
     } elseif ($option -eq '3') {
-        Set-UserProperties -UserList $AllowUsers -IsDC $DC
+        Set-UserProperties -UserList $AllowUsers -IsDC $DC -action "Disable"
     } elseif ($option -eq '4') {
+        Set-UserProperties -UserList $AllowUsers -IsDC $DC -action "Secure"
+    } elseif($option -eq '5') {
+        Set-UserProperties -UserList $AllowUsers -IsDC $DC -action "Enable"
+    } elseif ($option -eq '6') {
         Set-krbtgtPassword -IsDC $DC
-    } elseif ($option -eq '5') {
+    } elseif ($option -eq '7') {
         exit 0
     } else {
         Write-Host "Invalid option, try again"
