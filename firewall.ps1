@@ -11,6 +11,12 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$rdpIP="any",
     [Parameter(Mandatory=$false)]
+    [string]$domainSubnet="any",
+    [Parameter(Mandatory=$false)]
+    [string]$dcIP="any",
+    [Parameter(Mandatory=$false)]
+    [string]$caIP="any",
+    [Parameter(Mandatory=$false)]
     [array]$scoringIP = @("protocol","0.0.0.0"),
     [Parameter(Mandatory=$false)]
     [array]$scoringIP2 = @("protocol","0.0.0.0")
@@ -34,7 +40,10 @@ Function handleErrors {
 
 if (!((Get-Service -Name "MpsSvc").Status -eq "Running")) {
     Start-Service -Name MpsSvc
-    Write-Host "[INFO] Windows Defender Firewall service started"
+    if (!((Get-Service -Name "MpsSvc").Status -eq "Running")){
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Windows Defender Firewall service could not be started" -ForegroundColor white
+    }
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Windows Defender Firewall service started" -ForegroundColor white
 }
 
 # Delete all rules
@@ -63,11 +72,11 @@ if (!(Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall
 ## Domain Controller Rules (includes DNS server)
 if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType = "2")') {
     ## Inbound rules
-    $errorChecking = netsh adv f a r n=DC-TCP-In dir=in act=allow prof=any prot=tcp localport=88,135,389,445,464,636,3268
-    $errorChecking += netsh adv f a r n=DC-UDP-In dir=in act=allow prof=any prot=udp localport=88,123,135,389,445,464,636
-    $errorChecking += netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp localport=rpc
-    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp localport=rpc-epmap
-    $errorChecking += netsh adv f a r n=DNS-Server dir=in act=allow prof=any prot=udp localport=53
+    $errorChecking = netsh adv f a r n=DC-TCP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=88,135,389,445,464,636,3268
+    $errorChecking += netsh adv f a r n=DC-UDP-In dir=in act=allow prof=any prot=udp remoteip=$domainSubnet localport=88,123,135,389,445,464,636
+    $errorChecking += netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc
+    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc-epmap
+    $errorChecking += netsh adv f a r n=DNS-Server dir=in act=allow prof=any prot=udp remoteip=$domainSubnet localport=53
     if(handleErrors -errorString $errorChecking -numRules 5 -ruleType "Domain Controller"){
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Domain Controller firewall rules set" -ForegroundColor white
     }
@@ -81,35 +90,35 @@ if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType
     }
 } else {
     ## If not a DC it's probably domain-joined so add client rules
-    $errorChecking = netsh adv f a r n=DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteport=88,135,389,445,636,3268
-    $errorChecking += netsh adv f a r n=DC-UDP-Out dir=out act=allow prof=any prot=udp remoteport=88,123,135,389,445,636
+    $errorChecking = netsh adv f a r n=DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteip=$dcIP remoteport=88,135,389,445,636,3268
+    $errorChecking += netsh adv f a r n=DC-UDP-Out dir=out act=allow prof=any prot=udp remoteip=$dcIP remoteport=88,123,135,389,445,636
     if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "Domain Client"){
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Domain-joined system firewall rules set" -ForegroundColor white
     }
 }
 
 # DNS client
-$errorChecking = netsh adv f a r n=DNS-Client dir=out act=allow prof=any prot=udp remoteport=53
+$errorChecking = netsh adv f a r n=DNS-Client dir=out act=allow prof=any prot=udp remoteip=$dcIP remoteport=53
 if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "DNS Client"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DNS Client firewall rules set" -ForegroundColor white
 }
 
 # LSASS (needed for authentication and NLA)
 # is this a bad idea? probably. keep an eye on network connections made by this program
-$errorChecking = netsh adv f a r n=LSASS-Out dir=out act=allow prof=any prog="C:\Windows\System32\lsass.exe"
+$errorChecking = netsh adv f a r n=LSASS-Out dir=out act=allow prof=any remoteip=$dcIP prog="C:\Windows\System32\lsass.exe"
 if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "LSASS"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LSASS firewall rule set" -ForegroundColor white
 }
 
 ## Certificate Authority
 if (Get-Service -Name CertSvc 2>$null) {
-    $errorChecking = netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp localport=rpc
-    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp localport=rpc-epmap
+    $errorChecking = netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc
+    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc-epmap
     if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "Certificate Authority"){
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority server firewall rule set" -ForegroundColor white
     }
 }
-$errorChecking = netsh adv f a r n=CA-Client dir=out act=allow prof=any prot=tcp remoteport=135
+$errorChecking = netsh adv f a r n=CA-Client dir=out act=allow prof=any prot=tcp remoteip=$caIP remoteport=135
 if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "CA Client"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority client firewall rule set" -ForegroundColor white
 }
