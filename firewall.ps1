@@ -98,7 +98,7 @@ if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType
 }
 
 # DNS client
-$errorChecking = netsh adv f a r n=DNS-Client dir=out act=allow prof=any prot=udp remoteip=$dcIP remoteport=53
+$errorChecking = netsh adv f a r n=DNS-Client dir=out act=allow prof=any prot=udp remoteport=53
 if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "DNS Client"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DNS Client firewall rules set" -ForegroundColor white
 }
@@ -134,7 +134,10 @@ $protocolArray = @(
     [pscustomobject]@{Service="winrm";Protocol="tcp";Ports="5985,5986"}
     [pscustomobject]@{Service="ssh";Protocol="tcp";Ports="22"}
     [pscustomobject]@{Service="vnc";Protocol="both";Ports="5900"}
-    [pscustomobject]@{Service="ldap";Protocol="tcp";Ports="389"}
+    [pscustomobject]@{Service="ldap";Protocol="both";Ports="389"}
+    [pscustomobject]@{Service="ldaps";Protocol="tcp";Ports="636"}
+    [pscustomobject]@{Service="ldapgc";Protocol="tcp";Ports="3268"}
+    [pscustomobject]@{Service="ldapgcs";Protocol="tcp";Ports="3269"}
     [pscustomobject]@{Service="smb";Protocol="tcp";Ports="445"}
     [pscustomobject]@{Service="dhcp";Protocol="udp";Ports="67,68"}
     [pscustomobject]@{Service="ftp";Protocol="tcp";Ports="20,21"}
@@ -149,6 +152,11 @@ $protocolArray = @(
     [pscustomobject]@{Service="pop3s";Protocol="tcp";Ports="995"}
     [pscustomobject]@{Service="pandora";Protocol="tcp";Ports="41121"}
     [pscustomobject]@{Service="syslog";Protocol="udp";Ports="514"}
+    [pscustomobject]@{Service="kerberos";Protocol="both";Ports="88"}
+    [pscustomobject]@{Service="rpc";Protocol="tcp";Ports="rpc"}
+    [pscustomobject]@{Service="epmap";Protocol="tcp";Ports="rpc-epmap"}
+    [pscustomobject]@{Service="w32time";Protocol="udp";Ports="123"}
+    [pscustomobject]@{Service="dns";Protocol="udp";Ports="53"}
 
 )
 if($extrarules.count -ne 0){
