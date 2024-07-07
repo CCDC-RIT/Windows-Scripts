@@ -247,7 +247,8 @@ function checkDLLs{
 
 Function removeProcessesServices{
     param(
-        $ProcessID
+        $ProcessID,
+        $Type
     )
 
     [string]$processName = (Get-Process -Id $ProcessID).ProcessName
@@ -260,19 +261,30 @@ Function removeProcessesServices{
     # Get path of process/service from PID
     $path = Get-process -id $ProcessID | select-object -expandproperty path
 
+    # Get the owner of the process
+    $processOwner = (get-process -id $ProcessID -IncludeUserName).UserName
+
+    try{
+        [array]$processConnections = Get-NetTCPConnection -OwningProcess $ProcessID
+    }
+    catch{
+        [array]$processConnections = @()
+    }
+
+
     # Inform User of the malicious process/service and ask if program should take action
     
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Malicious Process " -ForegroundColor white -NoNewLine
-    Write-Host $processName -ForegroundColor Red -NoNewLine; Write-Host " with PID: " -ForegroundColor White -NoNewLine; Write-Host $ProcessID -ForegroundColor Red -NoNewLine
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Malicious Process found via $($Type)" -ForegroundColor white
+    Write-Host "[INFO] Process Name: $($processName)"
+    Write-Host "[INFO] PID: $($ProcessID)"
+    Write-Host "[INFO] Process Owner: $($processOwner)"
     if($serviceInfo){
-        Write-Host " With Service Name: " -ForegroundColor White -NoNewline; Write-Host $serviceInfo.Name -ForegroundColor Red -NoNewLine
+        Write-Host "[INFO] Service Name: $($serviceInfo.Name)" -ForegroundColor White
     }
-    Write-Host " and Path: " -ForegroundColor White -NoNewline; Write-Host $path -ForegroundColor Red
-
-    # Get the owner of the process, for IR purposes
-    $processTable = get-process -id $ProcessID -IncludeUserName
-    $processOwner = $processTable.UserName
-    Write-Host "Owner of the Process is " -ForegroundColor White -NoNewline; Write-Host $processOwner -ForegroundColor Red
+    Write-Host "[INFO] Path: $($path)" -ForegroundColor White
+    foreach($connection in $processConnections){
+        Write-Host "[INFO] Process Connection from port $($connection.LocalPort) to $($connection.RemoteAddress) on port $($connection.RemotePort)"
+    }
 
     $answer = Read-Host "Take Action? [yes/no]"
     
@@ -316,7 +328,7 @@ Function checkProcessesServices {
                 [array]$processTokens = ($hollowsHunterProcesses[$i + $j + 2]).split(" ")
                 $ProcessID = ($processTokens[2]).trim(",")
                 $removedProcesses += $ProcessID
-                removeProcessesServices -ProcessID $ProcessID
+                removeProcessesServices -ProcessID $ProcessID -Type "Hollows Hunter"
             }
             break
         }
@@ -325,19 +337,27 @@ Function checkProcessesServices {
     # Removing processes found with known bad names
 
     [array]$knownBadProcessNames = "MeshAgent.exe","tacticalrmm.exe"
+    [array]$allProcesses = Get-Process
 
-    [array]$allProcesses = Get-Content $processAuditPath
-
-    foreach($line in $allProcesses){
-        if($line -eq "----------- Interesting Process ACLs -----------"){
-            break
-        }
-        elseif($line -ne ""){
-            $line = $line.strip()
-            $tokens = $line.split(" ")
-            if($tokens[1] -in $knownBadProcessNames -and !($tokens[0] -in $removedProcesses)){
-                removeProcessesServices -ProcessID $tokens[0]
-            }
+    foreach($process in $allProcesses){
+        if($process.ProcessName -in $knownBadProcessNames -and !($Process.ID -in $removedProcesses)){
+            removeProcessesServices -ProcessID $Process.ID -Type "Known Bad Process Name"
+            $removedProcesses += $Process.ID
         }
     }
+
+    # Check default for meterpreter default port: 4444
+
+    try{
+        [array]$meterpreterConnections = Get-NetTCPConnection -RemotePort "4444"
+    }
+    catch{
+        [array]$meterpreterConnections = @()
+    }
+    
+    foreach($connection in $allNetConnections){
+        removeProcessesServices -ProcessID $connection.OwningProcess -Type "Default Meterpreter Port"
+        $removedProcesses += $connection.OwningProcess
+    }
+
 }
