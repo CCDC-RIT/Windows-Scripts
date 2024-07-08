@@ -415,6 +415,14 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 sc.exe sdset scmanager "D:(A;;CC;;;AU)(A;;CCLCRPRC;;;IU)(A;;CCLCRPRC;;;SU)(A;;CCLCRPWPRC;;;SY)(A;;KA;;;BA)(A;;CC;;;AC)S:(AU;FA;KA;;;WD)(AU;OIIOFA;GA;;;WD)" | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Reset SCM SDDL" -ForegroundColor white 
 
+## Enabling PPL mode for services 
+# AppXSvc
+reg add "HKLM\System\CurrentControlSet\Services\AppXSvc" /v "LaunchProtected" /t REG_DWORD /d 2 /f | Out-Null
+# WdNisSvc
+# reg add "HKLM\System\CurrentControlSet\Services\WdNisSvc" /v "LaunchProtected" /t REG_DWORD /d 3 /f | Out-Null
+# sppsvc
+reg add "HKLM\System\CurrentControlSet\Services\sppsvc" /v "LaunchProtected" /t REG_DWORD /d 1 /f | Out-Null
+
 # ----------- Subvert Trust Controls: Install Root Certificate (T1553.004) ------------
 reg add "HKLM\SOFTWARE\Policies\Microsoft\SystemCertificates\Root\ProtectedRoots" /f | Out-Null
 reg add "HKLM\SOFTWARE\Policies\Microsoft\SystemCertificates\Root\ProtectedRoots" /v Flags /t REG_DWORD /d 1 /f | Out-Null
@@ -423,6 +431,8 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\SystemCertificates\Root\ProtectedRoots
 ## Enabling early launch antimalware boot-start driver scan (good, unknown, and bad but critical)
 reg add "HKLM\SYSTEM\CurrentControlSet\Policies\EarlyLaunch" /v "DriverLoadPolicy" /t REG_DWORD /d 3 /f | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled antimalware boot-start driver scan" -ForegroundColor white
+# Launch Defender in PPL Mode
+# reg add "HKLM\System\CurrentControlSet\Services\WinDefend" /v "LaunchProtected" /t REG_DWORD /d 3 /f | Out-Null
 ## Enabling SEHOP
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" /v DisableExceptionChainValidation /t REG_DWORD /d 0 /f | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled SEHOP" -ForegroundColor white
