@@ -231,6 +231,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "yara.zip") -DestinationPath $ToolsPath
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "elastic.zip") -DestinationPath $InputPath
+Rename-Item -Path "protections-artifacts-main" -NewName "el"
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules extracted" -ForegroundColor white
 
 foreach($file in (Get-childItem -Path $InputPath)){
