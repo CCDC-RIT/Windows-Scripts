@@ -157,7 +157,7 @@ if(!(Test-Path 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rule
 }
 
 Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "tools\yara64.exe") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
-$rules = Get-ChildItem (Join-Path -Path $rootDir -ChildPath "el\yara\rules") -File | Where-Object {$_.Name -like "Windows*" -or $_.Name -like "Multi*"} | ForEach-Object {$_.FullName} | Out-String
+$rules = Get-ChildItem $rootDir | Where-Object {$_.Name -eq "Windows" -or $_.Name -eq "Multi"} | Get-ChildItem | ForEach-Object {$_.FullName} | Out-String
 $rules = $($rules.Replace("`r`n", " ") -split " ")
 
 # Line below is broken right now, the $rules param is too large, so running yarac64.exe throws the error that the filename/extension is too long

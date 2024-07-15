@@ -193,7 +193,8 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # yara
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/VirusTotal/yara/releases/download/v4.5.0/yara-master-2251-win64.zip", (Join-Path -Path $InputPath -ChildPath "yara.zip"))
 ## yara rules
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/elastic/protections-artifacts/archive/refs/heads/main.zip", (Join-Path -Path $InputPath -ChildPath "elastic.zip"))
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/YaraRules/main/Windows.zip", (Join-Path -Path $InputPath -ChildPath "Windows.zip"))
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/YaraRules/main/Multi.zip", (Join-Path -Path $InputPath -ChildPath "Multi.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules downloaded" -ForegroundColor white
 
 # Notepad++
@@ -230,8 +231,8 @@ Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "cs.zip") -De
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Chainsaw extracted" -ForegroundColor white
 
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "yara.zip") -DestinationPath $ToolsPath
-Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "elastic.zip") -DestinationPath $InputPath
-Rename-Item -Path "protections-artifacts-main" -NewName "el"
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Windows.zip") -DestinationPath $InputPath
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Multi.zip") -DestinationPath $InputPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules extracted" -ForegroundColor white
 
 foreach($file in (Get-childItem -Path $InputPath)){
