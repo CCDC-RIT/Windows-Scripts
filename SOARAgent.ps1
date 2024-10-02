@@ -4,7 +4,7 @@
 # where the user operating the machine will have the option to take action or not. 
 
 
-$currentDir = (($MyInvocation.MyCommand.Path).Substring(0,($MyInvocation.MyCommand.Path).IndexOf("SOARAgent.ps1")))
+$currentDir = (Get-Location).Path
 $auditResultsPath = Join-Path -Path $currentDir -ChildPath "results"
 
 $DC = $false
@@ -25,12 +25,12 @@ if (Get-Service -Name CertSvc 2>$null) {
     Write-output "[INFO] Certificate Authority detected"
 }
 
-[array]$goodusers = "Administrator","Guest","WDAGUtilityAccount","DefaultAccount","cucumber"
+[System.Collections.ArrayList]$goodLocalUsers = "Administrator","Guest","WDAGUtilityAccount","DefaultAccount","cucumber"
 if($DC){
-    $goodusers += "krbtgt"
+    $goodLocalUsers += "krbtgt"
 }
 elseif($IIS){
-    $goodusers += "IUSR"
+    $goodLocalUsers += "IUSR"
 }
 
 function runDefenderScan{
@@ -40,6 +40,31 @@ function runDefenderScan{
     remove-mpthreat
 }
 
+function runYaraScan{
+    # Scan a directory or file with Yara
+    param(
+        [string]$file="",
+        [string]$directory=""
+    )
+    $yaraDir = Join-Path -Path $currentDir.Substring(0,$currentDir.IndexOf("\scripts")) -ChildPath "tools\yara64.exe"
+    $yaraRules = 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'
+    $returnValue = ""
+    if((Test-Path $yaraDir) -and (Test-Path $yaraRules)){
+        if($file -ne ""){
+            $returnValue = & $yaraDir --compiled-rules $yaraRules $file
+        }
+        if($directory -ne ""){
+            $returnValue = & $yaraDir --compiled-rules $yaraRules --recursive $directory
+            foreach($file in $returnValue){
+                $tokens = $file -split " "
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Yara detected malicious File: " -ForegroundColor white -NoNewLine; Write-Host $tokens[1] -ForegroundColor Red -NoNewLine; Write-Host " detected via rule " -ForegroundColor white -NoNewline; Write-Host $tokens[0] -ForegroundColor White
+            }
+        }
+    }
+
+    return $returnValue
+}
+
 # This function goes through the current list of local users, and checks against a predetermined list to see if they are potentially malicious or not. 
 # User is then given the option to disable the user, do nothing, or add them to the predetermined list if they.
 function auditLocalUsers{
@@ -47,17 +72,17 @@ function auditLocalUsers{
     
     foreach($user in $users){
         if($user.enabled){
-            if(!($user.Name -in $goodusers)){
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Unauthorized user " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor Red -NoNewLine; Write-Host " detected" -ForegroundColor white 
+            if(!($user.Name -in $goodLocalUsers)){
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Unauthorized Local User " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor Red -NoNewLine; Write-Host " detected" -ForegroundColor white 
                 $answer = Read-Host "Take Action? [yes/no/add (adds user to authorized user list)]"
                 
                 if($answer -ieq "yes"){
                     Disable-LocalUser $user
-                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] Unauthorized user " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor Red -NoNewLine; Write-Host " removed" -ForegroundColor white 
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] Unauthorized Local User " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor Red -NoNewLine; Write-Host " removed" -ForegroundColor white 
                 }
                 elseif($answer -ieq "add"){
-                    $goodusers += $user.Name
-                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user -ForegroundColor Rreen -NoNewLine; Write-Host " is now authorized" -ForegroundColor white 
+                    $goodLocalUsers.Add($user.Name) | Out-Null
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user -ForegroundColor Green -NoNewLine; Write-Host " is now authorized" -ForegroundColor white 
                 }
             }
         }
@@ -65,41 +90,34 @@ function auditLocalUsers{
 }
 
 # All of the authorized users for the highly privileged AD groups
-$authorizedEnterpriseAdmins = "black-team","blackteam"
-$authorizedSchemaAdmins = "black-team","blackteam"
-$authorizedDnsAdmins = "black-team","blackteam"
-
-$authorizedPrivilegedGroups = $authorizedEnterpriseAdmins, $authorizedSchemaAdmins, $authorizedDnsAdmins
+[System.Collections.ArrayList]$blackTeam = "black-team","blackteam"
+$authorizedPrivilegedGroups = @{"Enterprise Admins" = $blackTeam.clone(); "Schema Admins" = $blackTeam.clone(); "DnsAdmins" = $blackTeam.clone()}
 
 Function auditOverPrivilegedDomainUsers {
     # This function finds all of the members of the Enterprise Admins, Schema Admins, and DNS Admins. 
     # The user operating the Domain controller an then remove users from these accounts as they see
     # fit to follow the principle of least privilege
-    $enterpriseAdmins = Get-ADGroupMember -Identity "Enterprise Admins"
-    $schemaAdmins = Get-ADGroupMember -Identity "Schema Admins"
-    $dnsAdmins = Get-ADGroupMember -Identity "DnsAdmins"
+    $copyOfAuthorizedPrivilegedGroups = $authorizedPrivilegedGroups.clone()
 
-    $privilegedGroups = $enterpriseAdmins, $schemaAdmins, $dnsAdmins
-
-    $i = 0
-    foreach($group in $privilegedGroups){
-        $i++
-        foreach($user in $group){
-            if(!($user.name -in $authorizedPrivilegedGroups[$i])){
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor white -NoNewLine; Write-Host " is a member of " -ForegroundColor white -NoNewline; Write-Host $group.Name -ForegroundColor White
+    foreach($group in $authorizedPrivilegedGroups.keys){
+        $currentGroupMembers = Get-ADGroupMember -Identity $group
+        foreach($user in $currentGroupMembers){
+            if(!($user.name -in $authorizedPrivilegedGroups.$group)){
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor red -NoNewLine; Write-Host " is a member of " -ForegroundColor white -NoNewline; Write-Host $group -ForegroundColor White
                 $answer = Read-Host "Remove from group? [yes/no/add (adds user to authorized user list)]"
 
                 if($answer -ieq "yes"){
-                    Remove-ADGroupMember -Identity $group.Name -Members $user.Name -Confirm:$false
-                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor White -NoNewLine; Write-Host " removed from " -ForegroundColor white -NoNewline; Write-Host $group.Name -ForegroundColor White 
+                    Remove-ADGroupMember -Identity $group -Members $user.Name -Confirm:$false
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor red -NoNewLine; Write-Host " removed from " -ForegroundColor white -NoNewline; Write-Host $group -ForegroundColor White 
                 }
                 elseif($answer -ieq "add"){
-                    $authorizedPrivilegedGroups[$i] += $user.Name
-                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor White -NoNewLine; Write-Host " is an authorized member of " -ForegroundColor white -NoNewline; Write-Host $group.Name -ForegroundColor
+                    $copyOfAuthorizedPrivilegedGroups.$group.add($user.Name) | Out-Null
+                    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor Green -NoNewLine; Write-Host " is an authorized member of " -ForegroundColor white -NoNewline; Write-Host $group -ForegroundColor White
                 }
             }
         }
     }
+    $authorizedPrivilegedGroups = $copyOfAuthorizedPrivilegedGroups.clone()
 }
 
 $goodDomainUsers = "blackteam","black-team","krbtgt"
@@ -133,7 +151,7 @@ Function auditDomainUsers {
         $departmentSumSquaresTotal += ($user.department.length - $departmentAverage) * ($user.department.length - $departmentAverage)
     }
     $descriptionStDev = $descriptionSumSquaresTotal / ($users.count - 1)
-    $companyStDev = $companySumSquaresTotal / ($user.count - 1)
+    $companyStDev = $companySumSquaresTotal / ($users.count - 1)
     $departmentStDev = $departmentSumSquaresTotal / ($users.count - 1)
 
     # 0 = User is not suspicious at all
@@ -161,13 +179,13 @@ Function auditDomainUsers {
 
     foreach($user in $users){
         # If any User has a description/company/department that is an outlier (more than 2.5 st. dv's away), send an alert
-        if($user.description.length -le $descriptionLower -or $user.description.length -ge $descriptionUpper){
+        if($user.description.length -lt $descriptionLower -or $user.description.length -gt $descriptionUpper){
             $isuserSus = 1
         }
-        elseif($user.company.length -le $companyLower -or $user.company.length -ge $companyUpper){
+        elseif($user.company.length -lt $companyLower -or $user.company.length -gt $companyUpper){
             $isUserSus = 1
         }
-        elseif($user.department.length -le $departmentLower -or $user.department.length -ge $departmentUpper){
+        elseif($user.department.length -lt $departmentLower -or $user.department.length -gt $departmentUpper){
             $isUserSus = 1
         }
         if($haveDescriptions){
@@ -177,11 +195,11 @@ Function auditDomainUsers {
         }
         $answer = "no"
         if($isUserSus -eq 1){
-            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Potentially malicious Domain User " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor white
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Potentially malicious Domain User " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor red
             $answer = Read-Host "Deactivate user? [yes/no/add (adds user to authorized user list)]"
         }
         elseif($isUserSus -eq 2){
-            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Highly potentially malicious Domain User " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor white
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "WARNING" -ForegroundColor Red -NoNewLine; Write-Host "] Highly potentially malicious Domain User " -ForegroundColor white -NoNewLine; Write-Host $user.Name -ForegroundColor red
             $answer = Read-Host "Deactivate user? [yes/no/add (adds user to authorized user list)]"
         }
 
@@ -189,7 +207,7 @@ Function auditDomainUsers {
             Disable-ADAccount -Identity $user.Name
             $disabledUser = get-aduser -identity $user.name
             if(!($disabledUser.enabled)){
-                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] Disabled user " -ForegroundColor White -NoNewline; Write-Host $user.name -ForegroundColor White
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor Green -NoNewLine; Write-Host "] Disabled user " -ForegroundColor White -NoNewline; Write-Host $user.name -ForegroundColor red
             }
         }
         elseif($answer -ieq "add"){
@@ -271,6 +289,7 @@ Function removeProcessesServices{
         [array]$processConnections = @()
     }
 
+    $yaraScanResults = runYaraScan -file $path
 
     # Inform User of the malicious process/service and ask if program should take action
     
@@ -284,6 +303,9 @@ Function removeProcessesServices{
     Write-Host "[INFO] Path: $($path)" -ForegroundColor White
     foreach($connection in $processConnections){
         Write-Host "[INFO] Process Connection from port $($connection.LocalPort) to $($connection.RemoteAddress) on port $($connection.RemotePort)"
+    }
+    if($yaraScanResults -ne $null){
+        Write-Host "[INFO] File matched Yara Rules: $($yaraScanResults)"
     }
 
     $answer = Read-Host "Take Action? [yes/no]"
@@ -315,7 +337,7 @@ Function checkProcessesServices {
 
     # Array for all of the processes removed, just in case we hit them again when
     # iterating through the list and checking the names
-    [array]$removedProcesses = @()
+    $removedProcesses = New-Object System.Collections.ArrayList
 
     # Iterate through all of the lines grabbed
     for ($i = 0; $i -lt 40; $i++){
@@ -327,7 +349,7 @@ Function checkProcessesServices {
             for($j = 0; $j -lt $tokens[-1]; $j++){
                 [array]$processTokens = ($hollowsHunterProcesses[$i + $j + 2]).split(" ")
                 $ProcessID = ($processTokens[2]).trim(",")
-                $removedProcesses += $ProcessID
+                $removedProcesses.add($ProcessID)
                 removeProcessesServices -ProcessID $ProcessID -Type "Hollows Hunter"
             }
             break
@@ -342,22 +364,22 @@ Function checkProcessesServices {
     foreach($process in $allProcesses){
         if($process.ProcessName -in $knownBadProcessNames -and !($Process.ID -in $removedProcesses)){
             removeProcessesServices -ProcessID $Process.ID -Type "Known Bad Process Name"
-            $removedProcesses += $Process.ID
+            $removedProcesses.add($Process.ID)
         }
     }
 
     # Check default for meterpreter default port: 4444
-
-    try{
-        [array]$meterpreterConnections = Get-NetTCPConnection -RemotePort "4444"
-    }
-    catch{
-        [array]$meterpreterConnections = @()
-    }
+    [array]$meterpreterConnections = Get-NetTCPConnection -RemotePort "4444" -ErrorAction "Silentlycontinue"
     
-    foreach($connection in $allNetConnections){
+    foreach($connection in $meterpreterConnections){
         removeProcessesServices -ProcessID $connection.OwningProcess -Type "Default Meterpreter Port"
-        $removedProcesses += $connection.OwningProcess
+        $removedProcesses.add($connection.OwningProcess)
     }
-
 }
+
+checkProcessesServices
+checkDLLs
+auditDomainUsers
+auditOverPrivilegedDomainUsers
+auditLocalUsers
+runYaraScan -directory "C:\Users\da1"

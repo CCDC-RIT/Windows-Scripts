@@ -160,7 +160,6 @@ Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "tools\yara64.exe") -Destin
 $rules = Get-ChildItem $rootDir | Where-Object {$_.Name -eq "Windows" -or $_.Name -eq "Multi"} | Get-ChildItem | ForEach-Object {$_.FullName} | Out-String
 $rules = $($rules.Replace("`r`n", " ") -split " ")
 
-# Line below is broken right now, the $rules param is too large, so running yarac64.exe throws the error that the filename/extension is too long
 & (Join-Path -Path $rootDir -ChildPath "tools\yarac64.exe") $rules 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'
 Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "scripts\yara.bat") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
 
