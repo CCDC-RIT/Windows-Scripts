@@ -76,6 +76,38 @@ foreach ($feature in $features) {
     }
 }
 
+## Uninstalling unnecessary Languages (Java, Rust, Go, Python)
+
+# Uninstall everything for Java, Python, Go
+$badapps = Get-WmiObject -Class Win32_Product | Where-Object {$_.Name -match "Java" -or $_.Name -Match "Python" -or $_.Name -Match "Go"}
+
+if($badapps){
+    foreach($program in $badapps){
+        Write-Host "[INFO] Uninstalling $($program.Name)"
+        $result = $program.Uninstall()
+        if($result.ReturnValue -eq 0){
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Uninstalled $($program.Name)" -ForegroundColor white 
+        } else {
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Could not Uninstall $($program.Name). Error Code - $($result.ReturnValue)" -ForegroundColor white 
+        }
+    }
+}
+
+# Uninstall Rust
+# Get PATH Variables for cmd, powershell, and the system
+$cmdPATH = (Get-ItemProperty -Path 'HKCU:\Environment' -Name PATH).PATH
+$systemPATH = (Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name PATH).PATH
+$powershellPATH = $env:PATH
+$allPATHs = ($cmdPATH + ";" + $systemPATH + ";" + $powershellPATH).split(";")
+
+# Iterate though each. .cargo\bin is the PATH variable for rust, so if exists, use it to uninstall itself
+foreach($path in $allPATHs){
+    if($path.contains(".cargo\bin")){
+        # Rustup prints its own output, so theres no need to inform the user ouselves that we are doing it
+        & (Join-Path -Path $path -ChildPath "rustup.exe") self uninstall -y
+    }
+}
+
 # GPO stuff
 ## Resetting local group policy
 $gp = (Join-Path -Path $currentDir -ChildPath "results\gp")
