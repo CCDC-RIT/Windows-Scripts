@@ -167,7 +167,13 @@ Function Write-FirewallRules {
         Write-Output "=============================="
         $rules = $profile | Get-NetFirewallRule
         foreach ($rule in $rules) {
+            $portFilter = $rule | Get-NetFirewallPortFilter
+            $addressFilter = $rule | Get-NetFirewallAddressFilter
             Write-Output ($rule | Select-Object Name,DisplayName,Direction,Action,Enabled | Format-List | Out-String).Trim()
+            Write-Output ($portFilter | Select-Object Protocol,LocalPort | Format-List | Out-String).Trim()
+            Write-Output ($addressFilter | Select-Object LocalAddress | Format-List | Out-String).Trim()
+            Write-Output ($portFilter | Select-Object RemotePort | Format-List | Out-String).Trim()
+            Write-Output ($addressFilter | Select-Object RemoteAddress | Format-List | Out-String).Trim()
             Write-Output ""
         }
         Write-Output "----------- End $($profile.Name) -----------"
@@ -472,7 +478,7 @@ Function Invoke-ADSCheck {
     param (
         $directory
     )
-    $streamspath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\st\streams64.exe"
+    $streamspath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\stm\streams64.exe"
     $output = & $streamspath -accepteula -nobanner $directory | Out-String
     if ($output.Trim() -ne "No files with streams found.") {
         Write-Output $output
