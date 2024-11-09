@@ -95,7 +95,7 @@ if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') { 
     # Reset-KrbtgtKeyInteractive script
     (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/mubix/fd0c89ec021f70023695/raw/02e3f0df13aa86da41f1587ad798ad3c5e7b3711/Reset-KrbtgtKeyInteractive.ps1", (Join-Path -Path $ScriptPath -ChildPath "Reset-KrbtgtKeyInteractive.ps1"))
     # Pingcastle
-    (New-Object System.Net.WebClient).DownloadFile("https://github.com/vletoux/pingcastle/releases/download/3.1.0.1/PingCastle_3.1.0.1.zip", (Join-Path -Path $InputPath -ChildPath "pc.zip"))
+    (New-Object System.Net.WebClient).DownloadFile("https://github.com/netwrix/pingcastle/releases/download/3.3.0.1/PingCastle_3.3.0.1.zip", (Join-Path -Path $InputPath -ChildPath "pc.zip"))
     # Adalanche
     (New-Object System.Net.WebClient).DownloadFile("https://github.com/lkarlslund/Adalanche/releases/download/v2024.1.11/adalanche-windows-x64-v2024.1.11.exe", (Join-Path -Path $ToolsPath -ChildPath "adalanche.exe"))
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DC tools downloaded" -ForegroundColor white
@@ -160,7 +160,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 & $redistpath /install /passive /norestart
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] C++ redist installed" -ForegroundColor white
 # hollows hunter
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/hasherezade/hollows_hunter/releases/latest/download/hollows_hunter64.zip", (Join-Path -Path $InputPath -ChildPath "hh64.zip"))
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip", (Join-Path -Path $InputPath -ChildPath "hh64.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hollows Hunter downloaded" -ForegroundColor white
 # Wazuh agent
 (New-Object System.Net.WebClient).DownloadFile("https://packages.wazuh.com/4.x/windows/wazuh-agent-4.7.2-1.msi", (Join-Path -Path $SetupPath -ChildPath "wazuhagent.msi"))
@@ -171,7 +171,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # Windows Firewall Control + .NET 4.8
 $net48path = Join-Path -Path $SetupPath -ChildPath "net_installer.exe"
 (New-Object System.Net.WebClient).DownloadFile("https://www.binisoft.org/download/wfc6setup.exe", (Join-Path -Path $SetupPath -ChildPath "wfcsetup.exe"))
-(New-Object System.Net.WebClient).DownloadFile("https://go.microsoft.com/fwlink/?LinkId=2085155", $net48path)
+(New-Object System.Net.WebClient).DownloadFile("https://go.microsoft.com/fwlink/?LinkId=2088631", $net48path)
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Windows Firewall Control and .NET 4.8 installers downloaded" -ForegroundColor white
 ## silently installing .NET 4.8 library
 & $net48path /passive /norestart
@@ -192,15 +192,15 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/Strings.zip", (Join-Path -Path $InputPath -ChildPath "str.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SysInternals tools downloaded" -ForegroundColor white
 # yara
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/VirusTotal/yara/releases/download/v4.5.0/yara-master-2251-win64.zip", (Join-Path -Path $InputPath -ChildPath "yara.zip"))
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip", (Join-Path -Path $InputPath -ChildPath "yara.zip"))
 ## yara rules
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/YaraRules/main/Windows.zip", (Join-Path -Path $InputPath -ChildPath "Windows.zip"))
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/YaraRules/main/Multi.zip", (Join-Path -Path $InputPath -ChildPath "Multi.zip"))
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/YaraRules/raw/refs/heads/main/Windows.zip", (Join-Path -Path $InputPath -ChildPath "Windows.zip"))
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/YaraRules/raw/refs/heads/main/Multi.zip", (Join-Path -Path $InputPath -ChildPath "Multi.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules downloaded" -ForegroundColor white
 
 # Notepad++
 $npppath = Join-Path -Path $SetupPath -ChildPath "notepadpp_installer.exe"
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6/npp.8.6.Installer.x64.exe", $npppath)
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.7.1/npp.8.7.1.Installer.x64.exe", $npppath)
 & $npppath /S
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Notepad++ downloaded and installed" -ForegroundColor white
 
