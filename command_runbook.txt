@@ -1,8 +1,11 @@
 # Getting all AD users except self, krbtgt, whiteteam users
-Get-ADUser -Filter "SamAccountName -notlike '$Env:UserName' -and SamAccountName -notlike 'krbtgt' -and SamAccountName -notlike '' -and SamAccountName -notlike ''" -Properties SamAccountName | Select-Object -ExpandProperty SamAccountName | Out-File -FilePath "users.txt"
+Get-ADUser -Filter "SamAccountName -notlike '$Env:UserName' -and SamAccountName -notlike 'krbtgt' -and SamAccountName -notlike 'black-team' -and SamAccountName -notlike 'blackteam' -and SamAccountName -notlike 'white-team' -and SamAccountName -notlike 'whiteteam' -and SamAccountName -notlike 'cucumber' -and SamAccountName -notlike '<domain_user_here>'" -Properties SamAccountName | Select-Object -ExpandProperty SamAccountName | Out-File -FilePath "users.txt"
 
 # Getting all local users except self, whiteteam users
 Get-CimInstance -ClassName Win32_UserAccount -Filter "LocalAccount='True'" | Where-Object { $_.Name -notlike $Env:UserName -and $_.Name -notlike '' -and $_.Name -notlike '' } | Select-Object -ExpandProperty Name | Out-File -FilePath "users.txt"
+
+# Firewall Script
+.\firewall.ps1 -EnableLockoutPrevention [$true | $false] -ExtraRules [<name>io,<name1>i,<name2>o] -scoringIP [<name>,x.x.x.x] -scoringIP2 [<name1>,x.x.x.x] -ansibleIP [x.x.x.x] -wazuhIP [x.x.x.x] -rdpIP [x.x.x.x] -domainSubnet [x.x.x.x\x] -dcIP [x.x.x.x] -caIP [x.x.x.x] 
 
 # Recon of listening and active connections:
 while ($true){Get-NetTCPConnection -State Listen,Established -ErrorAction "SilentlyContinue" | Sort-Object state,localport | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,@{'Name'='CommandLine';'Expression'={(Get-CimInstance -Class Win32_Process -Filter "ProcessId = $($_.OwningProcess)").CommandLine}} | Format-Table -AutoSize; sleep 10; clear}
