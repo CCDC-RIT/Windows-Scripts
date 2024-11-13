@@ -43,7 +43,9 @@ $ResultsPath = Join-Path -Path $ScriptPath -ChildPath "results"
 
 New-Item -Path $ResultsPath -Name "artifacts" -ItemType "directory" | Out-Null
 New-Item -Path $ToolsPath -Name "sys" -ItemType "directory" | Out-Null
+New-item -Path $ToolsPath -Name "yara" -ItemType "directory" | Out-Null
 $SysPath = Join-Path -Path $ToolsPath -ChildPath "sys"
+$yaraPath = Join-Path -Path $ToolsPath -ChildPath "yara"
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Directories created" -ForegroundColor white
 
@@ -232,9 +234,9 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "cs.zip") -DestinationPath $ToolsPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Chainsaw extracted" -ForegroundColor white
 
-Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "yara.zip") -DestinationPath $ToolsPath
-Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Windows.zip") -DestinationPath $InputPath
-Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Multi.zip") -DestinationPath $InputPath
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "yara.zip") -DestinationPath $yaraPath
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Windows.zip") -DestinationPath $yaraPath
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Multi.zip") -DestinationPath $yaraPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules extracted" -ForegroundColor white
 
 foreach($file in (Get-childItem -Path $InputPath)){
@@ -243,4 +245,3 @@ foreach($file in (Get-childItem -Path $InputPath)){
     }
 }
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Cleaned up zipped Files" -ForegroundColor white
-#Chandi Fortnite

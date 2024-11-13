@@ -156,11 +156,12 @@ if(!(Test-Path 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rule
     mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\'
 }
 
-Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "tools\yara64.exe") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
-$rules = Get-ChildItem $rootDir | Where-Object {$_.Name -eq "Windows" -or $_.Name -eq "Multi"} | Get-ChildItem | ForEach-Object {$_.FullName} | Out-String
+$yaraDir = Join-Path -Path $rootDir -ChildPath "\tools\yara"
+Copy-Item -Path (Join-Path -Path $yaraDir -ChildPath "yara64.exe") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
+$rules = Get-ChildItem $yaraDir | Where-Object {$_.Name -eq "Windows" -or $_.Name -eq "Multi"} | Get-ChildItem | ForEach-Object {$_.FullName} | Out-String
 $rules = $($rules.Replace("`r`n", " ") -split " ")
 
-& (Join-Path -Path $rootDir -ChildPath "tools\yarac64.exe") $rules 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'
+& (Join-Path -Path $yaraDir -ChildPath "yarac64.exe") $rules 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'
 Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "scripts\yara.bat") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
 
 # Start the wazuh agent
