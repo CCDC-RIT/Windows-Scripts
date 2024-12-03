@@ -13,21 +13,36 @@
 │   │   │   └── (old GPO and sec template)
 │   │   └── (outputs of scripts here)
 │   ├── audit.ps1
+|   ├── backup.ps1
+|   ├── command_runbook.txt
 │   ├── firewall.ps1
 │   ├── Get-InjectedThread.ps1
 │   ├── inventory.ps1
 │   ├── logging.ps1
-│   ├── sbaseline.ps1
-│   └── usermgmt.ps1
+|   ├── PrivescCheck.ps1
+│   ├── secure.ps1
+│   ├── soaragent.ps1
+│   ├── usermgmt.ps1
+│   └── yara.bat
 ├── installers
+│   ├── chromeinstall.exe
 │   ├── MBSetup.exe
+│   ├── netinstaller.exe
+│   ├── notepadpp_installer.exe
+│   ├── vc_redist.64.exe
 │   ├── wazuhagent.msi
 │   ├── wfcsetup.exe
 │   └── wsinstall.exe
-├── tools 
-│   ├── PatchMyPC.exe
+├── tools
+│   ├── chainsaw
+│   │   └── chainsaw_x86_64-pc-windows-msvc.exe
+│   ├── pc
+│   │   └── PingCastle.exe
 │   ├── LGPO_30
 │   │   └── LGPO.exe
+│   ├── adalanche.exe
+│   ├── hollows_hunter.exe
+│   ├── floss.exe
 │   └── sys
 │       ├── ar
 │       │   └── (autoruns)
@@ -41,16 +56,11 @@
 │       │   └── (sigcheck)
 │       ├── sm
 │       │   └── (sysmon)
-│       ├── st
+│       ├── stm
 │       │   └── (streams)
+│       ├── str
+│       │   └── (strings)
 │       └── tv
 │           └── (tcpview)
-│        
-├── lg.zip (LGPO)
-├── ar.zip
-├── dll.zip
-├── pe.zip
-├── pm.zip
-├── sc.zip
-└── tv.zip
-```
+└── zipped
+    └── All zipped versions of files
