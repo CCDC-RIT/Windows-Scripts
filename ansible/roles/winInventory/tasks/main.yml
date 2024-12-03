@@ -1,6 +1,6 @@
 - name: Run Script
   win_shell: |
-    downloads.ps1
+    inventory.ps1
   args:
     chdir: "{{ scriptsPath }}//scripts"
 
