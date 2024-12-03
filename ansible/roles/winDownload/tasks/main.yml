@@ -1,0 +1,9 @@
+- name: Download Downloader
+  win_get_url:
+  url: "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/refs/heads/master/downloads.ps1"
+  dest: "{{ scriptsPath }}\\downloads.ps1"
+
+- name: Run Script
+  win_shell: |
+    downloads.ps1 -Path {{ scriptsPath }}
+

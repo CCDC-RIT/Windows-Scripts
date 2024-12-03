@@ -1,0 +1,4 @@
+- name: Run Script
+  win_shell: |
+    downloads.ps1
+
