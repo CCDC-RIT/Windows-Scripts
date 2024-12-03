@@ -7,6 +7,9 @@ Get-CimInstance -ClassName Win32_UserAccount -Filter "LocalAccount='True'" | Whe
 # Firewall Script
 .\firewall.ps1 -EnableLockoutPrevention [$true | $false] -ExtraRules [<name>io,<name1>i,<name2>o] -scoringIP [<name>,x.x.x.x] -scoringIP2 [<name1>,x.x.x.x] -ansibleIP [x.x.x.x] -wazuhIP [x.x.x.x] -rdpIP [x.x.x.x] -domainSubnet [x.x.x.x\x] -dcIP [x.x.x.x] -caIP [x.x.x.x] 
 
+# Remove TacticalRMM and Mesh Agent
+Stop-Service TacticalRMM; Stop-Service 'Mesh Agent'; Remove-Item 'C:\Program Files\Mesh Agent\' -Recurse; Remove-Item "C:\Program Files\TacticalAgent\" -Recurse; Remove-Item 'C:\Program Files\TacticalRMM\' -Recurse
+
 # Recon of listening and active connections:
 while ($true){Get-NetTCPConnection -State Listen,Established -ErrorAction "SilentlyContinue" | Sort-Object state,localport | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,@{'Name'='CommandLine';'Expression'={(Get-CimInstance -Class Win32_Process -Filter "ProcessId = $($_.OwningProcess)").CommandLine}} | Format-Table -AutoSize; sleep 10; clear}
 
