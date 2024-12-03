@@ -1,0 +1,56 @@
+---
+- name: WIN : Download
+  hosts: windows
+  become: yes
+  roles:
+    - winDownload
+  tags:
+    - windows
+    - standard
+    - download
+    - never
+
+- name: WIN : Backup
+  hosts: windows
+  become: yes
+  roles:
+    - winBackup
+  tags:
+    - windows
+    - standard
+    - backup
+    - never
+
+- name: WIN : Firewall
+  hosts: windows
+  become: yes
+  roles:
+    - winFirewall
+  tags:
+    - windows
+    - standard
+    - firewall
+    - never
+
+- name: WIN : inventory
+  hosts: windows
+  become: yes
+  roles:
+    - winInventory
+  tags:
+    - windows
+    - standard
+    - inventory
+    - never
+
+- name: WIN : Audit
+  hosts: windows
+  become: yes
+  roles:
+    - winAudit
+  tags:
+    - windows
+    - standard
+    - audit
+    - never
+
