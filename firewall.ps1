@@ -157,7 +157,7 @@ $protocolArray = @(
     [pscustomobject]@{Service="epmap";Protocol="tcp";Ports="rpc-epmap"}
     [pscustomobject]@{Service="w32time";Protocol="udp";Ports="123"}
     [pscustomobject]@{Service="dns";Protocol="udp";Ports="53"}
-
+    [pscustomobject]@{Service="ntp";Protocol="udp";Ports="123"}
 )
 if($extrarules.count -ne 0){
     foreach($rule in $extrarules){
