@@ -108,6 +108,11 @@ foreach($path in $allPATHs){
     }
 }
 
+# Uninstall and Reinstall Defender
+Uninstall-WindowsFeature Windows-Defender
+Install-WindowsFeature Windows-Defender
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Uninstalled and Reinstalled Defender" -ForegroundColor white 
+
 # GPO stuff
 ## Resetting local group policy
 $gp = (Join-Path -Path $currentDir -ChildPath "results\gp")
