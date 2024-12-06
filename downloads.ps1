@@ -9,7 +9,8 @@
 # *-WindowsOptionalFeature - Featuers under Control Panel > "Turn Windows features on or off" (apparently this is compatible with Windows Server)
 
 param (
-    [string]$Path = $(throw "-Path is required.")
+    [string]$Path = $(throw "-Path is required."),
+    [bool]$ansibleInstall = $false
 )
 
 # somehow this block verifies if the path is legit
@@ -182,8 +183,12 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # Wireshark
 # (for now) TLS 1.2 link: https://wireshark.marwan.ma/download/win64/Wireshark-win64-latest.exe
 (New-Object System.Net.WebClient).DownloadFile("https://1.na.dl.wireshark.org/win64/Wireshark-latest-x64.exe", (Join-Path -Path $SetupPath -ChildPath "wsinstall.exe"))
-& (Join-Path -Path $SetupPath -ChildPath "wsinstall.exe")
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wireshark downloaded and installed" -ForegroundColor white
+if(!($ansibleInstall)){
+    & (Join-Path -Path $SetupPath -ChildPath "wsinstall.exe")
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wireshark downloaded and installed" -ForegroundColor white
+} else {
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wireshark downloaded" -ForegroundColor white
+}
 
 # Sysinternals
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/Autoruns.zip", (Join-Path -Path $InputPath -ChildPath "ar.zip"))
