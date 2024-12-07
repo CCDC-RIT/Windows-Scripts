@@ -1,12 +1,12 @@
 - name: make scripts dir
   win_file:
-    path: "{{ scripts_path }}""
+    path: "{{ scripts_path }}"
     state: directory
 
 - name: Download Downloader
   win_get_url:
-  url: "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/refs/heads/master/downloads.ps1"
-  dest: "{{ scripts_path }}\\downloads.ps1"
+    url: "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/refs/heads/master/downloads.ps1"
+    dest: "{{ scripts_path }}\\downloads.ps1"
 
 - name: Run Script
   win_shell: |
