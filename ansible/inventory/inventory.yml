@@ -4,15 +4,11 @@ all:
     windows:
       vars:
         ansible_connection: winrm
-        ansible_winrm_cert_validation: ignore
+        ansible_winrm_server_cert_validation: ignore
         ansible_winrm_port: 5985
-        ansible_winrm_auth: ntlm
-        #ansible_winrm_credssp_auth_mechanism: ntlm
-        #ansible_become_method: runas
+        ansible_winrm_transport: ntlm
         ansible_user: "USERNAME"
         ansible_password: "DEFAULT_PASSWORD"
-        #ansible_become_user: "USERNAME"
-        #ansible_become_password: "DEFAULT_PASSWORD"
         scripts_path: "C:/ProgramData/EpicGames/Fortnite"
       children:
         win10:

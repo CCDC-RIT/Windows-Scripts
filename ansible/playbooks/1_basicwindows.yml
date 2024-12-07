@@ -1,7 +1,6 @@
 ---
 - name: "WIN - Download"
   hosts: windows
-  become: yes
   roles:
     - winDownload
   tags:
@@ -12,7 +11,6 @@
 
 - name: "WIN - Backup"
   hosts: windows
-  become: yes
   roles:
     - winBackup
   tags:
@@ -23,7 +21,6 @@
 
 - name: "WIN - Simple Firewall"
   hosts: windows
-  become: yes
   roles:
     - winFirewallSimple
   tags:
@@ -34,7 +31,6 @@
 
 - name: "WIN - Inventory"
   hosts: windows
-  become: yes
   roles:
     - winInventory
   tags:
@@ -45,7 +41,6 @@
 
 - name: "WIN - Audit"
   hosts: windows
-  become: yes
   roles:
     - winAudit
   tags:
@@ -53,4 +48,3 @@
     - standard
     - audit
     - never
-
