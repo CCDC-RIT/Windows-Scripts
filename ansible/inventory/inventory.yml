@@ -13,6 +13,8 @@ all:
       children:
         win10:
           vars:
+            ansible_user: "kingbob"
+            ansible_password: "Knock7FrostVerde#"
             scored_services: "a"
           hosts:
             172.31.23.5:
