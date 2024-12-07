@@ -1,43 +1,32 @@
 ---
 all:
   children:
-    bsd:
-      vars:
-        ansible_user: "USERNAME"
-        ansible_password: "DEFAULT_PASSWORD"
-        ansible_become_password: "DEFAULT_PASSWORD"
-      children:
-        example_host_name:
-          vars:
-            ansible_user: "delete_me"
-            scored_services: "example"
-          hosts:
-            x.x.x.x:
-    linux:
-      vars:
-        example_host_name:
-          vars:
-            ansible_user: "delete_me"
-            scored_services: "example"
-          hosts:
-            x.x.x.x:
     windows:
       vars:
-        #ansible_connection: winrm
-        #ansible_winrm_cert_validation: ignore
-        #ansible_winrm_port: 5986 #TLS
-        #ansible_winrm_auth: ntlm
+        ansible_connection: winrm
+        ansible_winrm_cert_validation: ignore
+        ansible_winrm_port: 5985
+        ansible_winrm_auth: ntlm
         #ansible_winrm_credssp_auth_mechanism: ntlm
         #ansible_become_method: runas
         ansible_user: "USERNAME"
         ansible_password: "DEFAULT_PASSWORD"
-        ansible_become_user: "USERNAME"
-        ansible_become_password: "DEFAULT_PASSWORD"
+        #ansible_become_user: "USERNAME"
+        #ansible_become_password: "DEFAULT_PASSWORD"
         scripts_path: "C:/ProgramData/EpicGames/Fortnite"
       children:
-        example_host_name:
+        win10:
           vars:
-            ansible_user: "delete_me"
-            scored_services: "example"
+            scored_services: "a"
+          hosts:
+            x.x.x.x:
+        dc:
+          vars:
+            scored_services: "a"
+          hosts:
+            x.x.x.x:
+        ntp:
+          vars:
+            scored_services: "ntpio"
           hosts:
             x.x.x.x:

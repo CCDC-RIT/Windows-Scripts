@@ -25,7 +25,7 @@
   hosts: windows
   become: yes
   roles:
-    - winFirewall
+    - winFirewallSimple
   tags:
     - windows
     - standard

@@ -1,7 +1,7 @@
 - name: Run Script
   win_shell: |
-    backups.ps1
+    ./backup.ps1
   args:
-    chdir: "{{ scriptsPath }}//scripts"
+    chdir: "{{ scripts_path }}//scripts"
   
 
