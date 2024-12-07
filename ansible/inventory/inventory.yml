@@ -15,14 +15,14 @@ all:
           vars:
             scored_services: "a"
           hosts:
-            x.x.x.x:
+            172.31.23.5:
         dc:
           vars:
-            scored_services: "a"
+            scored_services: "dnsio"
           hosts:
-            x.x.x.x:
+            172.20.242.200:
         ntp:
           vars:
-            scored_services: "ntpio"
+            scored_services: "dnsio"
           hosts:
-            x.x.x.x:
+            172.20.240.10:
