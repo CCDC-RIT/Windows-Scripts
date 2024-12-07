@@ -1,6 +1,6 @@
 - name: Run Script
   win_shell: |
-    ./firewall.ps1 -ExtraRules {{ scored_services }} 
+    ./firewall.ps1 -ExtraRules "{{ scored_services }}"" 
   args:
     chdir: "{{ scripts_path }}//scripts"
 

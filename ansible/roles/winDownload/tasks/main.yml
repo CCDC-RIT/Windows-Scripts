@@ -1,6 +1,6 @@
 - name: make scripts dir
   win_file:
-    path: {{ scripts_path }}
+    path: "{{ scripts_path }}""
     state: directory
 
 - name: Download Downloader
