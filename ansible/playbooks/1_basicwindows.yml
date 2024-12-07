@@ -1,5 +1,5 @@
 ---
-- name: WIN : Download
+- name: "WIN - Download"
   hosts: windows
   become: yes
   roles:
@@ -10,7 +10,7 @@
     - download
     - never
 
-- name: WIN : Backup
+- name: "WIN - Backup"
   hosts: windows
   become: yes
   roles:
@@ -21,7 +21,7 @@
     - backup
     - never
 
-- name: WIN : Firewall
+- name: "WIN - Simple Firewall"
   hosts: windows
   become: yes
   roles:
@@ -32,7 +32,7 @@
     - firewall
     - never
 
-- name: WIN : inventory
+- name: "WIN - Inventory"
   hosts: windows
   become: yes
   roles:
@@ -43,7 +43,7 @@
     - inventory
     - never
 
-- name: WIN : Audit
+- name: "WIN - Audit"
   hosts: windows
   become: yes
   roles:
