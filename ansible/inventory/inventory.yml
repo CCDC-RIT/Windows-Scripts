@@ -7,8 +7,8 @@ all:
         ansible_winrm_server_cert_validation: ignore
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
-        ansible_user: "USERNAME"
-        ansible_password: "DEFAULT_PASSWORD"
+        ansible_user: "ALLSAFE\\Administrator"
+        ansible_password: "BoxedSteer3Cliff&"
         scripts_path: "C:/ProgramData/EpicGames/Fortnite"
       children:
         win10:
