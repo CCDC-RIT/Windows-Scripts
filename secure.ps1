@@ -1258,25 +1258,96 @@ if ($DC) {
 
 # IIS security
 if ($IIS) {
-    # # Set application privileges to minimum
-    # Foreach($item in (Get-ChildItem IIS:\AppPools)) { $tempPath="IIS:\AppPools\"; $tempPath+=$item.name; Set-ItemProperty -Path $tempPath -name processModel.identityType -value 4}
+    # Load the WebAdministration module for IIS
+    Import-Module WebAdministration
+    
+    # Set application privileges to minimum for application pools
+    foreach ($item in (Get-ChildItem IIS:\AppPools)) { 
+        $tempPath = "IIS:\AppPools\" + $item.Name
+        Set-ItemProperty -Path $tempPath -Name processModel.identityType -Value 4
+    }
 
-    # # Disable directory browsing
-    # ForEach ($site in (Get-ChildItem IIS:\Sites)) {
-    #     C:\Windows\System32\inetsrv\appcmd.exe set config $site.name -section:system.webServer/directoryBrowse /enabled:"False"
-    # } 
+    # Disable directory browsing for all sites using appcmd
+    foreach ($site in (Get-ChildItem IIS:\Sites)) {
+        $siteName = $site.Name
+        C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/directoryBrowse /enabled:"False"
+    }
 
-    # Set-WebConfiguration //System.WebServer/Security/Authentication/anonymousAuthentication -metadata overrideMode -value Allow -PSPath IIS:/
-    # # Disable Anonymous Authenitcation
-    # Foreach($item in (Get-ChildItem IIS:\Sites)) { $tempPath="IIS:\Sites\"; $tempPath+=$item.name; Set-WebConfiguration -filter /system.webServer/security/authentication/anonymousAuthentication $tempPath -value 0}
-    # #Deny Powershell to Write the anonymousAuthentication value
-    # Set-WebConfiguration //System.WebServer/Security/Authentication/anonymousAuthentication -metadata overrideMode -value Deny-PSPath IIS:/
+    # Enable logging for all sites using appcmd
+    foreach ($site in (Get-ChildItem IIS:\Sites)) {
+        $siteName = $site.Name
+        C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/httpLogging /dontLog:"True" /commit:apphost
+        C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/httpLogging /selectiveLogging:"LogAll" /commit:apphost
+    }
 
-    # # reg add "HKLM\Software\Microsoft\WebManagement\Server" /v EnableRemoteManagement /t REG_DWORD /d 1 /f | Out-Null
-    # # net start WMSVC | Out-Null
-    # # sc.exe config WMSVC start= auto | Out-Null
-    # Write-Host "[INFO] Most of IIS security set"
+    # Disable anonymous authentication for all sites using Set-WebConfiguration
+    foreach ($site in (Get-ChildItem IIS:\Sites)) { 
+        $tempPath = "IIS:\Sites\" + $site.Name
+        
+        # Disable anonymous authentication for the site
+        Set-WebConfiguration -Filter "/system.webServer/security/authentication/anonymousAuthentication" -PSPath $tempPath -Value 0
+    }
+
+    # Prevent overrideMode for authentication settings for all sites (to deny any child overrides)
+    foreach ($site in (Get-ChildItem IIS:\Sites)) {
+        $tempPath = "IIS:\Sites\" + $site.Name
+        # Set overrideMode for authentication settings at the site level
+        Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication" -Name "overrideMode" -Value "Deny" -PSPath $tempPath
+    }
+
+    # Set HTTP Errors statusCode to 405 for all sites
+    foreach ($site in (Get-ChildItem IIS:\Sites)) {
+        $siteName = $site.Name
+        # Ensure valid statusCode configuration for HTTP Errors
+        Set-WebConfiguration -Filter "/system.webServer/httpErrors" -PSPath "IIS:\Sites\$siteName" -Value @{errorMode="Custom"; existingResponse="Replace"; statusCode=405}
+    }
+
+    # Apply request filtering to block potentially dangerous file extensions
+    foreach ($site in (Get-ChildItem IIS:\Sites)) {
+        $siteName = $site.Name
+        C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"fileExtensions.[fileExtension='exe',allowed='False']"
+        C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"fileExtensions.[fileExtension='bat',allowed='False']"
+        C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"fileExtensions.[fileExtension='ps1',allowed='False']"
+    }
+
+    # Apply request filtering to block HTTP TRACE and OPTIONS
+    foreach ($site in (Get-ChildItem IIS:\Sites)) {
+        $siteName = $site.Name
+        C:\Windows\System32\inetsrv\appcmd.exe set config $sitename -section:system.webServer/security/requestFiltering /+"verbs.[verb='OPTIONS',allowed='False']"
+        C:\Windows\System32\inetsrv\appcmd.exe set config $sitename -section:system.webServer/security/requestFiltering /+"verbs.[verb='TRACE',allowed='False']"
+    }
+
+    # Enable Logging for IIS Web Management
+    reg add "HKLM\Software\Microsoft\WebManagement\Server" /v EnableLogging /t REG_DWORD /d 1 /f | Out-Null
+    Write-Host "Enabled IIS Web Management Logging."
+
+    # Enable Remote Management for IIS
+    reg add "HKLM\Software\Microsoft\WebManagement\Server" /v EnableRemoteManagement /t REG_DWORD /d 1 /f | Out-Null
+    Write-Host "Enabled IIS Remote Management."
+
+    # Enable IIS Admin Logging to ABO Mapper Log
+    reg add "HKLM\System\CurrentControlSet\Services\IISADMIN\Parameters" /v EnableABOMapperLog /t REG_DWORD /d 1 /f | Out-Null
+    Write-Host "Enabled IIS Admin Logging to ABO Mapper Log."
+
+    # Disable TRACE HTTP Method (Security Measure)
+    reg add "HKLM\System\CurrentControlSet\Services\W3SVC\Parameters" /v EnableTraceMethod /t REG_DWORD /d 1 /f | Out-Null
+    Write-Host "Disabled TRACE HTTP Method."
+
+    # Disable OPTIONS HTTP Method
+    reg add "HKLM\System\CurrentControlSet\Services\W3SVC\Parameters" /v EnableOptionsMethod /t REG_DWORD /d 1 /f | Out-Null
+    Write-Host "Disabled OPTIONS HTTP Method."
+
+    # Require Windows Credentials for Remote IIS Management
+    reg add "HKLM\SOFTWARE\Microsoft\WebManagement\Server" /v RequiresWindowsCredentials /t REG_DWORD /d 1 /f | Out-Null
+    Write-Host "Enforced Windows Credentials for IIS Remote Management."
+
+    # Restart IIS services to apply changes
+    Write-Host "Restarting IIS services to apply changes..."
+    iisreset
+
+    Write-Host "[INFO] IIS Hardening Configurations Applied Successfully."
 }
+
 
 # CA security?
 if ($CA) {
