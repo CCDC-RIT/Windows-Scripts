@@ -1,3 +1,8 @@
+param(
+    [Parameter(Mandatory=$false)]
+    [Array]$extraDirs
+)
+
 [string]$path = ($MyInvocation.MyCommand.Path).substring(0,($MyInvocation.MyCommand.Path).indexOf("scripts\backup.ps1"))
 
 if (!(Test-Path -Path (Join-Path $path "backup"))) {
@@ -31,6 +36,13 @@ if (Get-Service -Name CertSvc 2>$null) {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] CA certs, templates, and settings backed up" -ForegroundColor white
 }
 
+# Notes for xcopy
+# /H - Include Hidden Files
+# /I - Creates the Destination Directory if it doesn't exist (Kind of)
+# /K - Retains read-only perms on read-only files
+# /S - Copy Subdirectories
+# /X - Copy File Audit settings and file ACLs
+
 # Wazuh agent backup 
 xcopy "C:\Program Files (x86)\ossec-agent\client.keys" $backupPath /H /I /K /S /X | Out-Null
 xcopy "C:\Program Files (x86)\ossec-agent\ossec.conf" $backupPath /H /I /K /S /X | Out-Null
@@ -41,4 +53,19 @@ xcopy "C:\Program Files (x86)\ossec-agent\ossec.log" $backupPath /H /I /K /S /X 
 xcopy "C:\Program Files (x86)\ossec-agent\logs\*"  $backupPath\logs\ /H /I /K /S /X | Out-Null
 xcopy "C:\Program Files (x86)\ossec-agent\rids\*"  $backupPath\rids\ /H /I /K /S /X | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh agent files backed up" -ForegroundColor white
-#Chandi Fortnite
+
+# Back up Extra Directories
+foreach ($dir in $extraDirs){
+    # xcopy doesn't work with a triling '\'
+    if ($dir[$dir.Length - 1] -eq "\"){
+        $dir = $dir.substring(0, $dir.Length - 1)
+    }
+    # Get the Last directory, because that is going to be the name of the directory within the backup
+    $dirs = $dir -split "\\"
+    $lastDir = $dirs[$dirs.Length - 1]
+    
+    # Copy over the directory
+    xcopy $dir (Join-Path -Path $backupPath -ChildPath $lastDir) /H /I /K /S /X | Out-Null
+
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] $($lastDir) folder backed up" -ForegroundColor white
+}
