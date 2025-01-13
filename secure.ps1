@@ -1360,11 +1360,6 @@ if ($IIS) {
             # Disables anonymous authentication for FTP
             Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/security/authentication/anonymousAuthentication" -name "enabled" -value "false"
 
-            # Enables Requirements of SSL Connections
-            Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/security/ssl" -name "ControlChannelPolicy" -value "SslRequire"
-            Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/security/ssl" -name "DataChannelPolicy" -value "SslRequire"
-            Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/security/ssl" -name "ssl128" -value "True"
-
             # Limits the maximum number of simultaneous FTP connections
             Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/connections" -name "maxConnections" -value 5
             
