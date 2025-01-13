@@ -36,6 +36,12 @@ if (Get-Service -Name CertSvc 2>$null) {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] CA certs, templates, and settings backed up" -ForegroundColor white
 }
 
+if (Get-Service -Name WinRM 2>$null) {
+    $winrmConfigBackupPath = Join-Path -Path $backupPath -childPath "winrm_config_backup.txt"
+    winrm get winrm/config > $winrmConfigBackupPath
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM configuration backed up" -ForegroundColor white
+}
+
 # Notes for xcopy
 # /H - Include Hidden Files
 # /I - Creates the Destination Directory if it doesn't exist (Kind of)
