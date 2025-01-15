@@ -21,7 +21,9 @@ param(
     [Parameter(Mandatory=$false)]
     [array]$scoringIP2 = @("protocol","0.0.0.0"),
     [Parameter(Mandatory=$false)]
-    [bool]$runByAnsible = $false
+    [bool]$runByAnsible = $false,
+    [Parameter(Mandatory=$false)]
+    [bool]$randomExtraPorts
 )
 
 Function handleErrors {
@@ -278,6 +280,20 @@ if($extrarules.count -ne 0){
                     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] " -ForegroundColor White -NoNewLine; Write-Host $service.ToUpper() -NoNewLine; Write-Host " " -NoNewLine; Write-Host $direction -NoNewline; Write-Host "bound firewall rules set"
                 }
             }
+        }
+    }
+}
+
+# Any extra ports that we don't have as optional parameters, just in case
+if($randomExtraPorts -ne 0){
+    foreach($port in $randomExtraPorts){
+        $errorChecking = netsh adv f a r n="Random-Extra-Port-TCP-IN-$($port)" dir=in act=allow prof=any prot=tcp localport=($port)
+        $errorChecking += netsh adv f a r n="Random-Extra-Port-TCP-OUT-$($port)" dir=out act=allow prof=any prot=tcp remoteport=($port)
+        $errorChecking += netsh adv f a r n="Random-Extra-Port-UDP-IN-$($port)" dir=in act=allow prof=any prot=udp localport=($port)
+        $errorChecking += netsh adv f a r n="Random-Extra-Port-UDP-OUT-$($port)" dir=out act=allow prof=any prot=udp remoteport=($port)
+        
+        if(handleErrors -errorString $errorChecking -numRules 4 -ruleType "Random Extra Rule (Port $($port))"){
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Port $($port) firewall rules set" -ForegroundColor White
         }
     }
 }
