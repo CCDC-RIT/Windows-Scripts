@@ -82,14 +82,6 @@ if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType
     if(handleErrors -errorString $errorChecking -numRules 5 -ruleType "Domain Controller"){
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Domain Controller firewall rules set" -ForegroundColor white
     }
-
-    ## Outbound rules (for cross-forest trust w/RHEL IdM)
-    ## TODO: test
-    $errorChecking = netsh adv f a r n=Domain-Trust-TCP-Out dir=out act=allow prof=any prot=tcp remoteport=88,135,138,139,389,445,464,3268
-    $errorChecking += netsh adv f a r n=Domain-Trust-UDP-Out dir=out act=allow prof=any prot=udp remoteport=88,138,139,389,445,464
-    if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "Cross-Forest Trust"){
-        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Cross-forest trust firewall rules set" -ForegroundColor white
-    }
 } else {
     ## If not a DC it's probably domain-joined so add client rules
     $errorChecking = netsh adv f a r n=DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteip=$dcIP remoteport=88,135,389,445,636,3268
