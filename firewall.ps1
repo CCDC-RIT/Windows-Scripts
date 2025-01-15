@@ -23,7 +23,7 @@ param(
     [Parameter(Mandatory=$false)]
     [bool]$runByAnsible = $false,
     [Parameter(Mandatory=$false)]
-    [bool]$randomExtraPorts
+    [array]$randomExtraPorts
 )
 
 Function handleErrors {
@@ -291,7 +291,7 @@ if($randomExtraPorts -ne 0){
         $errorChecking += netsh adv f a r n="Random-Extra-Port-TCP-OUT-$($port)" dir=out act=allow prof=any prot=tcp remoteport=($port)
         $errorChecking += netsh adv f a r n="Random-Extra-Port-UDP-IN-$($port)" dir=in act=allow prof=any prot=udp localport=($port)
         $errorChecking += netsh adv f a r n="Random-Extra-Port-UDP-OUT-$($port)" dir=out act=allow prof=any prot=udp remoteport=($port)
-        
+
         if(handleErrors -errorString $errorChecking -numRules 4 -ruleType "Random Extra Rule (Port $($port))"){
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Port $($port) firewall rules set" -ForegroundColor White
         }
