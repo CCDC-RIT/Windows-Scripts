@@ -2,10 +2,10 @@
   win_shell: |
     ./backup.ps1
   args:
-    chdir: "{{ scripts_path }}//scripts"
+    chdir: "{{ scripts_path }}\\scripts"
   
 - name: Copy Backups to Ansible Controller
   win_copy:
-    src: "{{ scripts_path }}//backups"
+    src: "{{ scripts_path }}\\backup"
     dest: ~/windowsBackups
     remote_src: true

@@ -2,6 +2,6 @@
   win_shell: |
     ./firewall.ps1 -ExtraRules "{{ scored_services }}" -runByAnsible $true
   args:
-    chdir: "{{ scripts_path }}//scripts"
+    chdir: "{{ scripts_path }}\\scripts"
 
 
