@@ -190,10 +190,6 @@ if(!($ansibleInstall)){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wireshark downloaded" -ForegroundColor white
 }
 
-# Antimeter (Meterpreter connection detection program)
-(New-Object System.Net.WebClient).DownloadFile("https://www.mertsarica.com/codes/antimeter2.zip", (Join-Path -Path "C:\Users\Luke Demi\Downloads" -ChildPath "antimeter.zip"))
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Antimeter Meterpreter Detection downloaded" -ForegroundColor white
-
 # Sysinternals
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/Autoruns.zip", (Join-Path -Path $InputPath -ChildPath "ar.zip"))
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/ListDlls.zip", (Join-Path -Path $InputPath -ChildPath "dll.zip"))
