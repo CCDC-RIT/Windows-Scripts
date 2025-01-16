@@ -9,7 +9,7 @@ all:
         ansible_winrm_transport: ntlm
         ansible_user: # Username
         ansible_password: # Password
-        scripts_path: "C:\\PerfLogs\\minecraft.log\\"
+        scripts_path: "C:\\PerfLogs\\minecraft.log"
       children:
         dc:
           vars:
