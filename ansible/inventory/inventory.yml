@@ -7,24 +7,32 @@ all:
         ansible_winrm_server_cert_validation: ignore
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
-        ansible_user: "ALLSAFE\\Administrator"
-        ansible_password: "BoxedSteer3Cliff&"
-        scripts_path: "C:/ProgramData/EpicGames/Fortnite"
+        ansible_user: # Username
+        ansible_password: # Password
+        scripts_path: "C:\\PerfLogs\\minecraft.log\\"
       children:
-        win10:
-          vars:
-            ansible_user: "kingbob"
-            ansible_password: "Knock7FrostVerde#"
-            scored_services: "a"
-          hosts:
-            172.31.23.5:
         dc:
           vars:
-            scored_services: "dnsio"
+            scored_services: "a"
           hosts:
-            172.20.242.200:
-        ntp:
+            1.1.1.1:
+        ca:
           vars:
-            scored_services: "dnsio"
+            scored_services: "a"
           hosts:
-            172.20.240.10:
+            1.1.1.1:
+        web:
+          vars:
+            scored_services: "a"
+          hosts:
+            1.1.1.1:
+        smb:
+          vars:
+            scored_services: "a"
+          hosts:
+            1.1.1.1:
+        winservclient:
+          vars:
+            scored_services: "a"
+          hosts:
+            1.1.1.1:
