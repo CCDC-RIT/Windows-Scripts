@@ -233,8 +233,8 @@ $flosspath = Join-Path -Path $inputpath -ChildPath "floss.zip"
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Floss downloaded" -ForegroundColor white
 
 # Antipwny (Meterpreter Detection)
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/rvazrkar/antipwny/raw/refs/heads/master/exe/x86/AntiPwny.exe", $antipwnyPath)
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/rvazrkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll", $antipwnyPath)
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/AntiPwny.exe", (Join-Path -Path $antipwnyPath -ChildPath "AntiPwny.exe"))
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll", (Join-Path -Path $antipwnyPath -ChildPath "ObjectListView.dll"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Antipwny downloaded" -ForegroundColor white
 
 # Extraction
