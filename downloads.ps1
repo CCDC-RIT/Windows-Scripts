@@ -45,8 +45,10 @@ $ResultsPath = Join-Path -Path $ScriptPath -ChildPath "results"
 New-Item -Path $ResultsPath -Name "artifacts" -ItemType "directory" | Out-Null
 New-Item -Path $ToolsPath -Name "sys" -ItemType "directory" | Out-Null
 New-item -Path $ToolsPath -Name "yara" -ItemType "directory" | Out-Null
+New-item -Path $ToolsPath -Name "antipwny" -ItemType "directory" | Out-Null
 $SysPath = Join-Path -Path $ToolsPath -ChildPath "sys"
 $yaraPath = Join-Path -Path $ToolsPath -ChildPath "yara"
+$antipwnyPath = Join-Path -Path $ToolsPath -ChildPath "antipwny"
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Directories created" -ForegroundColor white
 
@@ -229,6 +231,11 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 $flosspath = Join-Path -Path $inputpath -ChildPath "floss.zip"
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/mandiant/flare-floss/releases/download/v3.1.1/floss-v3.1.1-windows.zip", $flosspath)
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Floss downloaded" -ForegroundColor white
+
+# Antipwny (Meterpreter Detection)
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/rvazrkar/antipwny/raw/refs/heads/master/exe/x86/AntiPwny.exe", $antipwnyPath)
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/rvazrkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll", $antipwnyPath)
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Antipwny downloaded" -ForegroundColor white
 
 # Extraction
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "ar.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "ar")
