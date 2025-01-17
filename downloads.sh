@@ -33,9 +33,9 @@ wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/ma
 # Service tooling 
 # DC Tooling
 wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BEE3B9E95-9783-474A-86A5-907E93E64F57%7D.zip" -O "{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
-wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7B40E1EAFA-8121-4FFA-o /dev/null6FE-o /dev/nullC348636AB83%7D.zip" -O "{40E1EAFA-8121-4FFA-o /dev/null6FE-o /dev/nullC348636AB83}.zip"
-wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7B6136C3E1-o /dev/null316-4C46-9B8B-8C1FC373F73C%7D.zip" -O "{6136C3E1-o /dev/null316-4C46-9B8B-8C1FC373F73C}.zip"
-wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BBEAA6460-782B-4351-o /dev/null17D-4DC8076633C9%7D.zip" -O "{BEAA6460-782B-4351-o /dev/null17D-4DC8076633C9}.zip"
+wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7B40E1EAFA-8121-4FFA-B6FE-BC348636AB83%7D.zip" -O "{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"
+wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7B6136C3E1-B316-4C46-9B8B-8C1FC373F73C%7D.zip" -O "{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"
+wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BBEAA6460-782B-4351-B17D-4DC8076633C9%7D.zip" -O "{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"
 
 # Reset-KrbtgtKeyInteractive script
 wget -o /dev/null "https://gist.githubusercontent.com/mubix/fd0c89ec021f70023695/raw/02e3f0df13aa86da41f1587ad798ad3c5e7b3711/Reset-KrbtgtKeyInteractive.ps1" -O "Reset-KrbtgtKeyInteractive.ps1"
