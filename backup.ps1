@@ -29,15 +29,16 @@ if (Get-Service -Name W3SVC 2>$null) {
 }
 
 if (Get-Service -Name CertSvc 2>$null) {
-    Backup-CARoleService -Path (Join-Path -Path $backupPath -childPath "ca_backup")
-    certutil -backup (Join-Path -Path $backupPath -childPath "ca_backup") | Out-Null
+    New-Item -Path $backupPath -Name "ca_backup" -ItemType "directory" | Out-Null
+    certutil -backupDB (Join-Path -Path $backupPath -childPath "ca_backup") | Out-Null
     certutil -catemplates > (Join-Path -Path $backupPath -childPath "ca_backup\CATemplates.txt") | Out-Null
     reg export HKLM\System\CurrentControlSet\Services\CertSvc\Configuration (Join-Path -Path $backupPath -childPath "ca_backup\regkey.reg") | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] CA certs, templates, and settings backed up" -ForegroundColor white
 }
 
 if (Get-Service -Name WinRM 2>$null) {
-    $winrmConfigBackupPath = Join-Path -Path $backupPath -childPath "winrm_config_backup.txt"
+    New-Item -Path $backupPath -Name "winrm" -ItemType "directory" | Out-Null
+    $winrmConfigBackupPath = Join-Path -Path $backupPath -childPath "winrm\winrm_config_backup.txt"
     winrm get winrm/config > $winrmConfigBackupPath
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM configuration backed up" -ForegroundColor white
 }
