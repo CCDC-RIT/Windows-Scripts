@@ -54,7 +54,7 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC, [string]$action) {
             if ($DomainUser.Name -in $UserList) {
                 if($action -eq "Enable"){
                     Enable-ADAccount -Name $DomainUser.Name
-                    if($DomainUser.enabled){
+                    if($DomainUser.enabled -eq "True"){
                         Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($DomainUser.name) Enabled" -ForegroundColor White
                     }
                     else{
@@ -66,7 +66,7 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC, [string]$action) {
                     Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($DomainUser.name) Secured" -ForegroundColor White
                 } else{
                     Disable-ADAccount -Identity $DomainUser
-                    if(!($DomainUser.enabled)){
+                    if(!($DomainUser.enabled -eq "True")){
                         Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($DomainUser.name) Disabled" -ForegroundColor White
                     }
                     else{
