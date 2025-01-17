@@ -9,6 +9,8 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$wazuhIP="any",
     [Parameter(Mandatory=$false)]
+    [string]$graylogIP="any",
+    [Parameter(Mandatory=$false)]
     [string]$rdpIP="any",
     [Parameter(Mandatory=$false)]
     [string]$domainSubnet="any",
@@ -328,6 +330,16 @@ if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Wazuh
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh firewall rules set" -ForegroundColor white
 }
 
+$numRules = 1
+$errorChecking = netsh adv f a r n=Graylog-Client dir=out act=allow prof=any prot=tcp remoteip=$graylogIP remoteport=1514
+if($graylogIP -ne "Any"){
+    $errorChecking += netsh adv f a r n=Graylog-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$graylogIP remoteport=80,443
+    $numRules++
+}
+
+if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Graylog"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Graylog firewall rules set" -ForegroundColor white
+}
 
 # blocking win32/64 lolbins from making network connections when they shouldn't
 netsh advfirewall firewall add rule name="Block appvlp.exe netconns" program="C:\Program Files (x86)\Microsoft Office\root\client\AppVLP.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
