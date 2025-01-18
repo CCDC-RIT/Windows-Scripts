@@ -3,6 +3,8 @@
 
 # Downloading Scripts
 
+# Download script
+wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/downloads.ps1" -O "downloads.ps1"
 # Audit script
 wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/audit.ps1" -O "audit.ps1"
 # Audit policy file
