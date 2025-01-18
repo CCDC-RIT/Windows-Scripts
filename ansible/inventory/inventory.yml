@@ -15,31 +15,50 @@ all:
         dc:
           vars:
             scored_servies: "dnsio"
+            is_win_server: "true"
+            server_type: "dc"
           hosts:
             10.0.10.163:
       # children:
       #   dc:
       #     vars:
-      #       scored_services: "a"
+      #       scored_services: "a"]
+      #       is_win_server: "true"
+      #       server_type: "dc"
       #     hosts:
       #       1.1.1.1:
       #   ca:
       #     vars:
       #       scored_services: "a"
+      #       is_win_server: "true"
+      #       server_type: "ca"
       #     hosts:
       #       1.1.1.1:
       #   web:
       #     vars:
       #       scored_services: "a"
+      #       is_win_server: "true"\
+      #       server_type: "web"
       #     hosts:
       #       1.1.1.1:
       #   smb:
       #     vars:
       #       scored_services: "a"
+      #       is_win_server: "true"
+      #       server_type: "smb"
       #     hosts:
       #       1.1.1.1:
       #   winservclient:
       #     vars:
       #       scored_services: "a"
+      #       is_win_server: "true"
+      #       server_type: "null"
+      #     hosts:
+      #       1.1.1.1:
+      #   win10client:
+      #     vars:
+      #       scored_services: "a"
+      #       is_win_server: "false"
+      #       server_type: "null"
       #     hosts:
       #       1.1.1.1:
