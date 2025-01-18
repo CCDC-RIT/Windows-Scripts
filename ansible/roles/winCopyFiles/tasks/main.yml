@@ -1,5 +1,129 @@
-- name: Copy Scripts
+# Create Directories
+
+# Basic Directories
+- name: Create Script Directory
+  ansible.builtin.file:
+    path: "{{ scripts_path }}\\scripts"
+    state: directory
+
+- name: Create installers Directory
+  ansible.builtin.file:
+    path: "{{ scripts_path }}\\installers"
+    state: directory
+
+- name: Create tools Directory
+  ansible.builtin.file:
+    path: "{{ scripts_path }}\\tools"
+    state: directory
+
+- name: Create zipped Directory
+  ansible.builtin.file:
+    path: "{{ scripts_path }}\\zipped"
+    state: directory
+
+# Directories inside scripts directory
+- name: Create conf Directory
+  ansible.builtin.file:
+    path: "{{ scripts_path }}\\scripts\\conf"
+    state: directory
+
+- name: Create results Directory
+  ansible.builtin.file:
+    path: "{{ scripts_path }}\\scripts\\results"
+    state: directory
+
+- name: Create artifacts Directory
+  ansible.builtin.file:
+    path: "{{ scripts_path }}\\scripts\\results\\artifacts"
+    state: directory
+
+# Directories inside tools directory
+
+- name: Create sysinternals Directory
+  ansible.builtin.file:
+    path: "{{ scripts_path }}\\tools\\sys"
+    state: directory
+
+- name: Create yara Directory
+  ansible.builtin.file:
+    path: "{{ scripts_path }}\\tools\\yara"
+    state: directory
+
+- name: Create antipwny Directory
+  ansible.builtin.file:
+    path: "{{ scripts_path }}\\tools\\antipwny"
+    state: directory
+
+# Copy over scripts
+
+- name: Copy Inventory Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/audit.ps1"
+    dest: "{{ scripts_path }}\\scripts\\audit.ps1"
+    remote_src: false
+
+- name: Copy Backup Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/backup.ps1"
+    dest: "{{ scripts_path }}\\scripts\\backup.ps1"
+    remote_src: false
+
+- name: Copy Command runbook
+  win_copy:
+    src: "{{ scripts_ansible_location }}/command_runbook.txt"
+    dest: "{{ scripts_path }}\\scripts\\command_runbook.txt"
+    remote_src: false
+
+- name: Copy Firewall Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/firewall.ps1"
+    dest: "{{ scripts_path }}\\scripts\\firewall.ps1"
+    remote_src: false
+
+- name: Copy Injected thread Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/Get-InjectedThread.ps1"
+    dest: "{{ scripts_path }}\\scripts\\Get-InjectedThread.ps1"
+    remote_src: false
+
+- name: Copy Inventory Script
   win_copy:
     src: "{{ scripts_ansible_location }}/inventory.ps1"
-    dest: "{{ scripts_path }}\\inventory.ps1"
+    dest: "{{ scripts_path }}\\scripts\\inventoryps1"
+    remote_src: false
+
+- name: Copy Loggin Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/logging.ps1"
+    dest: "{{ scripts_path }}\\scripts\\logging.ps1"
+    remote_src: false
+
+- name: Copy PrivescCheck Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/PrivescCheck.ps1"
+    dest: "{{ scripts_path }}\\scripts\\PrivescCheck.ps1"
+    remote_src: false
+
+- name: Copy Secure Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/secure.ps1"
+    dest: "{{ scripts_path }}\\scripts\\secure.ps1"
+    remote_src: false
+
+- name: Copy Soar Agent Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/soaragent.ps1"
+    dest: "{{ scripts_path }}\\scripts\\soaragent.ps1"
+    remote_src: false
+
+- name: Copy User Management Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/usermgmt.ps1"
+    dest: "{{ scripts_path }}\\scripts\\usermgmt.ps1"
+    remote_src: false
+
+- name: Copy Yara Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/yara.bat"
+    dest: "{{ scripts_path }}\\scripts\\yara.bat"
     remote_src: false
