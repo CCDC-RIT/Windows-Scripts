@@ -7,16 +7,16 @@ all:
         ansible_winrm_server_cert_validation: ignore
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
-        ansible_user: # Username
-        ansible_password: # Password
+        ansible_user: "da1"
+        ansible_password: "Password-123456"
         scripts_path: "C:\\PerfLogs\\minecraft.log"
-        scripts_ansible_location: "/home/ccdc/testing/"
-        children:
-          dc:
-            vars:
-              scored_servies: "dnsio"
-            hosts:
-              10.0.10.163:
+        scripts_ansible_location: "/home/ccdc/testing"
+      children:
+        dc:
+          vars:
+            scored_servies: "dnsio"
+          hosts:
+            10.0.10.163:
       # children:
       #   dc:
       #     vars:
