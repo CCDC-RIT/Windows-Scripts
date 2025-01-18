@@ -193,7 +193,7 @@
 
 - name: Unzip Group Policy Object 1 on Domain Controller
   win_shell: |
-    "Expand-Archive -LiteralPath {{ scripts_path }}\\conf\\{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip -DestinationPath {{ scripts_path }}\\conf\\"
+    Expand-Archive -LiteralPath "{{ scripts_path }}\\conf\\{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip" -DestinationPath "{{ scripts_path }}\\conf\\"
   when: "{{ is_win_server }} == true"
 
 - name: Unzip Group Policy Object 2 on Domain Controller
