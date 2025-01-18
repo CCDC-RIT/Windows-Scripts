@@ -10,29 +10,36 @@ all:
         ansible_user: # Username
         ansible_password: # Password
         scripts_path: "C:\\PerfLogs\\minecraft.log"
-      children:
-        dc:
-          vars:
-            scored_services: "a"
-          hosts:
-            1.1.1.1:
-        ca:
-          vars:
-            scored_services: "a"
-          hosts:
-            1.1.1.1:
-        web:
-          vars:
-            scored_services: "a"
-          hosts:
-            1.1.1.1:
-        smb:
-          vars:
-            scored_services: "a"
-          hosts:
-            1.1.1.1:
-        winservclient:
-          vars:
-            scored_services: "a"
-          hosts:
-            1.1.1.1:
+        scripts_ansible_location: "/home/ccdc/testing/"
+        children:
+          dc:
+            vars:
+              scored_servies: "dnsio"
+            hosts:
+              10.0.10.163:
+      # children:
+      #   dc:
+      #     vars:
+      #       scored_services: "a"
+      #     hosts:
+      #       1.1.1.1:
+      #   ca:
+      #     vars:
+      #       scored_services: "a"
+      #     hosts:
+      #       1.1.1.1:
+      #   web:
+      #     vars:
+      #       scored_services: "a"
+      #     hosts:
+      #       1.1.1.1:
+      #   smb:
+      #     vars:
+      #       scored_services: "a"
+      #     hosts:
+      #       1.1.1.1:
+      #   winservclient:
+      #     vars:
+      #       scored_services: "a"
+      #     hosts:
+      #       1.1.1.1:

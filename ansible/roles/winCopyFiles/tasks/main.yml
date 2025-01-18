@@ -1,0 +1,5 @@
+- name: Copy Scripts
+  win_copy:
+    src: "{{ scripts_ansible_location }}/inventory.ps1"
+    dest: "{{ scripts_path }}\\inventory.ps1"
+    remote_src: false

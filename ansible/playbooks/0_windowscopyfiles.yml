@@ -1,0 +1,10 @@
+---
+- name: "WIN - Copy Files"
+  hosts: windows
+  roles:
+    - winCopyFiles
+  tags:
+    - windows
+    - standard
+    - download
+    - never
