@@ -2,55 +2,55 @@
 
 # Basic Directories
 - name: Create Script Directory
-  ansible.builtin.file:
+  ansible.builtin.win_file:
     path: "{{ scripts_path }}\\scripts"
     state: directory
 
 - name: Create installers Directory
-  ansible.builtin.file:
+  ansible.builtin.win_file:
     path: "{{ scripts_path }}\\installers"
     state: directory
 
 - name: Create tools Directory
-  ansible.builtin.file:
+  ansible.builtin.win_file:
     path: "{{ scripts_path }}\\tools"
     state: directory
 
 - name: Create zipped Directory
-  ansible.builtin.file:
+  ansible.builtin.win_file:
     path: "{{ scripts_path }}\\zipped"
     state: directory
 
 # Directories inside scripts directory
 - name: Create conf Directory
-  ansible.builtin.file:
+  ansible.builtin.win_file:
     path: "{{ scripts_path }}\\scripts\\conf"
     state: directory
 
 - name: Create results Directory
-  ansible.builtin.file:
+  ansible.builtin.win_file:
     path: "{{ scripts_path }}\\scripts\\results"
     state: directory
 
 - name: Create artifacts Directory
-  ansible.builtin.file:
+  ansible.builtin.win_file:
     path: "{{ scripts_path }}\\scripts\\results\\artifacts"
     state: directory
 
 # Directories inside tools directory
 
 - name: Create sysinternals Directory
-  ansible.builtin.file:
+  ansible.builtin.win_file:
     path: "{{ scripts_path }}\\tools\\sys"
     state: directory
 
 - name: Create yara Directory
-  ansible.builtin.file:
+  ansible.builtin.win_file:
     path: "{{ scripts_path }}\\tools\\yara"
     state: directory
 
 - name: Create antipwny Directory
-  ansible.builtin.file:
+  ansible.builtin.win_file:
     path: "{{ scripts_path }}\\tools\\antipwny"
     state: directory
 
