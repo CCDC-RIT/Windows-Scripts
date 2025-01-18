@@ -133,7 +133,7 @@
 - name: Install Bitlocker and Defender on Windows Server
   win_shell: |
     Install-WindowsFeature -Name Bitlocker,Windows-Defender
-  when: "{{ is_win_server }}" == "true"
+  when: "{{ is_win_server }} == true"
 
 # DC Tools
 
@@ -142,25 +142,25 @@
   win_copy:
     src: "{{ scripts_ansible_location }}/{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
     dest: "{{ scripts_path }}\\scripts\\conf\\{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
-  when: "{{ server_type }}" == "dc"
+  when: "{{ server_type }} == dc"
 
 - name: Copy Group Policies to Domain Controller
   win_copy:
     src: "{{ scripts_ansible_location }}/{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"
     dest: "{{ scripts_path }}\\scripts\\conf\\{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"
-  when: "{{ server_type }}" == "dc"
+  when: "{{ server_type }} == dc"
 
 - name: Copy Group Policies to Domain Controller
   win_copy:
     src: "{{ scripts_ansible_location }}/{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"
     dest: "{{ scripts_path }}\\scripts\\conf\\{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"
-  when: "{{ server_type }}" == "dc"
+  when: "{{ server_type }} == dc"
 
 - name: Copy Group Policies to Domain Controller
   win_copy:
     src: "{{ scripts_ansible_location }}/{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"
     dest: "{{ scripts_path }}\\scripts\\conf\\{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"
-  when: "{{ server_type }}" == "dc"
+  when: "{{ server_type }} == dc"
 
 # Reset krbtgt script
 
@@ -168,7 +168,7 @@
   win_copy:
     src: "{{ scripts_ansible_location }}/Reset-KrbtgtKeyInteractive.ps1"
     dest: "{{ scripts_path }}\\scripts\\Reset-KrbtgtKeyInteractive.ps1"
-  when: "{{ server_type }}" == "dc"
+  when: "{{ server_type }} == dc"
 
 # Pingcastle and Adalanche
 
@@ -176,13 +176,13 @@
   win_copy:
     src: "{{ scripts_ansible_location }}/pc.zip"
     dest: "{{ scripts_path }}\\pc.zip"
-  when: "{{ server_type }}" == "dc"
+  when: "{{ server_type }} == dc"
 
 - name: Copy Adalanche to Domain Controller
   win_copy:
     src: "{{ scripts_ansible_location }}/adalanche.exe"
     dest: "{{ scripts_path }}\\tools\\adalanche.exe"
-  when: "{{ server_type }}" == "dc"
+  when: "{{ server_type }} == dc"
 
 # Extract Pingcastle and Adalanche
 
@@ -193,7 +193,7 @@
     Expand-Archive -LiteralPath {{ scripts_path }}\\conf\\{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip -DestinationPath {{ scripts_path }}\\conf\\;
     Expand-Archive -LiteralPath {{ scripts_path }}\\conf\\{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip -DestinationPath {{ scripts_path }}\\conf\\;
     Expand-Archive -LiteralPath {{ scripts_path }}\\conf\\{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip -DestinationPath {{ scripts_path }}\\conf\\"
-  when: "{{ is_win_server }}" == "true"
+  when: "{{ is_win_server }} == true"
 
 # Local Policy/Client tools
 
@@ -201,15 +201,15 @@
   win_copy:
     src: "{{ scripts_ansible_location }}/localpolicy.PolicyRules"
     dest: "{{ scripts_path }}\\scripts\\conf\\localpolicy.PolicyRules"
-  when: "{{ server_type }}" != "dc"
+  when: "{{ server_type }} != dc"
 
 - name: Copy LGPO tool to Non DC's
   win_copy:
     src: "{{ scripts_ansible_location }}/LGPO.zip"
     dest: "{{ scripts_path }}\\lg.zip"
-  when: "{{ server_type }}" != "dc"
+  when: "{{ server_type }} != dc"
 
 - name: Unzip LGPO tool on Non DC's
   win_shell: |
     "Expand-Archive -LiteralPath {{ scripts_path }}\\lg.zip -DestinationPath {{ scripts_path }}\\tools\\"
-  when: "{{ server_type }}" != "dc"
+  when: "{{ server_type }} != dc"
