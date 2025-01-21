@@ -1,10 +1,31 @@
 # Create Directories
 
-# Basic Directories
+# First thing, is create the script directory, move the downloads and firewall script over, and then run the basic firewall script
+
 - name: Create Script Directory
   ansible.builtin.win_file:
     path: "{{ scripts_path }}\\scripts"
     state: directory
+
+- name: Copy Downloads Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/downloads.ps1"
+    dest: "{{ scripts_path }}\\downloads.ps1"
+    remote_src: false
+
+- name: Copy Firewall Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/firewall.ps1"
+    dest: "{{ scripts_path }}\\scripts\\firewall.ps1"
+    remote_src: false
+
+- name: Run Firewall Script
+  win_shell: |
+    ./firewall.ps1 -ExtraRules "{{ scored_services }}" -runByAnsible $true
+  args:
+    chdir: "{{ scripts_path }}\\scripts"
+
+# Basic Directories
 
 - name: Create installers Directory
   ansible.builtin.win_file:
@@ -56,12 +77,6 @@
 
 # Copy over scripts
 
-- name: Copy Downloads Script
-  win_copy:
-    src: "{{ scripts_ansible_location }}/downloads.ps1"
-    dest: "{{ scripts_path }}\\downloads.ps1"
-    remote_src: false
-
 - name: Copy Inventory Script
   win_copy:
     src: "{{ scripts_ansible_location }}/audit.ps1"
@@ -78,12 +93,6 @@
   win_copy:
     src: "{{ scripts_ansible_location }}/command_runbook.txt"
     dest: "{{ scripts_path }}\\scripts\\command_runbook.txt"
-    remote_src: false
-
-- name: Copy Firewall Script
-  win_copy:
-    src: "{{ scripts_ansible_location }}/firewall.ps1"
-    dest: "{{ scripts_path }}\\scripts\\firewall.ps1"
     remote_src: false
 
 - name: Copy Injected thread Script
