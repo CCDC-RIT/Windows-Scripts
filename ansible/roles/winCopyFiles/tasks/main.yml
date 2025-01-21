@@ -193,8 +193,9 @@
 # Extract Pingcastle and Adalanche
 
 - name: Unzip Pingcastle on Domain Controller
-  win_shell: |
-    "Expand-Archive -LiteralPath {{ scripts_path }}\\pc.zip -DestinationPath {{ scripts_path }}\\tools\\pc)"
+  community.windows.win_unzip:
+     src: "{{ scripts_path }}\\pc.zip" 
+     dest: "{{ scripts_path }}\\tools\\pc)"
   when: is_win_server == "true"
 
 - name: Unzip Group Policy Object 1 on Domain Controller
@@ -267,6 +268,7 @@
   when: is_server_core == "true"
 
 - name: Extract Explorer++ on Server Core Machines
-  win_shell: |
-    Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "epp.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "epp")
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\epp.zip"
+    dest: "{{ scripts_path }}\\tools"
   when: is_server_core == "true"
