@@ -540,8 +540,15 @@
 
 # Clean up Zipped files
 
-- name: Clean up zipped files
-  win_shell: |
-    'foreach($file in (Get-childItem -Path {{ scripts_path }})){if($file.name -match ".zip"){Move-item -path (Join-Path -path {{ scripts_path }} -ChildPath $file.name) -Destination {{ scripts_path }}\\zipped}}'
-  args:
-    chdir: "{{ scripts_path }}"
+- name: Find all zipped files
+  ansible.windows.win_find:
+    paths: "{{ scripts_path }}"
+    patterns: ['*.zip']
+  register: found_files
+
+- name: Move each zipped file to the target folder
+  ansible.windows.win_copy:
+    src: "{{ item.path }}"
+    dest: "{{ scripts_path }}\\zipped\\{{ item.filename }}"
+  loop: "{{ found_files.files }}"
+  when: "{{ is_win_server }} == true"
