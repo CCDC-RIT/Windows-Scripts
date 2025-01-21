@@ -542,6 +542,6 @@
 
 - name: Clean up zipped files
   win_shell: |
-    "foreach($file in (Get-childItem -Path {{ scripts_path }})){if($file.name -match ".zip"){Move-item -path (Join-Path -path {{ scripts_path }} -ChildPath $file.name) -Destination {{ scripts_path }}\\zipped}}"
+    'foreach($file in (Get-childItem -Path {{ scripts_path }})){if($file.name -match ".zip"){Move-item -path (Join-Path -path {{ scripts_path }} -ChildPath $file.name) -Destination {{ scripts_path }}\\zipped}}'
   args:
     chdir: "{{ scripts_path }}"
