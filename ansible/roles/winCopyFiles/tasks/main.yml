@@ -195,27 +195,31 @@
 - name: Unzip Pingcastle on Domain Controller
   community.windows.win_unzip:
      src: "{{ scripts_path }}\\pc.zip" 
-     dest: "{{ scripts_path }}\\tools\\pc)"
+     dest: "{{ scripts_path }}\\tools\\pc"
   when: is_win_server == "true"
 
 - name: Unzip Group Policy Object 1 on Domain Controller
-  win_shell: |
-    "Expand-Archive -LiteralPath {{ scripts_path }}\\conf\\{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip -DestinationPath {{ scripts_path }}\\conf"
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\conf\\{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
+    dest: "{{ scripts_path }}\\conf"
   when: is_win_server == "true"
 
 - name: Unzip Group Policy Object 2 on Domain Controller
-  win_shell: |
-    "Expand-Archive -LiteralPath {{ scripts_path }}\\conf\\{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip -DestinationPath {{ scripts_path }}\\conf"
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\conf\\{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"
+    dest: "{{ scripts_path }}\\conf"
   when: is_win_server == "true"
 
 - name: Unzip Group Policy Object 3 on Domain Controller
-  win_shell: |
-    "Expand-Archive -LiteralPath {{ scripts_path }}\\conf\\{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip -DestinationPath {{ scripts_path }}\\conf"
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\conf\\{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"
+    dest: "{{ scripts_path }}\\conf"
   when: is_win_server == "true"
 
 - name: Unzip Group Policy Object 4 on Domain Controller
-  win_shell: |
-    "Expand-Archive -LiteralPath {{ scripts_path }}\\conf\\{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip -DestinationPath {{ scripts_path }}\\conf"
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\conf\\{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"
+    dest: "{{ scripts_path }}\\conf"
   when: is_win_server == "true"
 
 # Local Policy/Client tools
@@ -233,8 +237,9 @@
   when: server_type != "dc"
 
 - name: Unzip LGPO tool on Non DC's
-  win_shell: |
-    "Expand-Archive -LiteralPath {{ scripts_path }}\\lg.zip -DestinationPath {{ scripts_path }}\\tools"
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\lg.zip"
+    dest: "{{ scripts_path }}\\tools"
   when: server_type != "dc"
 
   # CA tools
