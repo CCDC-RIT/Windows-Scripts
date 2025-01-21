@@ -92,6 +92,12 @@
     dest: "{{ scripts_path }}\\scripts\\Get-InjectedThread.ps1"
     remote_src: false
 
+- name: Copy stop thread Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/Stop-Thread.ps1"
+    dest: "{{ scripts_path }}\\scripts\\Stop-Thread.ps1"
+    remote_src: false
+
 - name: Copy Inventory Script
   win_copy:
     src: "{{ scripts_ansible_location }}/inventory.ps1"
@@ -277,3 +283,256 @@
     src: "{{ scripts_path }}\\epp.zip"
     dest: "{{ scripts_path }}\\tools"
   when: is_server_core == "true"
+
+
+  # Third Party tools
+
+- name: Copy Chainsaw
+  win_copy:
+    src: "{{ scripts_ansible_location }}/cs.zip"
+    dest: "{{ scripts_path }}\\cs.zip"
+
+- name: Copy Chainsaw Dependency Library
+  win_copy:
+    src: "{{ scripts_ansible_location }}/vc_redist.x64.exe"
+    dest: "{{ scripts_path }}\\installers\\vc_redist.x64.exe"
+
+- name: Silently Installing Chainsaw Dependency Library
+  win_shell: |
+    .\vc_redist.x64.exe /install /passive /norestart
+  args:
+    chdir: "{{ scripts_path }}\\installers"
+
+- name: Copy Hollows Hunter
+  win_copy:
+    src: "{{ scripts_ansible_location }}/hh64.zip"
+    dest: "{{ scripts_path }}\\hh64.zip"
+
+- name: Copy Wazuh Agent
+  win_copy:
+    src: "{{ scripts_ansible_location }}/wazuhagent.msi"
+    dest: "{{ scripts_path }}\\installers\\wazuhagent.msi"
+
+- name: Copy Sysmon Conf file
+  win_copy:
+    src: "{{ scripts_ansible_location }}/sysmon.xml"
+    dest: "{{ scripts_path }}\\scripts\\conf\\sysmon.xml"
+
+- name: Copy WFC installer
+  win_copy:
+    src: "{{ scripts_ansible_location }}/wfcsetup.exe"
+    dest: "{{ scripts_path }}\\installers\\wfcsetup.exe"
+
+- name: Copy .net 4.8
+  win_copy:
+    src: "{{ scripts_ansible_location }}/net_installer.exe"
+    dest: "{{ scripts_path }}\\installers\\net_installer.exe"
+
+- name: Silently Install .net 4.8
+  win_shell: |
+    .\net_installer.exe /passive /norestart
+  args:
+    chdir: "{{ scripts_path }}\\installers"
+
+- name: Copy Wireshark Installer
+  win_copy:
+    src: "{{ scripts_ansible_location }}/wsinstall.exe"
+    dest: "{{ scripts_path }}\\installers\\wsinstall.exe"
+
+# Sysinternals
+
+- name: Copy Autoruns
+  win_copy:
+    src: "{{ scripts_ansible_location }}/ar.zip"
+    dest: "{{ scripts_path }}\\ar.zip"
+
+- name: Copy DLL Check
+  win_copy:
+    src: "{{ scripts_ansible_location }}/dll.zip"
+    dest: "{{ scripts_path }}\\dll.zip"
+
+- name: Copy Process Explorer
+  win_copy:
+    src: "{{ scripts_ansible_location }}/pe.zip"
+    dest: "{{ scripts_path }}\\pe.zip"
+
+- name: Copy Process Monitor
+  win_copy:
+    src: "{{ scripts_ansible_location }}/pm.zip"
+    dest: "{{ scripts_path }}\\pm.zip"
+
+- name: Copy Sig Check
+  win_copy:
+    src: "{{ scripts_ansible_location }}/sc.zip"
+    dest: "{{ scripts_path }}\\sc.zip"
+
+- name: Copy TCP View
+  win_copy:
+    src: "{{ scripts_ansible_location }}/tv.zip"
+    dest: "{{ scripts_path }}\\tv.zip"
+
+- name: Copy Streams
+  win_copy:
+    src: "{{ scripts_ansible_location }}/stm.zip"
+    dest: "{{ scripts_path }}\\stm.zip"
+
+- name: Copy Sysmon
+  win_copy:
+    src: "{{ scripts_ansible_location }}/sm.zip"
+    dest: "{{ scripts_path }}\\sm.zip"
+
+- name: Copy Access Check
+  win_copy:
+    src: "{{ scripts_ansible_location }}/ac.zip"
+    dest: "{{ scripts_path }}\\ac.zip"
+
+- name: Copy Strings
+  win_copy:
+    src: "{{ scripts_ansible_location }}/str.zip"
+    dest: "{{ scripts_path }}\\str.zip"
+
+# Yara and Yara Rules
+
+- name: Copy Yara
+  win_copy:
+    src: "{{ scripts_ansible_location }}/yara.zip"
+    dest: "{{ scripts_path }}\\yara.zip"
+
+- name: Copy Windows Yara Rules
+  win_copy:
+    src: "{{ scripts_ansible_location }}/Windows.zip"
+    dest: "{{ scripts_path }}\\Windows.zip"
+
+- name: Copy Multi Yara Rules
+  win_copy:
+    src: "{{ scripts_ansible_location }}/Multi.zip"
+    dest: "{{ scripts_path }}\\Multi.zip"
+
+# Other tools
+
+- name: Copy Notepad++
+  win_copy:
+    src: "{{ scripts_ansible_location }}/notepadp_installer.exe"
+    dest: "{{ scripts_path }}\\installers\\notepadpp_installer.exe"
+
+- name: Silently Install Notepad++
+  win_shell: |
+    .\notepadpp_installer.exe /S
+  args:
+    chdir: "{{ scripts_path }}\\installers"
+
+- name: Copy Google Chrome
+  win_copy:
+    src: "{{ scripts_ansible_location }}/chromeinstall.exe"
+    dest: "{{ scripts_path }}\\installers\\chromeinstall.exe"
+
+- name: Silently Install Chrome
+  win_shell: |
+    .\chromeinstall.exe /silent /install
+  args:
+    chdir: "{{ scripts_path }}\\installers"
+
+- name: Copy Floss
+  win_copy:
+    src: "{{ scripts_ansible_location }}/floss.zip"
+    dest: "{{ scripts_path }}\\floss.zip"
+
+- name: Copy Antipwny
+  win_copy:
+    src: "{{ scripts_ansible_location }}/AntiPwny.exe"
+    dest: "{{ scripts_path }}\\tools\\Antipwny"
+
+- name: Copy Antipwny DLL
+  win_copy:
+    src: "{{ scripts_ansible_location }}/ObjectListView.dll"
+    dest: "{{ scripts_path }}\\tools\\Antipwny"
+
+# Extracting tools
+
+- name: Extract Autoruns
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\ar.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\ar"
+
+- name: Extract List DLLs
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\dll.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\dll"
+
+- name: Extract Process Explorer
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\pe.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\pe"
+
+- name: Extract Process Monitor
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\pm.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\pm"
+
+- name: Extract Sig Check
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\sc.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\sc"
+
+- name: Extract TCP View
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\tv.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\tv"
+
+- name: Extract Streams
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\stm.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\stm"
+
+- name: Extract Sysmon
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\sm.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\sm"
+
+- name: Extract Access Check
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\ac.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\ac"
+
+- name: Extract Strings
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\str.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\str"
+
+- name: Extract Floss
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\floss.zip"
+    dest: "{{ scripts_path }}\\tools"
+
+- name: Extract Hollows Hunter
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\hh64.zip"
+    dest: "{{ scripts_path }}\\tools"
+
+- name: Extract Chainsaw
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\cs.zip"
+    dest: "{{ scripts_path }}\\tools"
+
+- name: Extract Yara
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\yara.zip"
+    dest: "{{ scripts_path }}\\tools\\yara"
+
+- name: Extract Windows Yara Rules
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\Windows.zip"
+    dest: "{{ scripts_path }}\\tools\\yara"
+
+- name: Extract Multi Yara Rules
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\Multi.zip"
+    dest: "{{ scripts_path }}\\tools\\yara"
+
+# Clean up Zipped files
+
+- name: Clean up zipped files
+  win_shell: |
+    "foreach($file in (Get-childItem -Path {{ scripts_path }})){if($file.name -match ".zip"){Move-item -path (Join-Path -path {{ scripts_path }} -ChildPath $file.name) -Destination {{ scripts_path }}\\zipped}}"
+  args:
+    chdir: "{{ scripts_path }}"
