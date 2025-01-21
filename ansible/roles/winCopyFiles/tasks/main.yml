@@ -59,7 +59,7 @@
 - name: Copy Downloads Script
   win_copy:
     src: "{{ scripts_ansible_location }}/downloads.ps1"
-    dest: "{{ scripts_path }}\\download\\downloads.ps1"
+    dest: "{{ scripts_path }}\\downloads.ps1"
     remote_src: false
 
 - name: Copy Inventory Script
