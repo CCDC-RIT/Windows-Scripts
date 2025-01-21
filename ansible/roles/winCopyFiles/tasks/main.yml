@@ -412,7 +412,7 @@
 
 - name: Copy Notepad++
   win_copy:
-    src: "{{ scripts_ansible_location }}/notepadp_installer.exe"
+    src: "{{ scripts_ansible_location }}/notepadpp_installer.exe"
     dest: "{{ scripts_path }}\\installers\\notepadpp_installer.exe"
 
 - name: Silently Install Notepad++
