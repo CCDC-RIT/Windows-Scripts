@@ -14,7 +14,7 @@ all:
       children:
         dc:
           vars:
-            scored_servies: "dnsio"
+            scored_services: "dnsio"
             is_win_server: "true"
             server_type: "dc"
             is_server_core: "false"
