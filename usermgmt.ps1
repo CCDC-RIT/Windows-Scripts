@@ -53,7 +53,7 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC, [string]$action) {
         foreach ($DomainUser in $DomainUsers) {
             if ($DomainUser.Name -in $UserList) {
                 if($action -eq "Enable"){
-                    Enable-ADAccount -Name $DomainUser.Name
+                    Enable-ADAccount -Identity $DomainUser.Name
                     if($DomainUser.enabled -eq "True"){
                         Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($DomainUser.name) Enabled" -ForegroundColor White
                     }
@@ -80,7 +80,7 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC, [string]$action) {
         foreach ($LocalUser in $LocalUsers) {
             if ($LocalUser.Name -in $UserList) {
                 if($action -eq "Enable"){
-                    Enable-LocalUser -Name $LocalUser.Name
+                    Enable-LocalUser -Identity $LocalUser.Name
                     if(!($LocalUser.disabled)){
                         Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUseUser.name) Enabled" -ForegroundColor White
                     } else {
@@ -90,7 +90,7 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC, [string]$action) {
                     $LocalUser | Set-LocalUser -PasswordNeverExpires $false -UserMayChangePassword $true -AccountNeverExpires
                     Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUser.name) Secured" -ForegroundColor White
                 } else {
-                    Disable-LocalUser -Name $LocalUser.Name
+                    Disable-LocalUser -Identity $LocalUser.Name
                     if($LocalUser.disabled){
                         Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUser.name) Disabled" -ForegroundColor White
                     } else {
