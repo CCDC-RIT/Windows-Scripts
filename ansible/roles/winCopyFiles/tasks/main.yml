@@ -294,12 +294,12 @@
 
 - name: Copy Chainsaw Dependency Library
   win_copy:
-    src: "{{ scripts_ansible_location }}/vc_redist.x64.exe"
-    dest: "{{ scripts_path }}\\installers\\vc_redist.x64.exe"
+    src: "{{ scripts_ansible_location }}/vc_redist.64.exe"
+    dest: "{{ scripts_path }}\\installers\\vc_redist.64.exe"
 
 - name: Silently Installing Chainsaw Dependency Library
   win_shell: |
-    .\vc_redist.x64.exe /install /passive /norestart
+    .\vc_redist.64.exe /install /passive /norestart
   args:
     chdir: "{{ scripts_path }}\\installers"
 
