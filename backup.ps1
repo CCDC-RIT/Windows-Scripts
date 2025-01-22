@@ -30,9 +30,10 @@ if (Get-Service -Name W3SVC 2>$null) {
 
 if (Get-Service -Name CertSvc 2>$null) {
     New-Item -Path $backupPath -Name "ca_backup" -ItemType "directory" | Out-Null
-    Backup-CARoleService -Path (Join-Path -Path $backupPath -childPath "ca_backup")
-    certutil -backup (Join-Path -Path $backupPath -childPath "ca_backup") | Out-Null
-    certutil -catemplates > (Join-Path -Path $backupPath -childPath "ca_backup\CATemplates.txt") | Out-Null
+    New-Item -Path (Join-Path -Path $backupPath -childPath "ca_backup") -Name "ca_templates" -ItemType "directory" | Out-Null
+    certutil -backupDB (Join-Path -Path $backupPath -childPath "ca_backup") | Out-Null
+    Get-CATemplate | Foreach-Object { $_.Name } | Out-File -FilePath (Join-Path -Path $backupPath -childPath "ca_backup\ca_templates\CATemplates.txt") -Encoding String -Force
+    Get-Content -Path (Join-Path -Path $backupPath -ChildPath "ca_backup\ca_templates\CATemplates.txt") | ForEach-Object {certutil -v -template $_ > (Join-Path -Path $backupPath -ChildPath "ca_backup\ca_templates\$_.txt")}
     reg export HKLM\System\CurrentControlSet\Services\CertSvc\Configuration (Join-Path -Path $backupPath -childPath "ca_backup\regkey.reg") | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] CA certs, templates, and settings backed up" -ForegroundColor white
 }

@@ -7,32 +7,65 @@ all:
         ansible_winrm_server_cert_validation: ignore
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
-        ansible_user: # Username
-        ansible_password: # Password
+        ansible_user: "da1"
+        ansible_password: "Password-123456"
         scripts_path: "C:\\PerfLogs\\minecraft.log"
+        scripts_ansible_location: "/home/ccdc/testing"
       children:
         dc:
           vars:
-            scored_services: "a"
+            scored_services: "dnsio"
+            is_win_server: "true"
+            server_type: "dc"
+            is_server_core: "false"
           hosts:
-            1.1.1.1:
-        ca:
-          vars:
-            scored_services: "a"
-          hosts:
-            1.1.1.1:
-        web:
-          vars:
-            scored_services: "a"
-          hosts:
-            1.1.1.1:
-        smb:
-          vars:
-            scored_services: "a"
-          hosts:
-            1.1.1.1:
-        winservclient:
-          vars:
-            scored_services: "a"
-          hosts:
-            1.1.1.1:
+            10.0.10.163:
+      # children:
+      #   dc:
+      #     vars:
+      #       scored_services: "a"]
+      #       is_win_server: "true"
+      #       server_type: "dc"
+      #       is_server_core: "false"
+      #     hosts:
+      #       1.1.1.1:
+      #   ca:
+      #     vars:
+      #       scored_services: "a"
+      #       is_win_server: "true"
+      #       server_type: "ca"
+      #       is_server_core: "false"
+      #     hosts:
+      #       1.1.1.1:
+      #   web:
+      #     vars:
+      #       scored_services: "a"
+      #       is_win_server: "true"
+      #       server_type: "web"
+      #       is_server_core: "false"
+      #     hosts:
+      #       1.1.1.1:
+      #   smb:
+      #     vars:
+      #       scored_services: "a"
+      #       is_win_server: "true"
+      #       server_type: "smb"
+      #       is_server_core: "false"
+      #     hosts:
+      #       1.1.1.1:
+      #   winservclient:
+      #     vars:
+      #       scored_services: "a"
+      #       is_win_server: "true"
+      #       server_type: "null"
+      #       is_server_core: "false"
+      #     hosts:
+      #       1.1.1.1:
+      #   win10client:
+      #     vars:
+      #       scored_services: "a"
+      #       is_win_server: "false"
+      #       server_type: "null"
+      #       is_server_core: "false"
+      #     hosts:
+      #       1.1.1.1:
