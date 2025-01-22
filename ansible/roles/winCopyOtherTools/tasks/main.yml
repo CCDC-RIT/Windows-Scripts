@@ -53,7 +53,7 @@
 
 # Copy over scripts
 
-- name: Copy Inventory Script
+- name: Copy Audit Script
   win_copy:
     src: "{{ scripts_ansible_location }}/audit.ps1"
     dest: "{{ scripts_path }}\\scripts\\audit.ps1"
@@ -80,7 +80,7 @@
 - name: Copy Inventory Script
   win_copy:
     src: "{{ scripts_ansible_location }}/inventory.ps1"
-    dest: "{{ scripts_path }}\\scripts\\inventoryps1"
+    dest: "{{ scripts_path }}\\scripts\\inventory.ps1"
     remote_src: false
 
 - name: Copy Logging Script
