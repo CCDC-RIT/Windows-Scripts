@@ -119,6 +119,18 @@
     dest: "{{ scripts_path }}\\scripts\\yara.bat"
     remote_src: false
 
+- name: Copy Windows Wazuh Config File
+  win_copy:
+    src: "{{ scripts_ansible_location }}/agent_windows.conf"
+    dest: "{{ scripts_path }}\\scripts\\conf\\agent_windows.conf"
+    remote_src: false
+
+- name: Copy Defender Exploit Guard Settings
+  win_copy:
+    src: "{{ scripts_ansible_location }}/def-eg-settings.xml"
+    dest: "{{ scripts_path }}\\scripts\\conf\\agent_windows.conf"
+    remote_src: false
+
 # Install Bitlocker and Defender
 
 - name: Install Bitlocker and Defender on Windows Server
@@ -516,7 +528,7 @@
     patterns: ['*.zip']
   register: found_files
 
-- name: Copy each zipped file to the target folder
+- name: Copy each zipped files from base folder to zipped folder
   ansible.windows.win_copy:
     src: "{{ item.path }}"
     dest: "{{ scripts_path }}\\zipped\\{{ item.filename }}"
@@ -524,7 +536,7 @@
   loop: "{{ found_files.files }}"
   no_log: true
 
-- name: Remove zipped folders from old spot
+- name: Remove zipped folders from base folder
   ansible.windows.win_file:
     path: "{{ item.path }}"
     state: absent
