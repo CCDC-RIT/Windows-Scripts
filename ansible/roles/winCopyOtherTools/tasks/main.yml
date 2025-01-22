@@ -1,30 +1,5 @@
 # Create Directories
 
-# First thing, is create the script directory, move the downloads and firewall script over, and then run the basic firewall script
-
-- name: Create Script Directory
-  ansible.builtin.win_file:
-    path: "{{ scripts_path }}\\scripts"
-    state: directory
-
-- name: Copy Downloads Script
-  win_copy:
-    src: "{{ scripts_ansible_location }}/downloads.ps1"
-    dest: "{{ scripts_path }}\\downloads.ps1"
-    remote_src: false
-
-- name: Copy Firewall Script
-  win_copy:
-    src: "{{ scripts_ansible_location }}/firewall.ps1"
-    dest: "{{ scripts_path }}\\scripts\\firewall.ps1"
-    remote_src: false
-
-- name: Run Firewall Script
-  win_shell: |
-    ./firewall.ps1 -ExtraRules "{{ scored_services }}" -runByAnsible $true
-  args:
-    chdir: "{{ scripts_path }}\\scripts"
-
 # Basic Directories
 
 - name: Create installers Directory
@@ -43,6 +18,7 @@
     state: directory
 
 # Directories inside scripts directory
+
 - name: Create conf Directory
   ansible.builtin.win_file:
     path: "{{ scripts_path }}\\scripts\\conf"
@@ -81,12 +57,6 @@
   win_copy:
     src: "{{ scripts_ansible_location }}/audit.ps1"
     dest: "{{ scripts_path }}\\scripts\\audit.ps1"
-    remote_src: false
-
-- name: Copy Backup Script
-  win_copy:
-    src: "{{ scripts_ansible_location }}/backup.ps1"
-    dest: "{{ scripts_path }}\\scripts\\backup.ps1"
     remote_src: false
 
 - name: Copy Command runbook
@@ -552,4 +522,3 @@
     dest: "{{ scripts_path }}\\zipped\\{{ item.filename }}"
     remote_src: true
   loop: "{{ found_files.files }}"
-  when: "{{ is_win_server }} == true"

@@ -11,6 +11,7 @@ all:
         ansible_password: "Password-123456"
         scripts_path: "C:\\PerfLogs\\minecraft.log"
         scripts_ansible_location: "/home/ccdc/testing"
+        wazuh_ip: "10.0.10.15"
       children:
         dc:
           vars:

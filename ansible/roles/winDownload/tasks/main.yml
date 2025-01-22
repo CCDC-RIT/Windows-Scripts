@@ -13,4 +13,3 @@
     ./downloads.ps1 -Path "{{ scripts_path }}" -ansibleInstall $true
   args:
     chdir: "{{ scripts_path }}"
-
