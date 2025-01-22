@@ -70,7 +70,7 @@ wget -o /dev/null "https://aka.ms/vs/17/release/vc_redist.x64.exe" -O "vc_redist
 # hollows hunter
 wget -o /dev/null "https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip" -O "hh64.zip"
 # Wazuh agent
-wget -o /dev/null "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.7.2-1.msi" -O "wazuhagent.msi"
+wget -o /dev/null "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.9.2-1.msi" -O "wazuhagent.msi"
 # Basic Sysmon conf file
 wget -o /dev/null "https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml" -O "sysmon.xml"
 # Windows Firewall Control + .NET 4.8
