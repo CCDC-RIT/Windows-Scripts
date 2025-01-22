@@ -128,7 +128,7 @@
 - name: Copy Defender Exploit Guard Settings
   win_copy:
     src: "{{ scripts_ansible_location }}/def-eg-settings.xml"
-    dest: "{{ scripts_path }}\\scripts\\conf\\agent_windows.conf"
+    dest: "{{ scripts_path }}\\scripts\\conf\\def-eg-settings.xml"
     remote_src: false
 
 # Install Bitlocker and Defender
