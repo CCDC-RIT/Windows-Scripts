@@ -522,9 +522,11 @@
     dest: "{{ scripts_path }}\\zipped\\{{ item.filename }}"
     remote_src: true
   loop: "{{ found_files.files }}"
+  no_log: true
 
 - name: Remove zipped folders from old spot
   ansible.windows.win_file:
     path: "{{ item.path }}"
     state: absent
   loop: "{{ found_files.files }}"
+  no_log: true
