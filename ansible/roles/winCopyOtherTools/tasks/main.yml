@@ -516,9 +516,15 @@
     patterns: ['*.zip']
   register: found_files
 
-- name: Move each zipped file to the target folder
+- name: Copy each zipped file to the target folder
   ansible.windows.win_copy:
     src: "{{ item.path }}"
     dest: "{{ scripts_path }}\\zipped\\{{ item.filename }}"
     remote_src: true
+  loop: "{{ found_files.files }}"
+
+- name: Remove zipped folders from old spot
+  ansible.windows.win_file:
+    path: "{{ item.path }}"
+    state: absent
   loop: "{{ found_files.files }}"
