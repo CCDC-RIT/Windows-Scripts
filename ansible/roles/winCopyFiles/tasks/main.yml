@@ -550,5 +550,6 @@
   ansible.windows.win_copy:
     src: "{{ item.path }}"
     dest: "{{ scripts_path }}\\zipped\\{{ item.filename }}"
+    remote_src: true
   loop: "{{ found_files.files }}"
   when: "{{ is_win_server }} == true"
