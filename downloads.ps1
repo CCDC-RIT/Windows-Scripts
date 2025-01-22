@@ -54,9 +54,18 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 # yo i hope this works
 if ((Get-CimInstance -Class Win32_OperatingSystem).Caption -match "Windows Server") {
-    Install-WindowsFeature -Name Bitlocker,Windows-Defender | Out-Null
-    # the following feature might not exist based on the windows server version
-    Install-WindowsFeature -Name Windows-Defender-GUI | Out-Null
+    Install-WindowsFeature -Name Bitlocker | Out-Null
+
+    # Check the Windows Server version and install the appropriate Windows Defender features
+    if (([version](Get-CimInstance -Class Win32_OperatingSystem).Version) -ge [version]"10.0") {
+        # Windows Server 2016 or newer
+        Install-WindowsFeature -Name Windows-Defender | Out-Null
+        Install-WindowsFeature -Name Windows-Defender-GUI -ErrorAction SilentlyContinue | Out-Null
+    } elseif (([version](Get-CimInstance -Class Win32_OperatingSystem).Version) -ge [version]"6.3") {
+        # Windows Server 2012 R2
+        Install-WindowsFeature -Name Windows-Defender | Out-Null
+    }
+
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Bitlocker and Windows Defender installed" -ForegroundColor white
 }
 
@@ -170,7 +179,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip", (Join-Path -Path $InputPath -ChildPath "hh64.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hollows Hunter downloaded" -ForegroundColor white
 # Wazuh agent
-(New-Object System.Net.WebClient).DownloadFile("https://packages.wazuh.com/4.x/windows/wazuh-agent-4.7.2-1.msi", (Join-Path -Path $SetupPath -ChildPath "wazuhagent.msi"))
+(New-Object System.Net.WebClient).DownloadFile("https://packages.wazuh.com/4.x/windows/wazuh-agent-4.9.2-1.msi", (Join-Path -Path $SetupPath -ChildPath "wazuhagent.msi"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh agent installer downloaded" -ForegroundColor white
 # Basic Sysmon conf file
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml", (Join-Path -Path $ConfPath -ChildPath "sysmon.xml"))
