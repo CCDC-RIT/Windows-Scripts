@@ -1,6 +1,6 @@
 # Optional parameter for password
 param (
-    [SecureString]$Password
+    [SecureString]$Password = $(throw "-Password is required.")
 )
 
 # Lorge secure script
