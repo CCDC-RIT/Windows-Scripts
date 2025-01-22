@@ -131,7 +131,7 @@ if ($DC) {
     $DomainGPO = Get-GPO -All
     foreach ($GPO in $DomainGPO) {
         ## Prompt user to decide which GPOs to disable
-        $Ans = Read-Host "Reset $($GPO.DisplayName) (y/N)?"
+        $Ans = Read-Host "Disable $($GPO.DisplayName) (y/N)?"
         if ($Ans.ToLower() -eq "y") {
             $GPO.gpostatus = "AllSettingsDisabled"
         }
