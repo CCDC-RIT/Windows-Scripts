@@ -223,7 +223,7 @@
 
 - name: Copy LGPO tool to Non DC's
   win_copy:
-    src: "{{ scripts_ansible_location }}/LGPO.zip"
+    src: "{{ scripts_ansible_location }}/lg.zip"
     dest: "{{ scripts_path }}\\lg.zip"
   when: server_type != "dc"
 
