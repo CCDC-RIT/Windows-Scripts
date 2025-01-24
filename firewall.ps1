@@ -331,7 +331,7 @@ if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Wazuh
 }
 
 $numRules = 1
-$errorChecking = netsh adv f a r n=Graylog-Client dir=out act=allow prof=any prot=tcp remoteip=$graylogIP remoteport=1514
+$errorChecking = netsh adv f a r n=Graylog-Client dir=out act=allow prof=any prot=tcp remoteip=$graylogIP remoteport=1514,9000,9200,9300,27017
 if($graylogIP -ne "Any"){
     $errorChecking += netsh adv f a r n=Graylog-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$graylogIP remoteport=80,443
     $numRules++
