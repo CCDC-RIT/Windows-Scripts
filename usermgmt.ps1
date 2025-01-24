@@ -82,7 +82,7 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC, [string]$action) {
         foreach ($LocalUser in $LocalUsers) {
             if ($LocalUser.Name -in $UserList) {
                 if($action -eq "Enable"){
-                    Enable-LocalUser -Identity $LocalUser.Name
+                    Enable-LocalUser -Name $LocalUser.Name
                     $LocalUser = Get-WmiObject -Class Win32_UserAccount -Filter "Name='$($LocalUser.Name)' and LocalAccount='True'"
                     if($LocalUser.Enabled -eq $True){
                         Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUser.name)" -ForegroundColor White -NoNewline; Write-Host " Enabled" -ForegroundColor Green
@@ -93,7 +93,7 @@ Function Set-UserProperties([string[]]$UserList, [bool]$IsDC, [string]$action) {
                     $LocalUser | Set-LocalUser -PasswordNeverExpires $false -UserMayChangePassword $true -AccountNeverExpires
                     Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUser.name) Secured" -ForegroundColor White
                 } else {
-                    Disable-LocalUser -Identity $LocalUser.Name
+                    Disable-LocalUser -Name $LocalUser.Name
                     $LocalUser = Get-WmiObject -Class Win32_UserAccount -Filter "Name='$($LocalUser.Name)' and LocalAccount='True'"
                     if(!($LocalUser.Enabled -eq $True)){
                         Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] $($LocalUser.name)" -ForegroundColor White -NoNewline; Write-Host " Disabled" -ForegroundColor Red
