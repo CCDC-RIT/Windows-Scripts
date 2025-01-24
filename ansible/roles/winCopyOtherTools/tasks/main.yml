@@ -7,6 +7,11 @@
     path: "{{ scripts_path }}\\installers"
     state: directory
 
+- name: Copy Wireshark Installer
+  win_copy:
+    src: "{{ scripts_ansible_location }}/wsinstall.exe"
+    dest: "{{ scripts_path }}\\installers\\wsinstall.exe"
+
 - name: Create tools Directory
   ansible.builtin.win_file:
     path: "{{ scripts_path }}\\tools"
