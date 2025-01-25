@@ -49,6 +49,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 ## Disallowing unencrypted traffic
 net stop WinRM
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WinRM\Service" /v AllowUnencryptedTraffic /t REG_DWORD /d 0 /f | Out-Null
+start-sleep 500000 | out-null
 net start WinRM
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM secured and restarted" -ForegroundColor white 
 
