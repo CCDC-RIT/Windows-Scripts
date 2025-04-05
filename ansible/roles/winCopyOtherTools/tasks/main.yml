@@ -136,6 +136,7 @@
   win_shell: |
     Install-WindowsFeature -Name Bitlocker,Windows-Defender
   when: is_win_server == "true"
+  Ignore_errors: true
 
 # DC Tools
 
