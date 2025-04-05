@@ -236,10 +236,14 @@ $chromepath = Join-Path -Path $SetupPath -ChildPath "chromeinstall.exe"
 & $chromepath /silent /install
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Google Chrome downloaded and installed" -ForegroundColor white
 
-# Floss
-$flosspath = Join-Path -Path $inputpath -ChildPath "floss.zip"
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/mandiant/flare-floss/releases/download/v3.1.1/floss-v3.1.1-windows.zip", $flosspath)
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Floss downloaded" -ForegroundColor white
+# Everything
+(New-Object System.Net.WebClient).DownloadFile("https://www.voidtools.com/Everything-1.4.1.1024.x64.zip", (Join-Path -Path $InputPath -ChildPath "everything.zip"))
+(New-Object System.Net.WebClient).DownloadFile("https://www.voidtools.com/ES-1.1.0.27.x64.zip", (Join-Path -Path $InputPath -ChildPath "es.zip"))
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Everything downloaded" -ForegroundColor white
+
+# BCU
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/Klocman/Bulk-Crap-Uninstaller/releases/download/v5.7/BCUninstaller_5.7_portable.zip", (Join-Path -Path $InputPath -ChildPath "bcu.zip"))
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] BCU downloaded" -ForegroundColor white
 
 # Antipwny (Meterpreter Detection)
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/AntiPwny.exe", (Join-Path -Path $antipwnyPath -ChildPath "AntiPwny.exe"))
@@ -259,8 +263,12 @@ Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "ac.zip") -De
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "str.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "str")
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SysInternals tools extracted" -ForegroundColor white
 
-Expand-Archive -LiteralPath $flosspath -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "floss.exe")
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Floss extracted" -ForegroundColor white
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "everything.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "everything")
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "es.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "everything-cli")
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Everything extracted" -ForegroundColor white
+
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "bcu.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "bcu")
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] BCU extracted" -ForegroundColor white
 
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "hh64.zip") -DestinationPath $ToolsPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hollows Hunter extracted" -ForegroundColor white

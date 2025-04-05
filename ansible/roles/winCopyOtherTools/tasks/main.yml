@@ -254,7 +254,7 @@
   when: is_server_core == "true"
 
 
-  # Third Party tools
+# Third Party tools
 
 - name: Copy Chainsaw
   win_copy:
@@ -302,11 +302,6 @@
     .\net_installer.exe /passive /norestart
   args:
     chdir: "{{ scripts_path }}\\installers"
-
-- name: Copy Wireshark Installer
-  win_copy:
-    src: "{{ scripts_ansible_location }}/wsinstall.exe"
-    dest: "{{ scripts_path }}\\installers\\wsinstall.exe"
 
 # Sysinternals
 
@@ -401,10 +396,20 @@
   args:
     chdir: "{{ scripts_path }}\\installers"
 
-- name: Copy Floss
+- name: Copy Everything search tool
   win_copy:
-    src: "{{ scripts_ansible_location }}/floss.zip"
-    dest: "{{ scripts_path }}\\floss.zip"
+    src: "{{ scripts_ansible_location }}/everything.zip"
+    dest: "{{ scripts_path }}\\everything.zip"
+
+- name: Copy Everything CLI
+  win_copy:
+    src: "{{ scripts_ansible_location }}/es.zip"
+    dest: "{{ scripts_path }}\\es.zip"
+
+- name: BCU
+  win_copy:
+    src: "{{ scripts_ansible_location }}/bcu.zip"
+    dest: "{{ scripts_path }}\\bcu.zip"
 
 - name: Copy Antipwny
   win_copy:
@@ -468,11 +473,6 @@
     src: "{{ scripts_path }}\\str.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\str"
 
-- name: Extract Floss
-  community.windows.win_unzip:
-    src: "{{ scripts_path }}\\floss.zip"
-    dest: "{{ scripts_path }}\\tools"
-
 - name: Extract Hollows Hunter
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\hh64.zip"
@@ -497,6 +497,21 @@
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\Multi.zip"
     dest: "{{ scripts_path }}\\tools\\yara"
+
+- name: Extract Everything Search Tool
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\everything.zip"
+    dest: "{{ scripts_path }}\\tools\\everything"
+
+- name: Extract Everything CLI
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\es.zip"
+    dest: "{{ scripts_path }}\\tools\\everything-cli"
+
+- name: Extract BCU
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\bcu.zip"
+    dest: "{{ scripts_path }}\\tools\\bcu"
 
 # Clean up Zipped files
 

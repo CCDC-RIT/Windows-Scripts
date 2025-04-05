@@ -50,13 +50,19 @@ wget -o /dev/null "https://github.com/lkarlslund/Adalanche/releases/download/v20
 wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/localpolicy.PolicyRules" -O "localpolicy.PolicyRules"
 # LGPO tool
 wget -o /dev/null "https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip" -O "lg.zip"
-# LGPO extraction
 
 # Server Core
 wget -o /dev/null "https://github.com/derceg/explorerplusplus/releases/download/version-1.4.0-o /dev/nulleta-2/explorerpp_x64.zip" -O "epp.zip"
 wget -o /dev/null "https://netresec.com/?download=NetworkMiner" -O "nm.zip"
 
 # Third-party tooling for every system
+
+# Everything search tool
+wget -o /dev/null "https://www.voidtools.com/Everything-1.4.1.1024.x64.zip" -O "everything.zip"
+wget -o /dev/null "https://www.voidtools.com/ES-1.1.0.27.x64.zip" -O "es.zip"
+
+# BCU
+wget -o /dev/null "https://github.com/Klocman/Bulk-Crap-Uninstaller/releases/download/v5.7/BCUninstaller_5.7_portable.zip" -O "bcu.zip"
 
 # Get-InjectedThread and Stop-Thread
 wget -o /dev/null "https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1" -O "Get-InjectedThread.ps1"
@@ -97,8 +103,6 @@ wget -o /dev/null "https://github.com/CCDC-RIT/YaraRules/raw/refs/heads/main/Mul
 wget -o /dev/null "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.7.1/npp.8.7.1.Installer.x64.exe" -O "notepadpp_installer.exe"
 # googoo chrome
 wget -o /dev/null "http://dl.google.com/chrome/install/375.126/chrome_installer.exe" -O "chromeinstall.exe"
-# Floss
-wget -o /dev/null "https://github.com/mandiant/flare-floss/releases/download/v3.1.1/floss-v3.1.1-windows.zip" -O "floss.zip"
 # Antipwny (Meterpreter Detection)
 wget -o /dev/null "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/AntiPwny.exe" -O "AntiPwny.exe"
 wget -o /dev/null "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll" -O "ObjectListView.dll"
