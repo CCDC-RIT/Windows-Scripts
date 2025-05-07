@@ -424,7 +424,9 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 
 # Lockout prevention
 if ($LockoutPrevention) {
-    timeout 60
+    Start-Sleep (10)
+    write-host "[" -ForegroundColor white -NoNewLine; Write-Host "NOTE" -ForegroundColor Red -NoNewLine; Write-Host "] Hit Control + C" -ForegroundColor white
+    Start-Sleep (30)
     netsh advfirewall set allprofiles state off
 }
 #Chandi Fortnite
