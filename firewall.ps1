@@ -1,7 +1,7 @@
 # Parameter for enabling/disabling lockout prevention
 param(
     [Parameter(Mandatory=$false)]
-    [bool]$LockoutPrevention=$false,
+    [bool]$LockoutPrevention=$true,
     [Parameter(Mandatory=$false)]
     [array]$extrarules,
     [Parameter(Mandatory=$false)]
