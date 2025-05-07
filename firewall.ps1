@@ -1,7 +1,7 @@
 # Parameter for enabling/disabling lockout prevention
 param(
     [Parameter(Mandatory=$false)]
-    [bool]$LockoutPrevention=$true,
+    [bool]$LockoutPrevention=$True,
     [Parameter(Mandatory=$false)]
     [array]$extrarules,
     [Parameter(Mandatory=$false)]
@@ -425,8 +425,9 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # Lockout prevention
 if ($LockoutPrevention) {
     Start-Sleep (10)
-    write-host "[" -ForegroundColor white -NoNewLine; Write-Host "NOTE" -ForegroundColor Red -NoNewLine; Write-Host "] Hit Control + C" -ForegroundColor white
+    write-host "[" -ForegroundColor white -NoNewLine; Write-Host "LOCKOUT" -ForegroundColor Magenta -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host "Hit Control + C to apply the changes" -ForegroundColor white -BackgroundColor DarkRed 
     Start-Sleep (30)
+    write-host "[" -ForegroundColor white -NoNewLine; Write-Host "LOCKOUT" -ForegroundColor Magenta -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host "No user response, undoing the changes" -ForegroundColor white
     netsh advfirewall set allprofiles state off
 }
 #Chandi Fortnite
