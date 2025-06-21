@@ -1,0 +1,16 @@
+---
+- name: Monitor for unauthorized users
+  hosts: localhost
+  sources:
+    - name: file
+      file:
+        path: /tmp/user_alert.json
+        type: json
+        delay: 3
+
+  rules:
+    - name: Delete unauthorized user
+      condition: event.status == "unauthorized"
+      action:
+        run_playbook:
+          name: playbooks/eda/delete_user.yml

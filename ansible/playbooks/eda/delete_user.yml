@@ -1,0 +1,15 @@
+---
+- name: Remove unauthorized user from Windows
+  hosts: windows
+  gather_facts: no
+  vars:
+    username: "{{ event.username }}"
+  tasks:
+    - name: Delete user {{ username }}
+      ansible.windows.win_user:
+        name: "{{ username }}"
+        state: absent
+
+    - name: Log user removal
+      debug:
+        msg: "Deleted unauthorized user {{ username }}"
