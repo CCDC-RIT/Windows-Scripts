@@ -191,6 +191,11 @@ if ($DC) {
 }
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Backup administrator account created" -ForegroundColor white 
 
+# Limiting natural shutdown.exe
+Copy-Item -Path "C:\Windows\System32\shutdown.exe" -Destination (Join-Path -Path $rootDir -ChildPath "\tools\updown.exe")
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\shutdown.exe" /v Debugger /t REG_SZ /d "echo 'hi red team'" /f
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Limited shtudown.exe" -ForegroundColor white 
+
 # Mitigating CVEs
 # CVE-2021-36934 (HiveNightmare/SeriousSAM) - workaround (patch at https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-36934)
 icacls $env:windir\system32\config\*.* /inheritance:e | Out-Null
