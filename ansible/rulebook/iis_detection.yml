@@ -18,4 +18,4 @@
           extra_vars:
             status: "{{ event.url_check.status | default('unknown') }}"
             status_code: "{{ event.url_check.status_code | default('unknown') }}"
-          name: playbooks/fix_iis.yml
+          name: playbooks/eda/fix_iis.yml
