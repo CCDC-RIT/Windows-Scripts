@@ -1,0 +1,17 @@
+---
+- name: Restart IIS on remote Windows host
+  hosts: web
+  gather_facts: false
+
+  tasks:
+    - name: Error 403, website has been moved or deleted, restoring backup
+      when: status_code == 403
+      ansible.windows.win_command: powershell.exe
+      args:
+        stdin: Copy-Item "C:\\Backup\\inetpub" "C:\\" -Recurse -Force # Replace with actual backup path
+
+    - name: Webserver is down , restarting W3SVC
+      when: status == "down" and status_code != 403
+      ansible.windows.win_command: powershell.exe
+      args:
+        stdin: Restart-Service -Name W3SVC
