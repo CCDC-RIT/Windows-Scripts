@@ -1311,9 +1311,6 @@ if ($IIS) {
             C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/httpLogging /dontLog:"True" /commit:apphost
             C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/httpLogging /selectiveLogging:"LogAll" /commit:apphost
 
-            # Disables anonymous authentication for all sites using Set-WebConfiguration
-            Set-WebConfiguration -Filter "/system.webServer/security/authentication/anonymousAuthentication" -PSPath "IIS:\Sites\$siteName" -Value 0
-
             # Sets HTTP Errors statusCode to 405 for all sites
             Set-WebConfiguration -Filter "/system.webServer/httpErrors" -PSPath "IIS:\Sites\$siteName" -Value @{errorMode="Custom"; existingResponse="Replace"; statusCode=405}
 
@@ -1349,10 +1346,6 @@ if ($IIS) {
             # Requires Windows Credentials for Remote IIS Management
             reg add "HKLM\SOFTWARE\Microsoft\WebManagement\Server" /v RequiresWindowsCredentials /t REG_DWORD /d 1 /f | Out-Null
             Write-Host "Enforced Windows Credentials for IIS Remote Management."
-
-            # Prevents overrideMode for authentication settings (CURRENTLY LOCKS OUT USER)
-            #Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication" -Name "overrideMode" -Value "Deny" -PSPath "IIS:\Sites\$siteName"
-
         }
 
         # Applies hardening steps for FTP Server
@@ -1377,10 +1370,6 @@ if ($IIS) {
             C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.applicationHost/sites /siteDefaults.ftpServer.fileHandling.allowReadUploadsInProgress:"False" /commit:apphost.ftpServer.logFile.enabled:"True" /commit:apphost
             C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.applicationHost/sites /siteDefaults.ftpServer.fileHandling.allowReplaceOnRename:"False" /commit:apphost.ftpServer.logFile.enabled:"True" /commit:apphost
 
-            # Disables FTP Passive Mode (Not Working)
-            #$externalIP = (Invoke-WebRequest ifconfig.me/ip).Content.Trim()
-            #Set-WebConfigurationProperty -filter "system.applicationHost/sites/site[@name='$sitename']/ftpServer/firewallSupport" -name "externalIp4Address" -value $externalIP
-
             # Limits the size of files uploaded to the FTP server
             C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /requestLimits.maxAllowedContentLength:"1000000" /requestLimits.maxUrl:"1024" /commit:apphost
             
@@ -1388,10 +1377,6 @@ if ($IIS) {
             C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /+"fileExtensions.[fileExtension='.bat',allowed='False']" /commit:apphost
             C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /+"fileExtensions.[fileExtension='.exe',allowed='False']" /commit:apphost
             C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /+"fileExtensions.[fileExtension='.ps1',allowed='False']" /commit:apphost
-           
-            # Configures FTP authorization rules (for FTP Users Group)
-            C:\Windows\System32\inetsrv\appcmd.exe clear config $siteName /section:system.ftpServer/security/authorization /commit:apphost
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/authorization /+"[accessType='Allow',roles='FTP Users',permissions='Read']" /commit:apphost
         }
     }
     # Restarts IIS services to apply changes
