@@ -8,9 +8,14 @@ param(
 if (!(Test-Path -Path (Join-Path $path "backup"))) {
     New-Item -Path $path -Name "backup" -ItemType "directory" | Out-Null
 }
-[string]$backupParentPath = (Join-Path $path "backup")
+[string]$backupGrandparentPath = (Join-Path $path "backup")
+$hostname = (Get-CimInstance -Class Win32_ComputerSystem).Name
+if (!(Test-Path $backupParentPath)) {
+    New-Item -Path $backupParentPath -ItemType "directory" | Out-Null
+}
+[string]$backupParentPath = (Join-Path $backupGrandparentPath $hostname)
 $dateTime = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-[string]$backupPath = (Join-Path $backupParentpath $dateTime)
+[string]$backupPath = (Join-Path $backupParentPath $dateTime)
 
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
     New-Item -Path $backupPath -Name "sysvol" -ItemType "directory" | Out-Null
