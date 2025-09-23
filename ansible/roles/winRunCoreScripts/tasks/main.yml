@@ -11,6 +11,16 @@
     remote_src: true
   Ignore_errors: true
 
+- name: Delete Original Backup to Remove Duplicates
+  win_file:
+    path: "{{ scripts_path }}\\backup\\"
+    state: absent
+
+- name: Copy Backups to All Systems
+  win_copy:
+    src: ~/windowsBackups/
+    dest: "{{ scripts_path }}\\backup"
+
 - name: Run Firewall Script
   win_shell: |
     .\firewall.ps1 -ExtraRules httpio,{{ scored_services }} -runByAnsible $true
