@@ -99,6 +99,7 @@ wget -o /dev/null "https://download.sysinternals.com/files/Strings.zip" -O "str.
 wget -o /dev/null "https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip" -O "yara.zip"
 wget -o /dev/null "https://github.com/CCDC-RIT/YaraRules/raw/refs/heads/main/Windows.zip" -O "Windows.zip"
 wget -o /dev/null "https://github.com/CCDC-RIT/YaraRules/raw/refs/heads/main/Multi.zip" -O "Multi.zip"
+wget -o /dev/null "https://github.com/YARAHQ/yara-forge/releases/latest/download/yara-forge-rules-full.zip" -O "yarahq.zip"
 # Notepad++
 wget -o /dev/null "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.7.1/npp.8.7.1.Installer.x64.exe" -O "notepadpp_installer.exe"
 # googoo chrome

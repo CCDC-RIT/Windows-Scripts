@@ -372,6 +372,11 @@
     src: "{{ scripts_ansible_location }}/Multi.zip"
     dest: "{{ scripts_path }}\\Multi.zip"
 
+- name: Copy YaraHQ Rules
+  win_copy:
+    src: "{{ scripts_ansible_location }}/yarahq.zip"
+    dest: "{{ scripts_path }}\\yarahq.zip"
+
 # Other tools
 
 - name: Copy Notepad++
@@ -494,6 +499,16 @@
     dest: "{{ scripts_path }}\\tools\\yara"
 
 - name: Extract Multi Yara Rules
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\Multi.zip"
+    dest: "{{ scripts_path }}\\tools\\yara"
+
+- name: Extract YaraHQ Rules
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\Multi.zip"
+    dest: "{{ scripts_path }}\\tools\\yara"
+
+- name: Extract YaraHQ Rules
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\Multi.zip"
     dest: "{{ scripts_path }}\\tools\\yara"

@@ -158,7 +158,7 @@ if(!(Test-Path 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rule
 
 $yaraDir = Join-Path -Path $rootDir -ChildPath "\tools\yara"
 Copy-Item -Path (Join-Path -Path $yaraDir -ChildPath "yara64.exe") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
-$rules = Get-ChildItem $yaraDir | Where-Object {$_.Name -eq "Windows" -or $_.Name -eq "Multi"} | Get-ChildItem | ForEach-Object {$_.FullName} | Out-String
+$rules = Get-ChildItem $yaraDir | Where-Object {$_.Name -eq "Windows" -or $_.Name -eq "Multi" -or $_.Name -eq "yarahq"} | Get-ChildItem | ForEach-Object {$_.FullName} | Out-String
 $rules = $($rules.Replace("`r`n", " ") -split " ")
 
 # Compile yara rules. They are stored in both the yara directory (for manual use) and in the ossec-agent directory (for wazuh)

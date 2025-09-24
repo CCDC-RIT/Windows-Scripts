@@ -218,6 +218,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 ## yara rules
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/YaraRules/raw/refs/heads/main/Windows.zip", (Join-Path -Path $InputPath -ChildPath "Windows.zip"))
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/YaraRules/raw/refs/heads/main/Multi.zip", (Join-Path -Path $InputPath -ChildPath "Multi.zip"))
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/YARAHQ/yara-forge/releases/latest/download/yara-forge-rules-full.zip", (Join-Path -Path $InputPath -ChildPath "yarahq.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules downloaded" -ForegroundColor white
 
 # Notepad++
@@ -278,6 +279,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "yara.zip") -DestinationPath $yaraPath
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Windows.zip") -DestinationPath $yaraPath
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Multi.zip") -DestinationPath $yaraPath
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "yarahq.zip") -DestinationPath $yaraPath
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules extracted" -ForegroundColor white
 
 foreach($file in (Get-childItem -Path $InputPath)){
