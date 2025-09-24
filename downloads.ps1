@@ -9,8 +9,12 @@
 # *-WindowsOptionalFeature - Featuers under Control Panel > "Turn Windows features on or off" (apparently this is compatible with Windows Server)
 
 param (
+    [Parameter(Mandatory=$true)]
     [string]$Path = $(throw "-Path is required."),
-    [bool]$ansibleInstall = $false
+    [Parameter(Mandatory=$false)]
+    [bool]$ansibleInstall = $false,
+    [Parameter(Mandatory=$false)]
+    [bool]$dev
 )
 
 # somehow this block verifies if the path is legit
@@ -25,6 +29,22 @@ $ErrorActionPreference = "Stop"
 })]
 $InputPath = $Path
 Set-Location -Path $InputPath | Out-Null
+
+function Get-DownloadURL {
+    param (
+        [String]$repo,
+        [String]$file
+    )
+
+    if($dev) {
+        return "http://192.168.1.2/ccdc/$($repo)/raw/branch/master/$($file)"
+    }
+    else {
+        return "https://raw.githubusercontent.com/CCDC-RIT/$($repo)/master/$($file)"
+    }
+    
+}
+
 
 # Creating all the directories
 $ErrorActionPreference = "Continue"
@@ -72,31 +92,29 @@ if ((Get-CimInstance -Class Win32_OperatingSystem).Caption -match "Windows Serve
 # Custom tooling downloads
 $ProgressPreference = 'SilentlyContinue'
 # Audit script
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/audit.ps1", (Join-Path -Path $ScriptPath -ChildPath "audit.ps1"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "audit.ps1"), (Join-Path -Path $ScriptPath -ChildPath "audit.ps1"))
 # Audit policy file
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/auditpol.csv", (Join-Path -Path $ConfPath -ChildPath "auditpol.csv"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "auditpol.csv"), (Join-Path -Path $ConfPath -ChildPath "auditpol.csv"))
 # Backups script
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/backup.ps1", (Join-Path -Path $ScriptPath -ChildPath "backup.ps1"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "backup.ps1"), (Join-Path -Path $ScriptPath -ChildPath "backup.ps1"))
 # Command runbook
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/command_runbook.txt", (Join-Path -Path $ScriptPath -ChildPath "command_runbook.txt"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "command_runbook.txt"), (Join-Path -Path $ScriptPath -ChildPath "command_runbook.txt"))
 # Defender exploit guard settings
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/defender-exploit-guard-settings.xml", (Join-Path -Path $ConfPath -ChildPath "def-eg-settings.xml"))  
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "defender-exploit-guard-settings.xml"), (Join-Path -Path $ConfPath -ChildPath "def-eg-settings.xml"))  
 # Firewall script
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/firewall.ps1", (Join-Path -Path $ScriptPath -ChildPath "firewall.ps1"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "firewall.ps1"), (Join-Path -Path $ScriptPath -ChildPath "firewall.ps1"))
 # Inventory script
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/inventory.ps1", (Join-Path -Path $ScriptPath -ChildPath "inventory.ps1"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "inventory.ps1"), (Join-Path -Path $ScriptPath -ChildPath "inventory.ps1"))
 # Logging script
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/logging.ps1", (Join-Path -Path $ScriptPath -ChildPath "logging.ps1"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "logging.ps1"), (Join-Path -Path $ScriptPath -ChildPath "logging.ps1"))
 # Secure baseline script
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/secure.ps1", (Join-Path -Path $ScriptPath -ChildPath "secure.ps1"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "secure.ps1"), (Join-Path -Path $ScriptPath -ChildPath "secure.ps1"))
 # Wazuh agent config file
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Logging-Scripts/main/agent_windows.conf", (Join-Path -Path $ConfPath -ChildPath "agent_windows.conf"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Logging-Scripts" -file "agent_windows.conf"), (Join-Path -Path $ConfPath -ChildPath "agent_windows.conf"))
 # Yara response script
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Logging-Scripts/main/yara.bat", (Join-Path -Path $ScriptPath -ChildPath "yara.bat"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Logging-Scripts" -file "yara.bat"), (Join-Path -Path $ScriptPath -ChildPath "yara.bat"))
 # User Management script
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/usermgmt.ps1", (Join-Path -Path $ScriptPath -ChildPath "usermgmt.ps1"))
-# SOAR Agent Script
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/SOARAgent.ps1", (Join-Path -Path $ScriptPath -ChildPath "soaragent.ps1"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "usermgmt.ps1"), (Join-Path -Path $ScriptPath -ChildPath "usermgmt.ps1"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] System scripts and config files downloaded" -ForegroundColor white
 
 # Service tooling 
@@ -104,10 +122,11 @@ if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') { 
     # RSAT tooling (AD management tools + DNS management)
     Install-WindowsFeature -Name RSAT-AD-Tools,RSAT-DNS-Server,GPMC
     # Domain, Domain Controller, member/client, and Defender GPOs 
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BEE3B9E95-9783-474A-86A5-907E93E64F57%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"))
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7B40E1EAFA-8121-4FFA-B6FE-BC348636AB83%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"))
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7B6136C3E1-B316-4C46-9B8B-8C1FC373F73C%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"))
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/%7BBEAA6460-782B-4351-B17D-4DC8076633C9%7D.zip", (Join-Path -Path $ConfPath -ChildPath "{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"))
+    (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "gpos/%7BEE3B9E95-9783-474A-86A5-907E93E64F57%7D.zip"), (Join-Path -Path $ConfPath -ChildPath "{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"))
+    (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "gpos/%7B40E1EAFA-8121-4FFA-B6FE-BC348636AB83%7D.zip"), (Join-Path -Path $ConfPath -ChildPath "{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"))
+    (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "gpos/%7B6136C3E1-B316-4C46-9B8B-8C1FC373F73C%7D.zip"), (Join-Path -Path $ConfPath -ChildPath "{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"))
+    (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "gpos/%7BBEAA6460-782B-4351-B17D-4DC8076633C9%7D.zip"), (Join-Path -Path $ConfPath -ChildPath "{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"))
+    
     # Reset-KrbtgtKeyInteractive script
     (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/mubix/fd0c89ec021f70023695/raw/02e3f0df13aa86da41f1587ad798ad3c5e7b3711/Reset-KrbtgtKeyInteractive.ps1", (Join-Path -Path $ScriptPath -ChildPath "Reset-KrbtgtKeyInteractive.ps1"))
     # Pingcastle
@@ -124,7 +143,7 @@ if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') { 
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] DC tools extracted" -ForegroundColor white
 } else { # Member server/client tools
     # Local policy file
-    (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/Windows-Scripts/master/gpos/localpolicy.PolicyRules", (Join-Path -Path $ConfPath -ChildPath "localpolicy.PolicyRules"))
+    (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "gpos/localpolicy.PolicyRules"), (Join-Path -Path $ConfPath -ChildPath "localpolicy.PolicyRules"))
     # LGPO tool
     (New-Object System.Net.WebClient).DownloadFile("https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip", (Join-Path -Path $InputPath -ChildPath "lg.zip"))
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] LGPO and local policy file downloaded" -ForegroundColor white
@@ -216,8 +235,8 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # yara
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip", (Join-Path -Path $InputPath -ChildPath "yara.zip"))
 ## yara rules
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/YaraRules/raw/refs/heads/main/Windows.zip", (Join-Path -Path $InputPath -ChildPath "Windows.zip"))
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/YaraRules/raw/refs/heads/main/Multi.zip", (Join-Path -Path $InputPath -ChildPath "Multi.zip"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "YaraRules" -file "Windows.zip"), (Join-Path -Path $InputPath -ChildPath "Windows.zip"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "YaraRules" -file "Multi.zip"), (Join-Path -Path $InputPath -ChildPath "Multi.zip"))
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/YARAHQ/yara-forge/releases/latest/download/yara-forge-rules-full.zip", (Join-Path -Path $InputPath -ChildPath "yarahq.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules downloaded" -ForegroundColor white
 
