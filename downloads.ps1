@@ -304,6 +304,9 @@ Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "yara.zip") -
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Windows.zip") -DestinationPath $yaraPath
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Multi.zip") -DestinationPath $yaraPath
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "yarahq.zip") -DestinationPath $yaraPath
+Move-Item -Path (Join-Path -Path $yaraPath -ChildPath "packages\full\yara-rules-full.yar") -Destination (Join-Path -Path $yaraPath -ChildPath "Multi\YaraHQRules.yara")
+Remove-Item -Path (Join-Path -Path $yaraPath -ChildPath "packages") -Recurse
+
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules extracted" -ForegroundColor white
 
 foreach($file in (Get-childItem -Path $InputPath)){
