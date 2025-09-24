@@ -35,12 +35,17 @@ function Get-DownloadURL {
         [String]$repo,
         [String]$file
     )
+    if($repo -eq "Windows-Scripts"){
+        $branch = "master"
+    } else {
+        $branch = "main"
+    }
 
     if($dev) {
-        return "http://192.168.1.2/ccdc/$($repo)/raw/branch/master/$($file)"
+        return "http://192.168.1.2/ccdc/$($repo)/raw/branch/$($branch)/$($file)"
     }
     else {
-        return "https://raw.githubusercontent.com/CCDC-RIT/$($repo)/master/$($file)"
+        return "https://raw.githubusercontent.com/CCDC-RIT/$($repo)/$($branch)/$($file)"
     }
     
 }
