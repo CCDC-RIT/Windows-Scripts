@@ -136,7 +136,7 @@
   win_shell: |
     Install-WindowsFeature -Name Bitlocker,Windows-Defender
   when: is_win_server == "true"
-  Ignore_errors: true
+  ignore_errors: true
 
 # DC Tools
 
@@ -505,13 +505,13 @@
 
 - name: Extract YaraHQ Rules
   community.windows.win_unzip:
-    src: "{{ scripts_path }}\\Multi.zip"
+    src: "{{ scripts_path }}\\yarahq.zip"
     dest: "{{ scripts_path }}\\tools\\yara"
 
-- name: Extract YaraHQ Rules
-  community.windows.win_unzip:
-    src: "{{ scripts_path }}\\Multi.zip"
-    dest: "{{ scripts_path }}\\tools\\yara"
+- name: Move YaraHQ Rules to Multi Yara Rules
+  win_shell: |
+    Move-Item -Path "{{ scripts_path }}\tools\yara\packages\full\yara-rules-full.yar" -Destination "{{ scripts_path }}\tools\yara\Multi\YaraHQRules.yara"
+    Remove-Item -Path "{{ scripts_path }}\tools\yara\packages" -Recurse
 
 - name: Extract Everything Search Tool
   community.windows.win_unzip:

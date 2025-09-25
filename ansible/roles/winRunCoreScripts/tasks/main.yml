@@ -9,7 +9,7 @@
     src: "{{ scripts_path }}\\backup"
     dest: ~/windowsBackups
     remote_src: true
-  Ignore_errors: true
+  ignore_errors: true
 
 - name: Delete Original Backup to Remove Duplicates
   win_file:
