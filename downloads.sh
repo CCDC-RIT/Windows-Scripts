@@ -39,6 +39,10 @@ get_download_url() {
 # Objective: Download Tools needed for Windows to Ansible Controller Box
 # These tools will then be moved to each windows machine during Ansible Execution
 
+# Set up folder for backups
+
+sudo mkdir /Windows-Scripts/backups
+
 # Downloading Scripts
 
 # Download script
