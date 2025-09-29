@@ -9,11 +9,11 @@ if (!(Test-Path -Path (Join-Path $path "backup"))) {
     New-Item -Path $path -Name "backup" -ItemType "directory" | Out-Null
 }
 [string]$backupGrandparentPath = (Join-Path $path "backup")
-$hostname = (Get-CimInstance -Class Win32_ComputerSystem).Name
-if (!(Test-Path $backupParentPath)) {
-    New-Item -Path $backupParentPath -ItemType "directory" | Out-Null
-}
+[string]$hostname = (Get-CimInstance -Class Win32_ComputerSystem).Name
 [string]$backupParentPath = (Join-Path $backupGrandparentPath $hostname)
+if (!(Test-Path $backupParentPath)) {
+    New-Item -Path $backupParentPath -Name $hostname -ItemType "directory" | Out-Null
+}
 $dateTime = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 [string]$backupPath = (Join-Path $backupParentPath $dateTime)
 
@@ -83,3 +83,4 @@ foreach ($dir in $extraDirs){
 
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] $($lastDir) folder backed up" -ForegroundColor white
 }
+
