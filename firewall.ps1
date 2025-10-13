@@ -90,8 +90,8 @@ if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType
     }
     if(!($secondDCIP.Equals("none"))){
         # If there are two domain controllers in the environment, add rules for them to talk to each other
-        $errorChecking = netsh adv f a r n=DC-To-DC-TCP-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=88,135,389,445,464,636,3268,3269
-        $errorChecking += netsh adv f a r n=DC-To-DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=88,135,389,445,464,636,3268,3269
+        $errorChecking = netsh adv f a r n=DC-To-DC-TCP-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=88,135,389,445,464,636,3268,3269,49152-65535
+        $errorChecking += netsh adv f a r n=DC-To-DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=88,135,389,445,464,636,3268,3269,49152-65535
         $errorChecking += netsh adv f a r n=DC-To-DC-UDP-In dir=in act=allow prof=any prot=udp remoteip=$secondDCIP localport=53,88,123,135,389,445,464,636
         $errorChecking += netsh adv f a r n=DC-To-DC-UDP-Out dir=out act=allow prof=any prot=udp remoteip=$secondDCIP remoteport=53,88,123,135,389,445,464,636
 
@@ -430,4 +430,5 @@ if ($LockoutPrevention) {
     write-host "[" -ForegroundColor white -NoNewLine; Write-Host "LOCKOUT" -ForegroundColor Magenta -NoNewLine; Write-Host "] " -ForegroundColor white -NoNewLine; Write-Host "No user response, undoing the changes" -ForegroundColor white
     netsh advfirewall set allprofiles state off
 }
+
 #Chandi Fortnite
