@@ -90,8 +90,14 @@ if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType
     }
     if(!($secondDCIP.Equals("none"))){
         # If there are two domain controllers in the environment, add rules for them to talk to each other
-        $errorChecking = netsh adv f a r n=DC-To-DC-TCP-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=88,135,389,445,464,636,3268,3269,49152-65535
-        $errorChecking += netsh adv f a r n=DC-To-DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=88,135,389,445,464,636,3268,3269,49152-65535
+        $startPort = 49152
+        $numberOfPorts = 255
+
+        # Limit dynamic RPC range
+        $errorChecking = netsh int ipv4 set dynamicport tcp start=$startPort num=$numberOfPorts
+
+        $errorChecking += netsh adv f a r n=DC-To-DC-TCP-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport="88,135,389,445,464,636,3268,3269,$($startPort)-$($startPort + $numberOfPorts - 1)"
+        $errorChecking += netsh adv f a r n=DC-To-DC-TCP-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport="88,135,389,445,464,636,3268,3269,$($startPort)-$($startPort + $numberOfPorts - 1)"
         $errorChecking += netsh adv f a r n=DC-To-DC-UDP-In dir=in act=allow prof=any prot=udp remoteip=$secondDCIP localport=53,88,123,135,389,445,464,636
         $errorChecking += netsh adv f a r n=DC-To-DC-UDP-Out dir=out act=allow prof=any prot=udp remoteip=$secondDCIP remoteport=53,88,123,135,389,445,464,636
 
@@ -432,3 +438,4 @@ if ($LockoutPrevention) {
 }
 
 #Chandi Fortnite
+
