@@ -236,6 +236,7 @@ if(!($ansibleInstall)){
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/Sysmon.zip", (Join-Path -Path $InputPath -ChildPath "sm.zip"))
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/AccessChk.zip", (Join-Path -Path $InputPath -ChildPath "ac.zip"))
 (New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/Strings.zip", (Join-Path -Path $InputPath -ChildPath "str.zip"))
+(New-Object System.Net.WebClient).DownloadFile("https://download.sysinternals.com/files/PsExec.zip", (Join-Path -Path $InputPath -ChildPath "psexec.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SysInternals tools downloaded" -ForegroundColor white
 # yara
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip", (Join-Path -Path $InputPath -ChildPath "yara.zip"))
@@ -286,6 +287,7 @@ Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "stm.zip") -D
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "sm.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "sm")
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "ac.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "ac")
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "str.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "str")
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "psexec.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "psexec")
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SysInternals tools extracted" -ForegroundColor white
 
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "everything.zip") -DestinationPath (Join-Path -Path $ToolsPath -ChildPath "everything")
@@ -315,3 +317,47 @@ foreach($file in (Get-childItem -Path $InputPath)){
     }
 }
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Cleaned up zipped Files" -ForegroundColor white
+
+# Rename important executables to obfuscate for IFEO detection evasion
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "ac\accesschk.exe") -NewName "accesschk_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "ac\accesschk64.exe") -NewName "accesschk64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "ac\accesschk64a.exe") -NewName "accesschk64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "ar\Autoruns.exe") -NewName "Autoruns_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "ar\Autoruns64.exe") -NewName "Autoruns64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "ar\Autoruns64a.exe") -NewName "Autoruns64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "ar\Autorunsc.exe") -NewName "Autorunsc_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "ar\Autorunsc64.exe") -NewName "Autorunsc64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "ar\Autorunsc64a.exe") -NewName "Autorunsc64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "dll\Listdlls.exe") -NewName "Listdlls_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "dll\Listdlls64.exe") -NewName "Listdlls64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "pe\procexp.exe") -NewName "procexp_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "pe\procexp64.exe") -NewName "procexp64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "pe\procexp64a.exe") -NewName "procexp64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "pm\procmon.exe") -NewName "procmon_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "pm\procmon64.exe") -NewName "procmon64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "pm\procmon64a.exe") -NewName "procmon64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "psexec\PsExec.exe") -NewName "PsExec_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "psexec\PsExec64.exe") -NewName "PsExec64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "psexec\PsExec64a.exe") -NewName "PsExec64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "sc\sigcheck.exe") -NewName "sigcheck_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "sc\sigcheck64.exe") -NewName "sigcheck64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "sc\sigcheck64a.exe") -NewName "sigcheck64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "sm\Sysmon.exe") -NewName "Sysmon_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "sm\Sysmon64.exe") -NewName "Sysmon64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "sm\Sysmon64a.exe") -NewName "Sysmon64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "stm\streams.exe") -NewName "streams_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "stm\streams64.exe") -NewName "streams64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "stm\streams64a.exe") -NewName "streams64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "str\strings.exe") -NewName "strings_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "str\strings64.exe") -NewName "strings64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "str\strings64a.exe") -NewName "strings64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "tv\tcpvcon.exe") -NewName "tcpvcon_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "tv\tcpvcon64.exe") -NewName "tcpvcon64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "tv\tcpvcon64a.exe") -NewName "tcpvcon64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "tv\tcpview.exe") -NewName "tcpview_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "tv\tcpview64.exe") -NewName "tcpview64_pp.exe"
+Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "tv\tcpview64a.exe") -NewName "tcpview64a_pp.exe"
+Rename-Item -Path (Join-Path -Path $yaraPath -ChildPath "tv\yara64.exe") -NewName "yara64_pp.exe"
+Rename-Item -Path (Join-Path -Path $yaraPath -ChildPath "tv\yarac64.exe") -NewName "yarac64_pp.exe"
+Rename-Item -Path (Join-Path -Path "C:\Program Files\Wireshark" -ChildPath "wireshark.exe") -NewName "wireshark_pp.exe"
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Executables renamed for IFEO evasion" -ForegroundColor white

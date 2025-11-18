@@ -81,7 +81,7 @@ $result = auditpol /restore /file:$auditpolPath
 printSuccessOrError -Name "System Audit Policy Set" -result $result -desiredResult "The command was successfully executed." -multiple $true
 
 # Sysmon setup
-[string]$sysmonPath = (Join-Path -Path $rootDir -ChildPath "tools\sys\sm\sysmon64.exe")
+[string]$sysmonPath = (Join-Path -Path $rootDir -ChildPath "tools\sys\sm\sysmon64_pp.exe")
 [string]$xmlPath = (Join-Path -Path $scriptDir -ChildPath "\conf\sysmon.xml")
 $result = & $sysmonPath -accepteula -i $xmlPath
 WevtUtil sl "Microsoft-Windows-Sysmon/Operational" /ms:1048576000
@@ -157,12 +157,12 @@ if(!(Test-Path 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rule
 }
 
 $yaraDir = Join-Path -Path $rootDir -ChildPath "\tools\yara"
-Copy-Item -Path (Join-Path -Path $yaraDir -ChildPath "yara64.exe") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
+Copy-Item -Path (Join-Path -Path $yaraDir -ChildPath "yara64_pp.exe") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
 $rules = Get-ChildItem $yaraDir | Where-Object {$_.Name -eq "Windows" -or $_.Name -eq "Multi" -or $_.Name -eq "yarahq"} | Get-ChildItem | ForEach-Object {$_.FullName} | Out-String
 $rules = $($rules.Replace("`r`n", " ") -split " ")
 
 # Compile yara rules. They are stored in both the yara directory (for manual use) and in the ossec-agent directory (for wazuh)
-& (Join-Path -Path $yaraDir -ChildPath "yarac64.exe") $rules (Join-Path -Path $yaraDir -ChildPath "compiled.windows")
+& (Join-Path -Path $yaraDir -ChildPath "yarac64_pp.exe") $rules (Join-Path -Path $yaraDir -ChildPath "compiled.windows")
 Copy-Item -Path (Join-Path -Path $yaraDir -ChildPath "compiled.windows") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'
 
 Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "scripts\yara.bat") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'

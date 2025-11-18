@@ -1,7 +1,7 @@
 $VerbosePreference = "SilentlyContinue"
 [string]$cmdPath = $MyInvocation.MyCommand.Path
 $currentDir = $cmdPath.substring(0, $cmdPath.IndexOf("audit.ps1"))
-$accesscheckPath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\ac\accesschk64.exe"
+$accesscheckPath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\ac\accesschk64_pp.exe"
 $firewallPath = Join-Path -Path $currentDir -ChildPath 'results\firewallaudit.txt'
 $registryPath = Join-Path -Path $currentDir -ChildPath 'results\registryaudit.txt'
 $processPath = Join-Path -Path $currentDir -ChildPath 'results\processaudit.txt'
@@ -458,7 +458,7 @@ function Get-AnsibleAsyncLogs {
 }
 
 Function Invoke-CertificatesCheck {
-    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64.exe"
+    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64_pp.exe"
     $output = & $sigcheckpath -accepteula -nobanner -tv * | Out-String
     Write-Output $output
 }
@@ -467,7 +467,7 @@ Function Invoke-UnsignedFilesCheck {
     param (
         $directory
     )
-    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64.exe"
+    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64_pp.exe"
     $output = & $sigcheckpath -accepteula -nobanner -u -e $directory | Out-String
     if ($output.Trim() -ne "No matching files were found.") {
         Write-Output $output
@@ -478,7 +478,7 @@ Function Invoke-ADSCheck {
     param (
         $directory
     )
-    $streamspath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\stm\streams64.exe"
+    $streamspath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\stm\streams64_pp.exe"
     $output = & $streamspath -accepteula -nobanner $directory | Out-String
     if ($output.Trim() -ne "No files with streams found.") {
         Write-Output $output
