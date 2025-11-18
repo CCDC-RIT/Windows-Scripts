@@ -188,6 +188,9 @@ if ((Test-Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion") -and (Get-I
 (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1", (Join-Path -Path $ScriptPath -ChildPath "Get-InjectedThread.ps1"))
 (New-Object System.Net.WebClient).DownloadFile("https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Stop-Thread.ps1", (Join-Path -Path $ScriptPath -ChildPath "Stop-Thread.ps1"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Get-InjectedThread and Stop-Thread downloaded" -ForegroundColor white
+# Remove Powershell Profiles Tool
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/haxr/PowerShell-Scripts/refs/heads/master/Remove-LocalProfiles.ps1", (Join-Path -Path $ScriptPath -ChildPath "Remove-LocalProfiles.ps1"))
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Remove-LocalProfiles script downloaded" -ForegroundColor white
 # PrivEsc checker script
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/itm4n/PrivescCheck/releases/latest/download/PrivescCheck.ps1", (Join-Path -Path $ScriptPath -ChildPath "PrivescCheck.ps1"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] PrivescChecker script downloaded" -ForegroundColor white
