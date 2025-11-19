@@ -148,25 +148,6 @@ Start-Process -FilePath (Join-Path -Path $rootDir -ChildPath "installers\wazuhag
 Remove-Item "C:\Program Files (x86)\ossec-agent\ossec.conf" -Force
 Copy-Item -Path (Join-Path -Path $scriptDir -ChildPath "conf\agent_windows.conf") -Destination "C:\Program Files (x86)\ossec-agent\ossec.conf"
 
-# yara setup
-if(!(Test-Path 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\')){
-    mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
-}
-if(!(Test-Path 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\')){
-    mkdir 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\'
-}
-
-$yaraDir = Join-Path -Path $rootDir -ChildPath "\tools\yara"
-Copy-Item -Path (Join-Path -Path $yaraDir -ChildPath "yara64_pp.exe") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
-$rules = Get-ChildItem $yaraDir | Where-Object {$_.Name -eq "Windows" -or $_.Name -eq "Multi" -or $_.Name -eq "yarahq"} | Get-ChildItem | ForEach-Object {$_.FullName} | Out-String
-$rules = $($rules.Replace("`r`n", " ") -split " ")
-
-# Compile yara rules. They are stored in both the yara directory (for manual use) and in the ossec-agent directory (for wazuh)
-& (Join-Path -Path $yaraDir -ChildPath "yarac64_pp.exe") $rules (Join-Path -Path $yaraDir -ChildPath "compiled.windows")
-Copy-Item -Path (Join-Path -Path $yaraDir -ChildPath "compiled.windows") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\rules\compiled.windows'
-
-Copy-Item -Path (Join-Path -Path $rootDir -ChildPath "scripts\yara.bat") -Destination 'C:\Program Files (x86)\ossec-agent\active-response\bin\yara\'
-
 # Start the wazuh agent
 $result = net start Wazuh
 printSuccessOrError -name "Wazuh Service Started" -result $result -desiredResult "The Wazuh service was started successfully." -multiple $true

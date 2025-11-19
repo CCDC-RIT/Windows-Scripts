@@ -1,7 +1,9 @@
 $VerbosePreference = "SilentlyContinue"
 [string]$cmdPath = $MyInvocation.MyCommand.Path
 $currentDir = $cmdPath.substring(0, $cmdPath.IndexOf("audit.ps1"))
-$accesscheckPath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\ac\accesschk64_pp.exe"
+$rootDir = $currentDir.substring(0, $cmdPath.IndexOf("scripts"))
+$psexecPath = Join-Path -Path $rootDir -ChildPath "\tools\sys\ps\PsExec_ccdc.exe"
+$accesscheckPath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\ac\accesschk64_ccdc.exe"
 $firewallPath = Join-Path -Path $currentDir -ChildPath 'results\firewallaudit.txt'
 $registryPath = Join-Path -Path $currentDir -ChildPath 'results\registryaudit.txt'
 $processPath = Join-Path -Path $currentDir -ChildPath 'results\processaudit.txt'
@@ -10,6 +12,9 @@ $thruntingPath = Join-Path -Path $currentDir -ChildPath 'results\thruntingaudit.
 $filesystemPath = Join-Path -path $currentDir -ChildPath 'results\filesystemaudit.txt'
 $certPath = Join-Path -path $currentDir -ChildPath 'results\certaudit.txt'
 $artifactsPath = Join-Path $currentDir -ChildPath 'results\artifacts'
+$yaraPath = Join-Path $currentDir -ChildPath 'results\yaraaudit.txt'
+
+
 
 $DC = $false
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
@@ -24,6 +29,16 @@ if (Get-Service -Name W3SVC 2>$null) {
 $CA = $false
 if (Get-Service -Name CertSvc 2>$null) {
     $CA = $true
+}
+
+Function Yara-ScanDir {
+    param(
+        [string]$Directory
+    )
+    & $psexecPath /accepteula -s (Join-Path -Path $yaraDir -ChildPath "yara64_ccdc.exe") -C (Join-Path -Path $yaraDir -ChildPath "windows_compiled_yara_rules") $Directory -r --no-warnings > $yaraPath
+
+    (Get-Content $yaraPath | Where-Object { -not $_.Contains($rootDir) }) | Set-Content $yaraPath
+
 }
 
 Function Get-KeysValues {
@@ -458,7 +473,7 @@ function Get-AnsibleAsyncLogs {
 }
 
 Function Invoke-CertificatesCheck {
-    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64_pp.exe"
+    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64_ccdc.exe"
     $output = & $sigcheckpath -accepteula -nobanner -tv * | Out-String
     Write-Output $output
 }
@@ -467,7 +482,7 @@ Function Invoke-UnsignedFilesCheck {
     param (
         $directory
     )
-    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64_pp.exe"
+    $sigcheckpath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\sc\sigcheck64_ccdc.exe"
     $output = & $sigcheckpath -accepteula -nobanner -u -e $directory | Out-String
     if ($output.Trim() -ne "No matching files were found.") {
         Write-Output $output
@@ -478,7 +493,7 @@ Function Invoke-ADSCheck {
     param (
         $directory
     )
-    $streamspath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\stm\streams64_pp.exe"
+    $streamspath = Join-Path -Path $currentDir.Substring(0, $currentDir.IndexOf("scripts")) -ChildPath "tools\sys\stm\streams64_ccdc.exe"
     $output = & $streamspath -accepteula -nobanner $directory | Out-String
     if ($output.Trim() -ne "No files with streams found.") {
         Write-Output $output
@@ -849,4 +864,18 @@ if ($CA) {
 
 Invoke-CertificatesCheck | Out-File $certPath -Append
 Write-FileAndDirectoryChecks | Out-File $filesystemPath -Append
-#Chandi Fortnite
+
+# Yara time
+
+$yaraDir = Join-Path -Path $rootDir -ChildPath "\tools\yara"
+$rules = Get-ChildItem $yaraDir | Where-Object {$_.Name -eq "Windows" -or $_.Name -eq "Multi" -or $_.Name -eq "yarahq"} | Get-ChildItem | ForEach-Object {$_.FullName} | Out-String
+$rules = $($rules.Replace("`r`n", " ") -split " ")
+
+# Compile yara rules
+& (Join-Path -Path $yaraDir -ChildPath "yarac64_ccdc.exe") $rules (Join-Path -Path $yaraDir -ChildPath "windows_compiled_yara_rules")
+
+# Run Yara on everything
+
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Auditing entire file system with YARA. This takes a while" -ForegroundColor white
+Yara-ScanDir -Directory "C:"
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited entire file system with YARA" -ForegroundColor white

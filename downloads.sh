@@ -148,7 +148,7 @@ wget -o /dev/null "https://download.sysinternals.com/files/Streams.zip" -O "stm.
 wget -o /dev/null "https://download.sysinternals.com/files/Sysmon.zip" -O "sm.zip"
 wget -o /dev/null "https://download.sysinternals.com/files/AccessChk.zip" -O "ac.zip"
 wget -o /dev/null "https://download.sysinternals.com/files/Strings.zip" -O "str.zip"
-wget -o /dev/null "https://download.sysinternals.com/files/PsExec.zip" -O "psexec.zip"
+wget -o /dev/null "https://download.sysinternals.com/files/PsExec.zip" -O "ps.zip"
 
 echo "[SUCCESS] Sysinternals downloaded."
 

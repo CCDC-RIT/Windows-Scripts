@@ -312,8 +312,8 @@
 
 - name: Copy PSExec
   win_copy:
-    src: "{{ scripts_ansible_location }}/psexec.zip"
-    dest: "{{ scripts_path }}\\psexec.zip"
+    src: "{{ scripts_ansible_location }}/ps.zip"
+    dest: "{{ scripts_path }}\\ps.zip"
 
 - name: Copy DLL Check
   win_copy:
@@ -440,8 +440,8 @@
 
 - name: Extract PSExec
   community.windows.win_unzip:
-    src: "{{ scripts_path }}\\psexec.zip"
-    dest: "{{ scripts_path }}\\tools\\sys\\psexec"
+    src: "{{ scripts_path }}\\ps.zip"
+    dest: "{{ scripts_path }}\\tools\\sys\\ps"
 
 - name: Extract List DLLs
   community.windows.win_unzip:
