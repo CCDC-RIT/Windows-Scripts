@@ -32,7 +32,7 @@ get_download_url() {
 	if [ "$DEV" = true ]; then
 		echo "http://192.168.1.2/ccdc/${repo}/raw/branch/${branch}/${file}"
 	else
-		echo "https://raw.githubusercontent.com/CCDC-RIT/${repo}/${branch}/${file}s"
+		echo "https://raw.githubusercontent.com/CCDC-RIT/${repo}/${branch}/${file}"
 	fi
 }
 
