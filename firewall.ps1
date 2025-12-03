@@ -415,6 +415,7 @@ netsh advfirewall firewall add rule name="Block wmic.exe netconns" program="%sys
 netsh advfirewall firewall add rule name="Block wmic.exe netconns" program="%systemroot%\SysWOW64\wbem\wmic.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
 netsh advfirewall firewall add rule name="Block wscript.exe netconns" program="%systemroot%\system32\wscript.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
 netsh advfirewall firewall add rule name="Block wscript.exe netconns" program="%systemroot%\SysWOW64\wscript.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
+netsh advfirewall firewall add rule name="Block PSEXESVC.exe" program="C:\Windows\PSEXESVC.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
 
 # Logic to add all fw rules to group for WFC
 Get-NetFirewallRule -All | ForEach-Object {$_.Group = 'bingus'; $_ | Set-NetFirewallRule}
@@ -434,5 +435,6 @@ if ($LockoutPrevention) {
 }
 
 #Chandi Fortnite
+
 
 
