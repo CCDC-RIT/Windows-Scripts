@@ -82,8 +82,8 @@ if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType
     ## Inbound rules
     $errorChecking = netsh adv f a r n=DC-TCP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=88,135,389,445,464,636,3268,3269
     $errorChecking += netsh adv f a r n=DC-UDP-In dir=in act=allow prof=any prot=udp remoteip=$domainSubnet localport=88,123,135,389,445,464,636
-    $errorChecking += netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc
-    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc-epmap
+    $errorChecking += netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=49152-65535
+    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=135
     $errorChecking += netsh adv f a r n=DNS-Server dir=in act=allow prof=any prot=udp remoteip=$domainSubnet localport=53
 
     if(handleErrors -errorString $errorChecking -numRules 5 -ruleType "Domain Controller"){
@@ -97,10 +97,10 @@ if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType
         $errorChecking += netsh adv f a r n=DC-To-DC-UDP-In dir=in act=allow prof=any prot=udp remoteip=$secondDCIP localport=53,88,123,135,389,445,464,636
         $errorChecking += netsh adv f a r n=DC-To-DC-UDP-Out dir=out act=allow prof=any prot=udp remoteip=$secondDCIP remoteport=53,88,123,135,389,445,464,636
 
-        $errorChecking += netsh adv f a r n=DC-To-DC-RPC-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=rpc
-        $errorChecking += netsh adv f a r n=DC-To-DC-EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=rpc-epmap
-        $errorChecking += netsh adv f a r n=DC-To-DC-RPC-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=rpc
-        $errorChecking += netsh adv f a r n=DC-To-DC-EPMAP-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=rpc-epmap
+        $errorChecking += netsh adv f a r n=DC-To-DC-RPC-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=49152-65535
+        $errorChecking += netsh adv f a r n=DC-To-DC-EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=135
+        $errorChecking += netsh adv f a r n=DC-To-DC-RPC-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=49152-65535
+        $errorChecking += netsh adv f a r n=DC-To-DC-EPMAP-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=135
 
         if(handleErrors -errorString $errorChecking -numRules 8 -ruleType "Domain Controller to Domain Controller"){
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Domain Controller to Domain Controller firewall rules set" -ForegroundColor white
@@ -130,8 +130,8 @@ if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "LSASS"){
 
 ## Certificate Authority
 if (Get-Service -Name CertSvc 2>$null) {
-    $errorChecking = netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc
-    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc-epmap
+    $errorChecking = netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=49152-65535
+    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=135
     if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "Certificate Authority"){
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority server firewall rule set" -ForegroundColor white
     }
@@ -171,8 +171,8 @@ $protocolArray = @(
     [pscustomobject]@{Service="pandora";Protocol="tcp";Ports="41121"}
     [pscustomobject]@{Service="syslog";Protocol="udp";Ports="514"}
     [pscustomobject]@{Service="kerberos";Protocol="both";Ports="88"}
-    [pscustomobject]@{Service="rpc";Protocol="tcp";Ports="rpc"}
-    [pscustomobject]@{Service="epmap";Protocol="tcp";Ports="rpc-epmap"}
+    [pscustomobject]@{Service="rpc";Protocol="tcp";Ports="49152-65535"}
+    [pscustomobject]@{Service="epmap";Protocol="tcp";Ports="135"}
     [pscustomobject]@{Service="w32time";Protocol="udp";Ports="123"}
     [pscustomobject]@{Service="dns";Protocol="udp";Ports="53"}
     [pscustomobject]@{Service="ntp";Protocol="udp";Ports="123"}
@@ -435,6 +435,7 @@ if ($LockoutPrevention) {
 }
 
 #Chandi Fortnite
+
 
 
 
