@@ -57,10 +57,12 @@ New-Item -Path $InputPath -Name "scripts" -ItemType "directory" | Out-Null
 New-Item -Path $InputPath -Name "installers" -ItemType "directory" | Out-Null
 New-Item -Path $InputPath -Name "tools" -ItemType "directory" | Out-Null
 New-Item -Path $InputPath -Name "zipped" -ItemType "directory" | Out-Null
+New-Item -Path $InputPath -Name "stabvest" -ItemType "directory" | Out-Null
 $ScriptPath = Join-Path -Path $InputPath -ChildPath "scripts"
 $SetupPath = Join-Path -Path $InputPath -ChildPath "installers"
 $ToolsPath = Join-Path -Path $InputPath -ChildPath "tools"
 $ZippedPath = Join-Path -Path $InputPath -ChildPath "zipped"
+$StabvestPath = Join-Path -Path $InputPath -ChildPath "stabvest"
 
 New-Item -Path $ScriptPath -Name "conf" -ItemType "directory" | Out-Null
 New-Item -Path $ScriptPath -Name "results" -ItemType "directory" | Out-Null
@@ -279,6 +281,11 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll", (Join-Path -Path $antipwnyPath -ChildPath "ObjectListView.dll"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Antipwny downloaded" -ForegroundColor white
 
+# Stabvest
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Stabvest" -file "client/Stabvest.exe"), (Join-Path -Path $StabvestPath -ChildPath "Stabvest.exe"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Stabvest" -file "client/Stabvest_Configs.zip"), (Join-Path -Path $StabvestPath -ChildPath "Stabvest_Configs.zip"))
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Stabvest downloaded" -ForegroundColor white
+
 # Extraction
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "ar.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "ar")
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "dll.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "dll")
@@ -313,6 +320,9 @@ Move-Item -Path (Join-Path -Path $yaraPath -ChildPath "packages\full\yara-rules-
 Remove-Item -Path (Join-Path -Path $yaraPath -ChildPath "packages") -Recurse
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] YARA and YARA rules extracted" -ForegroundColor white
+
+Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "Stabvest_Configs.zip") -DestinationPath $StabvestPath
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Stabvest Configs extracted" -ForegroundColor white
 
 foreach($file in (Get-childItem -Path $InputPath)){
     if($file.name -match ".zip"){

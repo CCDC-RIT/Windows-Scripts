@@ -21,6 +21,11 @@
   ansible.builtin.win_file:
     path: "{{ scripts_path }}\\zipped"
     state: directory
+  
+- name: Create stabvest Directory
+  ansible.builtin.win_file:
+    path: "{{ scripts_path }}\\stabvest"
+    state: directory
 
 # Directories inside scripts directory
 
@@ -38,6 +43,48 @@
   ansible.builtin.win_file:
     path: "{{ scripts_path }}\\scripts\\results\\artifacts"
     state: directory
+
+# Stabvest Materials
+
+- name: Create Stabvest Directories
+  ansible.builtin.win_file:
+    path: "{{ scripts_path }}\\stabvest\\{{ item | replace('io', '') }}"
+    state: directory
+  loop: "{{ scored_services | default('') | split(',') | map('trim') | list }}"
+  when: scored_services | default('') | length > 0
+
+- name: Upload Stabvest Config.json
+  win_copy:
+    src: "{{ scripts_ansible_location }}/Stabvest_Configs/config_{{ item | replace('io', '') }}.json"
+    dest: "{{ scripts_path }}\\stabvest\\{{ item | replace('io', '') }}\\config.json"
+  loop: "{{ scored_services | default('') | split(',') | map('trim') | list }}"
+  when: scored_services | default('') | length > 0
+
+- name: Upload Stabvest Executables
+  win_copy:
+    src: "{{ scripts_ansible_location }}/stabvest.exe"
+    dest: "{{ scripts_path }}\\stabvest\\{{ item | replace('io', '') }}\\stabvest_{{ item | replace('io', '') }}.exe"
+  loop: "{{ scored_services | default('') | split(',') | map('trim') | list }}"
+  when: scored_services | default('') | length > 0
+
+- name: Adding Stabvest Executable to Windows Services
+  ansible.builtin.win_shell: |
+    # Define the service name and binary path based on the loop item
+    $ServiceName = "Stabvest_{{ item | replace('io', '') }}"
+    $ServiceBinary = "{{ scripts_path }}\\stabvest\\{{ item | replace('io', '') }}\\stabvest_{{ item | replace('io', '') }}.exe"
+    $ServiceDisplay = "Stabvest Service for {{ item | replace('io', '') }}"
+    New-Service -Name $ServiceName -BinaryPathName $ServiceBinary -DisplayName $ServiceDisplay -StartupType Automatic
+  loop: "{{ scored_services | default('') | split(',') | map('trim') | list }}"
+  when: scored_services | default('') | length > 0
+  ignore_errors: yes
+
+- name: Starts Stabvest Services
+  ansible.windows.win_service:
+    name: "Stabvest_{{ item | replace('io', '') }}"
+    state: started
+  loop: "{{ scored_services | default('') | split(',') | map('trim') | list }}"
+  when: scored_services | default('') | length > 0
+  ignore_errors: yes
 
 # Directories inside tools directory
 

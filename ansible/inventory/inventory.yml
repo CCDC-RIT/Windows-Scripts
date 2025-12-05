@@ -35,8 +35,8 @@ all:
             is_win_server: "true"
             server_type: "web"
             is_server_core: "false"
-        hosts:
-           1.1.1.1:
+          hosts:
+            1.1.1.1:
       #   smb:
       #     vars:
       #       scored_services: "smbio"
