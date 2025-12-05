@@ -62,7 +62,7 @@
 
 - name: Upload Stabvest Executables
   win_copy:
-    src: "{{ scripts_ansible_location }}/stabvest.exe"
+    src: "{{ scripts_ansible_location }}/agent.exe"
     dest: "{{ scripts_path }}\\stabvest\\{{ item | replace('io', '') }}\\stabvest_{{ item | replace('io', '') }}.exe"
   loop: "{{ scored_services | default('') | split(',') | map('trim') | list }}"
   when: scored_services | default('') | length > 0

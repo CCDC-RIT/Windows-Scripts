@@ -282,7 +282,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Antipwny downloaded" -ForegroundColor white
 
 # Stabvest
-(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Stabvest" -file "client/Stabvest.exe"), (Join-Path -Path $StabvestPath -ChildPath "Stabvest.exe"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Stabvest" -file "client/agent.exe"), (Join-Path -Path $StabvestPath -ChildPath "agent.exe"))
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Stabvest" -file "client/Stabvest_Configs.zip"), (Join-Path -Path $StabvestPath -ChildPath "Stabvest_Configs.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Stabvest downloaded" -ForegroundColor white
 
