@@ -360,7 +360,8 @@ Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "tv\tcpvcon64a.exe") -New
 Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "tv\tcpview.exe") -NewName "tcpview_ccdc.exe"
 Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "tv\tcpview64.exe") -NewName "tcpview64_ccdc.exe"
 Rename-Item -Path (Join-Path -Path $SysPath -ChildPath "tv\tcpview64a.exe") -NewName "tcpview64a_ccdc.exe"
-Rename-Item -Path (Join-Path -Path $yaraPath -ChildPath "tv\yara64.exe") -NewName "yara64_ccdc.exe"
-Rename-Item -Path (Join-Path -Path $yaraPath -ChildPath "tv\yarac64.exe") -NewName "yarac64_ccdc.exe"
+Rename-Item -Path (Join-Path -Path $yaraPath -ChildPath "yara64.exe") -NewName "yara64_ccdc.exe"
+Rename-Item -Path (Join-Path -Path $yaraPath -ChildPath "yarac64.exe") -NewName "yarac64_ccdc.exe"
 Rename-Item -Path (Join-Path -Path "C:\Program Files\Wireshark" -ChildPath "wireshark.exe") -NewName "wireshark_ccdc.exe"
+
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Executables renamed for IFEO evasion" -ForegroundColor white
