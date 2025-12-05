@@ -117,7 +117,7 @@ $ProgressPreference = 'SilentlyContinue'
 # Secure baseline script
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "secure.ps1"), (Join-Path -Path $ScriptPath -ChildPath "secure.ps1"))
 # Wazuh agent config file
-(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Logging-Scripts" -file "agent_windows.conf"), (Join-Path -Path $ConfPath -ChildPath "agent_windows.conf"))
+# (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Logging-Scripts" -file "agent_windows.conf"), (Join-Path -Path $ConfPath -ChildPath "agent_windows.conf"))
 # Yara response script
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Logging-Scripts" -file "yara.bat"), (Join-Path -Path $ScriptPath -ChildPath "yara.bat"))
 # User Management script
@@ -208,8 +208,8 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip", (Join-Path -Path $InputPath -ChildPath "hh64.zip"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hollows Hunter downloaded" -ForegroundColor white
 # Wazuh agent
-(New-Object System.Net.WebClient).DownloadFile("https://packages.wazuh.com/4.x/windows/wazuh-agent-4.9.2-1.msi", (Join-Path -Path $SetupPath -ChildPath "wazuhagent.msi"))
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh agent installer downloaded" -ForegroundColor white
+# (New-Object System.Net.WebClient).DownloadFile("https://packages.wazuh.com/4.x/windows/wazuh-agent-4.9.2-1.msi", (Join-Path -Path $SetupPath -ChildPath "wazuhagent.msi"))
+# Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh agent installer downloaded" -ForegroundColor white
 # Basic Sysmon conf file
 (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml", (Join-Path -Path $ConfPath -ChildPath "sysmon.xml"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Sysmon config downloaded" -ForegroundColor white
@@ -375,3 +375,4 @@ Rename-Item -Path (Join-Path -Path $yaraPath -ChildPath "yarac64.exe") -NewName 
 Rename-Item -Path (Join-Path -Path "C:\Program Files\Wireshark" -ChildPath "wireshark.exe") -NewName "wireshark_ccdc.exe"
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Executables renamed for IFEO evasion" -ForegroundColor white
+

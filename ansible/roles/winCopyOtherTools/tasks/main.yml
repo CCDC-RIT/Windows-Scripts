@@ -165,11 +165,11 @@
     dest: "{{ scripts_path }}\\scripts\\yara.bat"
     remote_src: false
 
-- name: Copy Windows Wazuh Config File
-  win_copy:
-    src: "{{ scripts_ansible_location }}/agent_windows.conf"
-    dest: "{{ scripts_path }}\\scripts\\conf\\agent_windows.conf"
-    remote_src: false
+# - name: Copy Windows Wazuh Config File
+#   win_copy:
+#     src: "{{ scripts_ansible_location }}/agent_windows.conf"
+#     dest: "{{ scripts_path }}\\scripts\\conf\\agent_windows.conf"
+#     remote_src: false
 
 - name: Copy Defender Exploit Guard Settings
   win_copy:
@@ -324,10 +324,10 @@
     src: "{{ scripts_ansible_location }}/hh64.zip"
     dest: "{{ scripts_path }}\\hh64.zip"
 
-- name: Copy Wazuh Agent
-  win_copy:
-    src: "{{ scripts_ansible_location }}/wazuhagent.msi"
-    dest: "{{ scripts_path }}\\installers\\wazuhagent.msi"
+# - name: Copy Wazuh Agent
+#   win_copy:
+#     src: "{{ scripts_ansible_location }}/wazuhagent.msi"
+#     dest: "{{ scripts_path }}\\installers\\wazuhagent.msi"
 
 - name: Copy Sysmon Conf file
   win_copy:
@@ -494,7 +494,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ar\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ autoruns_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract PSExec
   community.windows.win_unzip:
@@ -510,7 +511,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ps\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ psexec_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract List DLLs
   community.windows.win_unzip:
@@ -526,7 +528,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\dll\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ dll_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract Process Explorer
   community.windows.win_unzip:
@@ -542,7 +545,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pe\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ pe_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract Process Monitor
   community.windows.win_unzip:
@@ -558,7 +562,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pm\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ pm_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract Sig Check
   community.windows.win_unzip:
@@ -574,7 +579,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sc\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ sc_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract TCP View
   community.windows.win_unzip:
@@ -590,7 +596,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\tv\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ tv_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract Streams
   community.windows.win_unzip:
@@ -606,7 +613,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\stm\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ stm_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract Sysmon
   community.windows.win_unzip:
@@ -622,7 +630,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sm\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ sm_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract Access Check
   community.windows.win_unzip:
@@ -638,7 +647,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ac\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ ac_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract Strings
   community.windows.win_unzip:
@@ -654,7 +664,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\str\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ str_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract Hollows Hunter
   community.windows.win_unzip:
@@ -680,7 +691,8 @@
   win_shell: |
     Rename-Item -Path "{{ scripts_path }}\\tools\\yara\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
   loop: "{{ yara_exes.stdout_lines }}"
-  no_log: true
+  loop_control:
+    label: "{{ item }}"
 
 - name: Extract Windows Yara Rules
   community.windows.win_unzip:
