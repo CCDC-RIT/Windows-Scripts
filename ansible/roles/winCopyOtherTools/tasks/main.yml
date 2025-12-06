@@ -22,6 +22,11 @@
     path: "{{ scripts_path }}\\zipped"
     state: directory
 
+- name: Create stabvest Directory
+  ansible.builtin.win_file:
+    path: "{{ scripts_path }}\\stabvest"
+    state: directory
+
 # Directories inside scripts directory
 
 - name: Create conf Directory
@@ -129,6 +134,18 @@
     src: "{{ scripts_ansible_location }}/def-eg-settings.xml"
     dest: "{{ scripts_path }}\\scripts\\conf\\def-eg-settings.xml"
     remote_src: false
+
+# Copy over stabvest materials
+
+- name: Copy Config.json
+  win_copy:
+    src: "{{ scripts_ansible_location }}/config.json"
+    dest: "{{ scripts_path }}\\stabvest\\config.json"
+
+- name: Copy Stabvest Agent
+  win_copy:
+    src: "{{ scripts_ansible_location }}/agent.exe"
+    dest: "{{ scripts_path }}\\stabvest\\agent.exe"
 
 # Install Bitlocker and Defender
 
