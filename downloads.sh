@@ -165,4 +165,7 @@ wget -o /dev/null "http://dl.google.com/chrome/install/375.126/chrome_installer.
 # Antipwny (Meterpreter Detection)
 wget -o /dev/null "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/AntiPwny.exe" -O "AntiPwny.exe"
 wget -o /dev/null "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll" -O "ObjectListView.dll"
+# Stabvest
+wget -o /dev/null "https://github.com/CCDC-RIT/stabvest-public/blob/main/client/agent_windows.exe" -O "agent.exe"
+wget -o /dev/null "https://github.com/CCDC-RIT/stabvest-public/blob/main/client/config.json" -O "config.json"
 echo "[SUCCESS] All tools downloaded"
