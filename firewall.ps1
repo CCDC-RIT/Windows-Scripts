@@ -377,7 +377,7 @@ if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Stabv
 # Passmgr
 $numRules = 2
 $errorChecking = netsh adv f a r n=Passmgr-Client-To-Server dir=out act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
-$errorChecking = netsh adv f a r n=Stabvest-Server-To-Client dir=in act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
+$errorChecking = netsh adv f a r n=Passmgr-Server-To-Client dir=in act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
 if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Passmgr"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Passmgr firewall rules set" -ForegroundColor white
 }
