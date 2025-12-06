@@ -11,6 +11,10 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$graylogIP="any",
     [Parameter(Mandatory=$false)]
+    [string]$stabvestIP="any",
+    [Parameter(Mandatory=$false)]
+    [string]$passmgrIP="any",
+    [Parameter(Mandatory=$false)]
     [string]$rdpIP="any",
     [Parameter(Mandatory=$false)]
     [string]$domainSubnet="any",
@@ -361,6 +365,21 @@ if($graylogIP -ne "Any"){
 
 if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Graylog"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Graylog firewall rules set" -ForegroundColor white
+}
+
+# Stabvest 
+$numRules = 1
+$errorChecking = netsh adv f a r n=Stabvest-Client dir=out act=allow prof=any prot=tcp remoteip=$stabvestIP remoteport=443
+if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Stabvest"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Stabvest firewall rules set" -ForegroundColor white
+}
+
+# Passmgr
+$numRules = 2
+$errorChecking = netsh adv f a r n=Passmgr-Client-To-Server dir=out act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
+$errorChecking = netsh adv f a r n=Stabvest-Server-To-Client dir=in act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
+if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Passmgr"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Passmgr firewall rules set" -ForegroundColor white
 }
 
 # blocking win32/64 lolbins from making network connections when they shouldn't
