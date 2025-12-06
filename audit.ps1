@@ -35,7 +35,7 @@ Function Yara-ScanDir {
     param(
         [string]$Directory
     )
-    & $psexecPath /accepteula -s (Join-Path -Path $yaraDir -ChildPath "yara64_ccdc.exe") -C (Join-Path -Path $yaraDir -ChildPath "windows_compiled_yara_rules") $Directory -r --no-warnings > $yaraPath
+    & $psexecPath /accepteula -s (Join-Path -Path $yaraDir -ChildPath "yara64_ccdc.exe") -C (Join-Path -Path $yaraDir -ChildPath "windows_compiled_yara_rules") $Directory -r --threads=1 --no-warnings > $yaraPath
 
     (Get-Content $yaraPath | Where-Object { -not $_.Contains($rootDir) }) | Set-Content $yaraPath
 
@@ -878,4 +878,5 @@ $rules = $($rules.Replace("`r`n", " ") -split " ")
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Auditing entire file system with YARA. This takes a while" -ForegroundColor white
 Yara-ScanDir -Directory "C:"
+
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited entire file system with YARA" -ForegroundColor white
