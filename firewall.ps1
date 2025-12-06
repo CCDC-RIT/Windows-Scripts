@@ -176,6 +176,8 @@ $protocolArray = @(
     [pscustomobject]@{Service="w32time";Protocol="udp";Ports="123"}
     [pscustomobject]@{Service="dns";Protocol="udp";Ports="53"}
     [pscustomobject]@{Service="ntp";Protocol="udp";Ports="123"}
+    [pscustomobject]@{Service="nfs";Protocol="both";Ports="2049"}
+    [pscustomobject]@{Service="snmp";Protocol="udp";Ports="161,162"}
 )
 if($extrarules.count -ne 0){
     foreach($rule in $extrarules){
@@ -435,6 +437,7 @@ if ($LockoutPrevention) {
 }
 
 #Chandi Fortnite
+
 
 
 
