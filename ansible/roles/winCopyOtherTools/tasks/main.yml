@@ -93,6 +93,11 @@
     dest: "{{ scripts_path }}\\scripts\\logging.ps1"
     remote_src: false
 
+- name: Disable Windows Defender Script
+  win_shell: |
+    Set-MpPreference -DisableRealtimeMonitoring $true
+  ignore_errors: true
+
 - name: Copy PrivescCheck Script
   win_copy:
     src: "{{ scripts_ansible_location }}/PrivescCheck.ps1"
@@ -472,170 +477,90 @@
     src: "{{ scripts_path }}\\ps.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\ps"
 
-- name: Get PSExec executables
+- name: Rename PSExec executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ps" -Filter "*.exe").BaseName
-  register: psexec_exes
-
-- name: Rename psexec executables
-  win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ps\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ psexec_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ps" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ps\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract List DLLs
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\dll.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\dll"
 
-- name: Get List DLLs executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\dll" -Filter "*.exe").BaseName
-  register: dll_exes
-
 - name: Rename List DLLs executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\dll\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ dll_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\dll" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\dll\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Process Explorer
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\pe.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\pe"
 
-- name: Get Process Explorer executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pe" -Filter "*.exe").BaseName
-  register: pe_exes
-
 - name: Rename Process Explorer executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pe\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ pe_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pe" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pe\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Process Monitor
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\pm.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\pm"
 
-- name: Get Process Monitor executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pm" -Filter "*.exe").BaseName
-  register: pm_exes
-
 - name: Rename Process Monitor executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pm\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ pm_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Sig Check
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\sc.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\sc"
 
-- name: Get Sig Check executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sc" -Filter "*.exe").BaseName
-  register: sc_exes
-
 - name: Rename Sig Check executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sc\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ sc_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sc" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sc\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract TCP View
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\tv.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\tv"
 
-- name: Get TCP View executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\tv" -Filter "*.exe").BaseName
-  register: tv_exes
-
 - name: Rename TCP View executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\tv\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ tv_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\tv" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\tv\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Streams
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\stm.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\stm"
 
-- name: Get Streams executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\stm" -Filter "*.exe").BaseName
-  register: stm_exes
-
 - name: Rename Streams executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\stm\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ stm_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\stm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\stm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Sysmon
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\sm.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\sm"
 
-- name: Get Sysmon executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sm" -Filter "*.exe").BaseName
-  register: sm_exes
-
 - name: Rename Sysmon executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sm\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ sm_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Access Check
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\ac.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\ac"
 
-- name: Get Access Check executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ac" -Filter "*.exe").BaseName
-  register: ac_exes
-
 - name: Rename Access Check executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ac\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ ac_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ac" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ac\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Strings
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\str.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\str"
 
-- name: Get Strings executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\str" -Filter "*.exe").BaseName
-  register: str_exes
-
 - name: Rename Strings executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\str\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ str_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\str" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\str\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Hollows Hunter
   community.windows.win_unzip:
@@ -652,17 +577,9 @@
     src: "{{ scripts_path }}\\yara.zip"
     dest: "{{ scripts_path }}\\tools\\yara"
 
-- name: Get Yara executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\yara" -Filter "*.exe").BaseName
-  register: yara_exes
-
 - name: Rename Yara executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\yara\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ yara_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\yara" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\yara\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Windows Yara Rules
   community.windows.win_unzip:
@@ -683,6 +600,11 @@
   win_shell: |
     Move-Item -Path "{{ scripts_path }}\tools\yara\packages\full\yara-rules-full.yar" -Destination "{{ scripts_path }}\tools\yara\Multi\YaraHQRules.yara"
     Remove-Item -Path "{{ scripts_path }}\tools\yara\packages" -Recurse
+
+- name: Enable WWindows Defender
+  win_shell: |
+    Set-MpPreference -DisableRealtimeMonitoring $false
+  ignore_errors: true
 
 - name: Extract Everything Search Tool
   community.windows.win_unzip:
