@@ -31,7 +31,9 @@ param(
     [Parameter(Mandatory=$false)]
     [bool]$runByAnsible = $false,
     [Parameter(Mandatory=$false)]
-    [array]$randomExtraPorts
+    [array]$randomExtraPorts,
+    [Parameter(Mandatory=$false)]
+    [array]$addIpsFromFile = "none"
 )
 
 Function handleErrors {
@@ -380,6 +382,47 @@ $errorChecking = netsh adv f a r n=Passmgr-Client-To-Server dir=out act=allow pr
 $errorChecking = netsh adv f a r n=Passmgr-Server-To-Client dir=in act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
 if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Passmgr"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Passmgr firewall rules set" -ForegroundColor white
+}
+
+#Extra Firewalls Ips
+if ($addIpsFromFile -ne "none"){
+
+    $filePath = $addIpsFromFile[0]
+    $port = $addIpsFromFile[1]
+
+    # Default behavoir
+    $direction = "Outbound"
+
+    if ($addIpsFromFile.Count -eq 3){
+        $direction = $addIpsFromFile[2]
+
+        if ($direction -eq "in"){
+            $direction = "Inbound"
+        }
+    }
+
+    # Simple regrex pattern, does not check if their vaild IPs
+    $ips = Get-Content $filePath | Select-STring -Pattern "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+
+    $numRules = $ips.Count
+    $errorChecking = ""
+
+    # Sets the rules
+    foreach ($ip in $ips){
+
+        if ($direction -eq "Outbound"){
+            $errorChecking += New-NetFirewallRule -DisplayName "Extra Outbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction $direction -RemoteAddress $ip -RemotePort $port #-ErrorAction SilentlyContinue
+        }
+
+        elseif ($direction -eq "Inbound"){
+            $errorChecking += New-NetFirewallRule -DisplayName "Extra Inbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction $direction -RemoteAddress $ip -LocalPort $port #-ErrorAction SilentlyContinue
+        }
+
+    }
+
+    if (handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Extra Firewall Rules"){
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Extra Firewall Rules set" -ForegroundColor white
+    }
 }
 
 # blocking win32/64 lolbins from making network connections when they shouldn't
