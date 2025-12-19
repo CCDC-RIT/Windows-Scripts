@@ -42,9 +42,11 @@ Function handleErrors {
         [int]$numRules,
         [string]$ruleType
     )
+
     for($i = 0; $i -lt $numRules; $i ++){
         $j = $i * 2
-        if($errorString[$j] -ne "Ok."){
+        
+        if($errorString[$j] -ne "Ok." -and $errorString[$j] -ne "OK"){
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Error When Setting " -ForegroundColor White -NoNewline; Write-Host $ruleType -NoNewline; Write-Host " rules: " -NoNewline; Write-Host $errorString[$j + 1]
             return $false
         }
@@ -379,12 +381,12 @@ if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Stabv
 # Passmgr
 $numRules = 2
 $errorChecking = netsh adv f a r n=Passmgr-Client-To-Server dir=out act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
-$errorChecking = netsh adv f a r n=Passmgr-Server-To-Client dir=in act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
+$errorChecking += netsh adv f a r n=Passmgr-Server-To-Client dir=in act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
 if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Passmgr"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Passmgr firewall rules set" -ForegroundColor white
 }
 
-#Extra Firewalls Ips
+# Extra Firewalls Ips
 if ($addIpsFromFile -ne "none"){
 
     $filePath = $addIpsFromFile[0]
@@ -399,28 +401,44 @@ if ($addIpsFromFile -ne "none"){
         if ($direction -eq "in"){
             $direction = "Inbound"
         }
+
+        elseif ($direction -eq "both"){
+            $direction = "Both"
+        }
+
+        elseif ($direction -eq "out"){
+            $direction = "Outbound"
+        }
     }
 
     # Simple regrex pattern, does not check if their vaild IPs
     $ips = Get-Content $filePath | Select-STring -Pattern "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
 
     $numRules = $ips.Count
-    $errorChecking = ""
+    $errorChecking = @()
 
     # Sets the rules
     foreach ($ip in $ips){
 
         if ($direction -eq "Outbound"){
-            $errorChecking += New-NetFirewallRule -DisplayName "Extra Outbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction $direction -RemoteAddress $ip -RemotePort $port #-ErrorAction SilentlyContinue
+            $errorChecking += (New-NetFirewallRule -DisplayName "Extra Outbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction $direction -RemoteAddress $ip -RemotePort $port).PrimaryStatus
         }
 
         elseif ($direction -eq "Inbound"){
-            $errorChecking += New-NetFirewallRule -DisplayName "Extra Inbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction $direction -RemoteAddress $ip -LocalPort $port #-ErrorAction SilentlyContinue
+            $errorChecking += (New-NetFirewallRule -DisplayName "Extra Inbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction $direction -RemoteAddress $ip -LocalPort $port).PrimaryStatus
         }
 
+        elseif ($direction -eq "Both"){
+            $numRules = $ips.Count * 2
+            $errorChecking += (New-NetFirewallRule -DisplayName "Extra Outbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction Outbound -RemoteAddress $ip -RemotePort $port).PrimaryStatus
+            $errorChecking += "  "
+            $errorChecking += (New-NetFirewallRule -DisplayName "Extra Inbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction Inbound -RemoteAddress $ip -LocalPort $port).PrimaryStatus
+        }
+
+        $errorChecking += "  "
     }
 
-    if (handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Extra Firewall Rules"){
+    if (handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Extra Firewall"){
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Extra Firewall Rules set" -ForegroundColor white
     }
 }
