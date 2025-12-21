@@ -1269,6 +1269,13 @@ if ($IIS) {
     # Gets all sites under IIS:\Sites
     $sites = Get-ChildItem IIS:\Sites
 
+    # Sets all application pool privileges to the minimum
+    foreach ($item in (Get-ChildItem IIS:\AppPools)) { 
+        $tempPath = "IIS:\AppPools\" + $item.Name
+        Set-ItemProperty -Path $tempPath -Name processModel.identityType -Value 4
+    }
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Set all Application Pool Privileges to a Minimum" -ForegroundColor white
+
     foreach ($site in $sites) {
         $siteName = $site.Name
         $siteBindings = Get-WebBinding -Name $siteName
@@ -1279,111 +1286,133 @@ if ($IIS) {
         # Checks the bindings to differentiate between web and FTP servers
         foreach ($binding in $siteBindings) {
             $bindingInformation = $binding.BindingInformation
-            Write-Host "Site: $siteName - Binding: $bindingInformation"
+
+            # Extracting Site Port
+            $port = $bindingInformation.Split(':')[1]
             
             # Checks if the site is an HTTP/HTTPS web server (based on common HTTP/HTTPS ports)
-            if ($bindingInformation -match ":80" -or $bindingInformation -match ":443") {
+            if ($port -match "80" -or $port -match "443" -or $port -match "8080") {
                 $isWebServer = $true
-                Write-Host "$siteName is an HTTP/HTTPS web server"
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] $siteName is a Web Server running on Port $port" -ForegroundColor white
             }
 
             # Checks if the site is an FTP server (based on FTP port 21)
             if ($bindingInformation -match ":21") {
                 $isFtpServer = $true
-                Write-Host "$siteName is an FTP server"
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] $siteName is a FTP Server running on Port $port" -ForegroundColor white
             }
         }
 
         # Applies hardening steps for Web Server
         if ($isWebServer) {
-            Write-Host "Applying Web server hardening for $siteName"
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Applying hardening for $siteName Web Server" -ForegroundColor white
 
-            # Set application pool privileges to minimum for application pools
-            foreach ($item in (Get-ChildItem IIS:\AppPools)) { 
-                $tempPath = "IIS:\AppPools\" + $item.Name
-                Set-ItemProperty -Path $tempPath -Name processModel.identityType -Value 4
-            }
+            # Disables anonymous authentication (Unsure if comps use basic or anonymous auth as of yet)
+            # C:\Windows\System32\inetsrv\appcmd.exe unlock config $siteName -section:system.webServer/security/authentication/anonymousAuthentication /commit:apphost | Out-Null
+            # C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/authentication/anonymousAuthentication /enabled:"False" /commit:apphost | Out-Null
+            # Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled Anonymous Authentication" -ForegroundColor white
 
             # Disables directory browsing for all sites using appcmd
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/directoryBrowse /enabled:"False"
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/directoryBrowse /enabled:"False" /commit:apphost | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled Directory Browsing" -ForegroundColor white
 
             # Enables logging for all sites using appcmd
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/httpLogging /dontLog:"True" /commit:apphost
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/httpLogging /selectiveLogging:"LogAll" /commit:apphost
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/httpLogging /dontLog:"True" /commit:apphost | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/httpLogging /selectiveLogging:"LogAll" /commit:apphost | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled Website Logging" -ForegroundColor white
 
             # Sets HTTP Errors statusCode to 405 for all sites
-            Set-WebConfiguration -Filter "/system.webServer/httpErrors" -PSPath "IIS:\Sites\$siteName" -Value @{errorMode="Custom"; existingResponse="Replace"; statusCode=405}
+            Set-WebConfiguration -Filter "/system.webServer/httpErrors" -PSPath "IIS:\Sites\$siteName" -Value @{errorMode="Custom"; existingResponse="Replace"; statusCode=405} | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Standardized HTTP Error Codes" -ForegroundColor white
 
             # Applies request filtering to block potentially dangerous file extensions
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"fileExtensions.[fileExtension='exe',allowed='False']"
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"fileExtensions.[fileExtension='bat',allowed='False']"
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"fileExtensions.[fileExtension='ps1',allowed='False']"
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"fileExtensions.[fileExtension='exe',allowed='False']" | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"fileExtensions.[fileExtension='bat',allowed='False']" | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"fileExtensions.[fileExtension='ps1',allowed='False']" | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Blocked Dangerous File Extensions" -ForegroundColor white
 
-            # Applies request filtering to block HTTP TRACE and OPTIONS
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"verbs.[verb='OPTIONS',allowed='False']"
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"verbs.[verb='TRACE',allowed='False']"
+            # Applies request filtering to block Risky HTTP Methods
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"verbs.[verb='OPTIONS',allowed='False']" | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"verbs.[verb='TRACE',allowed='False']" | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"verbs.[verb='HEAD',allowed='False']" | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Blocked Dangeous HTTP Methods" -ForegroundColor white
+
+            # Adds a filtering rule to block potential SQL Injection Attacks
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"filteringRules.[name='BlockSQLi',scanUrl='true',scanQueryString='true']" | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"filteringRules.[name='BlockSQLi'].denyStrings.[string='SELECT']" | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"filteringRules.[name='BlockSQLi'].denyStrings.[string='UNION']" | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"filteringRules.[name='BlockSQLi'].denyStrings.[string='DROP']" | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"filteringRules.[name='BlockSQLi'].appliesTo.[fileExtension='.asp']" | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.webServer/security/requestFiltering /+"filteringRules.[name='BlockSQLi'].appliesTo.[fileExtension='.aspx']" | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Blocked Potential SQL Injection" -ForegroundColor white
 
             # Enables Logging for IIS Web Management
             reg add "HKLM\Software\Microsoft\WebManagement\Server" /v EnableLogging /t REG_DWORD /d 1 /f | Out-Null
-            Write-Host "Enabled IIS Web Management Logging."
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled Logging for IIS Web Management" -ForegroundColor white
 
-            # Enables Remote Management for IIS
-            reg add "HKLM\Software\Microsoft\WebManagement\Server" /v EnableRemoteManagement /t REG_DWORD /d 1 /f | Out-Null
-            Write-Host "Enabled IIS Remote Management."
-
-            # Enables IIS Admin Logging to ABO Mapper Log
-            reg add "HKLM\System\CurrentControlSet\Services\IISADMIN\Parameters" /v EnableABOMapperLog /t REG_DWORD /d 1 /f | Out-Null
-            Write-Host "Enabled IIS Admin Logging to ABO Mapper Log."
-
-            # Disables TRACE HTTP Method (Security Measure)
-            reg add "HKLM\System\CurrentControlSet\Services\W3SVC\Parameters" /v EnableTraceMethod /t REG_DWORD /d 1 /f | Out-Null
-            Write-Host "Disabled TRACE HTTP Method."
-
-            # Disables OPTIONS HTTP Method (Security Measure)
-            reg add "HKLM\System\CurrentControlSet\Services\W3SVC\Parameters" /v EnableOptionsMethod /t REG_DWORD /d 1 /f | Out-Null
-            Write-Host "Disabled OPTIONS HTTP Method."
+            # Disables Remote Management for IIS
+            reg add "HKLM\Software\Microsoft\WebManagement\Server" /v EnableRemoteManagement /t REG_DWORD /d 0 /f | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled IIS Remote Management" -ForegroundColor white
 
             # Requires Windows Credentials for Remote IIS Management
             reg add "HKLM\SOFTWARE\Microsoft\WebManagement\Server" /v RequiresWindowsCredentials /t REG_DWORD /d 1 /f | Out-Null
-            Write-Host "Enforced Windows Credentials for IIS Remote Management."
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Required Credentials for IIS Remote Management" -ForegroundColor white
+
+            # Enables IIS Admin Logging to ABO Mapper Log
+            reg add "HKLM\System\CurrentControlSet\Services\IISADMIN\Parameters" /v EnableABOMapperLog /t REG_DWORD /d 1 /f | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled IIS Admin Logging to ABO Mapper Log" -ForegroundColor white
+
+            # Disables Risky HTTP Methods
+            reg add "HKLM\System\CurrentControlSet\Services\W3SVC\Parameters" /v EnableTraceMethod /t REG_DWORD /d 1 /f | Out-Null
+            reg add "HKLM\System\CurrentControlSet\Services\W3SVC\Parameters" /v EnableOptionsMethod /t REG_DWORD /d 1 /f | Out-Null
+            reg add "HKLM\System\CurrentControlSet\Services\W3SVC\Parameters" /v EnableHeadMethod /t REG_DWORD /d 1 /f | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled Risky HTTP Methods" -ForegroundColor white
         }
 
         # Applies hardening steps for FTP Server
         if ($isFtpServer) {
-            Write-Host "Applying FTP server hardening for $siteName"
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Applying FTP server hardening for $siteName" -ForegroundColor white
 
             # Enables basic authentication for FTP
-            Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/security/authentication/basicAuthentication" -name "enabled" -value "true"
+            Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/security/authentication/basicAuthentication" -name "enabled" -value "true" | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled Basic Authentication" -ForegroundColor white
 
             # Disables anonymous authentication for FTP
-            Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/security/authentication/anonymousAuthentication" -name "enabled" -value "false"
+            Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/security/authentication/anonymousAuthentication" -name "enabled" -value "false" | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled Anonymous Authentication" -ForegroundColor white
 
             # Limits the maximum number of simultaneous FTP connections
-            Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/connections" -name "maxConnections" -value 5
+            Set-WebConfigurationProperty -pspath "IIS:\" -filter "system.applicationHost/sites/site[@name='$siteName']/ftpServer/connections" -name "maxConnections" -value 5 | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Limited the Number of Simultaneous FTP Connections to 5" -ForegroundColor white
             
             # Enables Central FTP Logging
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/log /centralLogFileMode:"Central" /commit:apphost
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/log /centralLogFile.enabled:"True" /commit:apphost
+            C:\Windows\System32\inetsrv\appcmd.exe unlock config -section:system.ftpServer/log /commit:apphost | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config -section:system.ftpServer/log /centralLogFileMode:"Central" /centralLogFile.enabled:"True" /commit:apphost | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled Central Logging" -ForegroundColor white
 
             # Other important file handling settings
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.applicationHost/sites /siteDefaults.ftpServer.fileHandling.keepPartialUploads:"False" /commit:apphost.ftpServer.logFile.enabled:"True" /commit:apphost
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.applicationHost/sites /siteDefaults.ftpServer.fileHandling.allowReadUploadsInProgress:"False" /commit:apphost.ftpServer.logFile.enabled:"True" /commit:apphost
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.applicationHost/sites /siteDefaults.ftpServer.fileHandling.allowReplaceOnRename:"False" /commit:apphost.ftpServer.logFile.enabled:"True" /commit:apphost
+            C:\Windows\System32\inetsrv\appcmd.exe unlock config -section:system.applicationHost/sites /commit:apphost | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config -section:system.applicationHost/sites /siteDefaults.ftpServer.fileHandling.keepPartialUploads:"False" /commit:apphost.ftpServer.logFile.enabled:"True" /commit:apphost | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config -section:system.applicationHost/sites /siteDefaults.ftpServer.fileHandling.allowReadUploadsInProgress:"False" /commit:apphost.ftpServer.logFile.enabled:"True" /commit:apphost | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config -section:system.applicationHost/sites /siteDefaults.ftpServer.fileHandling.allowReplaceOnRename:"False" /commit:apphost.ftpServer.logFile.enabled:"True" /commit:apphost | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled Partial Upload/Read" -ForegroundColor white
 
             # Limits the size of files uploaded to the FTP server
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /requestLimits.maxAllowedContentLength:"1000000" /requestLimits.maxUrl:"1024" /commit:apphost
-            
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /requestLimits.maxAllowedContentLength:"1000000" /requestLimits.maxUrl:"1024" /commit:apphost | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Limited Upload Size of File Contents" -ForegroundColor white
+
             # Blocks dangerous file extensions
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /+"fileExtensions.[fileExtension='.bat',allowed='False']" /commit:apphost
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /+"fileExtensions.[fileExtension='.exe',allowed='False']" /commit:apphost
-            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /+"fileExtensions.[fileExtension='.ps1',allowed='False']" /commit:apphost
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /+"fileExtensions.[fileExtension='.bat',allowed='False']" /commit:apphost | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /+"fileExtensions.[fileExtension='.exe',allowed='False']" /commit:apphost | Out-Null
+            C:\Windows\System32\inetsrv\appcmd.exe set config $siteName -section:system.ftpServer/security/requestFiltering /+"fileExtensions.[fileExtension='.ps1',allowed='False']" /commit:apphost | Out-Null
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Blocked Dangerous File Extensions" -ForegroundColor white
         }
     }
     # Restarts IIS services to apply changes
-    Write-Host "Restarting IIS services to apply changes..."
-    iisreset
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Restarting IIS services to apply changes..." -ForegroundColor white
+    iisreset | Out-Null
 
-    Write-Host "[INFO] IIS Hardening Configurations Applied Successfully."
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] IIS Hardening Configurations Applied Successfully" -ForegroundColor white
 }
 
 # CA security?
@@ -1406,5 +1435,6 @@ Write-Host "See " -NoNewline -ForegroundColor Cyan; Write-Host (Join-Path -Path 
 # EDIT: Run the command below manually! It does not work in a script. 
 # FOR /F "usebackq tokens=2 delims=:" %a IN (`sc.exe sdshow scmanager`) DO  sc.exe sdset scmanager D:(D;;GA;;;NU)%a
 #Chandi Fortnite
+
 
 
