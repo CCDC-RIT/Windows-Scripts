@@ -33,7 +33,9 @@ param(
     [Parameter(Mandatory=$false)]
     [array]$randomExtraPorts,
     [Parameter(Mandatory=$false)]
-    [array]$addIpsFromFile = "none"
+    [array]$addIpsFromFile = "none",
+    [Parameter(Mandatory=$false)]
+    [array]$addIpv6
 )
 
 Function handleErrors {
@@ -442,6 +444,62 @@ if ($addIpsFromFile -ne "none"){
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Extra Firewall Rules set" -ForegroundColor white
     }
 }
+
+# Add IPv6 Firewall Ips ###UNTESTED AND STILL UNDER DEVELOPMENT
+if ($addIpv6.count -ne 0){
+    $numrules = 0
+    $errorChecking = @() 
+    #all option outbound & inbound for all ports for all ipv6 ips
+    if ($addIpv6[0][-1] -eq "l"){
+        $errorChecking += (New-NetFirewallRule -Name "Allow All IPv6 Inbound" -DisplayName "Allow All IPv6 Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress Any -Profile Any -IPv6 True).PrimaryStatus
+        $errorChecking += (New-NetFirewallRule -Name "Allow All IPv6 Outbound" -DisplayName "Allow All IPv6 Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress Any -Profile Any -IPv6 True).PrimaryStatus
+        $numRules = 2
+    }
+    #single ip option (outbound & inbound) + maybe more ips (up to total 3 ips)
+    elseif ($addIpv6[0][-1] -eq "i"){
+
+        if ($addIpv6.count -ge 1){ #could probably remove this if statement
+
+            $ipv6ip1 = $addIpv6[0].substring(0,$addIpv6[0].length-1)
+            #option to add ip1(o/i) + increment numrules by 2
+
+            if ($addIpv6.count -ge 2){
+
+                $ipv6ip2 = $addIpv6[1]
+                #option to add ip2(o/i) + increment numrules by 2
+
+                if ($addIpv6.count -ge 3){
+
+                $ipv6ip3 = $addIpv6[2]
+                #option to add ip3 + increment numrules by 2
+                }
+            }
+        }
+    }
+    # subnet option (outbound & inbound) + maybe ips (up to total 2 ips)
+    elseif ($addIpv6[0][-1] -eq "s"){ # 1 subnet option + maybe ips
+
+        $ipv6Subnet = $addIpv6[0]
+
+        if ($addIpv6.count -ge 2){
+
+            $ipv6ip1 = $addIpv6[1]
+            #option to add ip1(o/i) + increment numrules by 2
+
+            if ($addIpv6.count -ge 3){
+
+                $ipv6ip2 = $addIpv6[2]
+                #option to add ip2(o/i) + increment numrules by 2
+            }
+        }
+    }
+
+    if (handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Extra Firewall"){
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Extra Firewall Rules set" -ForegroundColor white
+    }
+}
+
+
 
 # blocking win32/64 lolbins from making network connections when they shouldn't
 netsh advfirewall firewall add rule name="Block appvlp.exe netconns" program="C:\Program Files (x86)\Microsoft Office\root\client\AppVLP.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
