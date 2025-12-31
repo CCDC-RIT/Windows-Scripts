@@ -447,58 +447,124 @@ if ($addIpsFromFile -ne "none"){
 
 # Add IPv6 Firewall Ips ###UNTESTED AND STILL UNDER DEVELOPMENT
 if ($addIpv6.count -ne 0){
+    #might need a line up here to enable ipv6 if its disabled on the system...
     $numrules = 0
-    $errorChecking = @() 
-    #all option outbound & inbound for all ports for all ipv6 ips
-    if ($addIpv6[0][-1] -eq "l"){
-        $errorChecking += (New-NetFirewallRule -Name "Allow All IPv6 Inbound" -DisplayName "Allow All IPv6 Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress Any -Profile Any -IPv6 True).PrimaryStatus
-        $errorChecking += (New-NetFirewallRule -Name "Allow All IPv6 Outbound" -DisplayName "Allow All IPv6 Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress Any -Profile Any -IPv6 True).PrimaryStatus
-        $numRules = 2
+    $errorChecking = @()
+    $var1 = "None"
+    $var2 = "None"
+    $var3 = "None"
+    $var1id = "None"
+    $var2id = "None"
+    $var3id = "None"
+    $var1dir = "None"
+    $var2dir = "None"
+    $var3dir = "None"
+    foreach ($part in $addIpv6){
+        # all option
+        if ($addIpv6[0][-1] -eq "l"){
+            $errorChecking += (New-NetFirewallRule -Name "Allow All IPv6 Inbound" -DisplayName "Allow All IPv6 Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress Any -Profile Any -IPv6 True).PrimaryStatus
+            $errorChecking += (New-NetFirewallRule -Name "Allow All IPv6 Outbound" -DisplayName "Allow All IPv6 Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress Any -Profile Any -IPv6 True).PrimaryStatus
+            $numRules = 2
+            break
+        }
+        # determine if a subnet or single ip
+        $isSubnet = $part -like "*/*"
+        # either a clean subnet or ip
+        $cleanvar = $part -replace '[io]+$', ''
+        # determines direction
+        $direction = "None"
+        if ($part.EndsWith("io")) {
+            $direction = "Both"
+        } 
+        elseif ($part.EndsWith("i")) {
+            $direction = "Inbound"
+        } 
+        elseif ($part.EndsWith("o")) {
+            $direction = "Outbound"
+        }
+        # if subnet 
+        if ($isSubnet){
+            if ($var1 -ne "None"){
+                if ($var2 -ne "None"){
+                    $var3 = $cleanvar
+                    $var3id = "Subnet"
+                    $var3dir = $direction
+                }
+                else {
+                    $var2 = $cleanvar
+                    $var2id = "Subnet"
+                    $var2dir = $direction
+                }
+            }
+            else{
+                $var1 = $cleanvar
+                $var1id = "Subnet"
+                $var1dir = $direction
+            }   
+        }
+        # if ip
+        elseif($isSubnet -eq $false) {
+            if ($var1 -ne "None"){
+                if ($var2 -ne "None"){
+                    $var3 = $cleanvar
+                    $var3id = "IP"
+                    $var3dir = $direction
+                }
+                else {
+                    $var2 = $cleanvar
+                    $var2id = "IP"
+                    $var2dir = $direction
+                }
+            }
+            else{
+                $var1 = $cleanvar
+                $var1id = "IP"
+                $var1dir = $direction
+            }
+        }
     }
-    #single ip option (outbound & inbound) + maybe more ips (up to total 3 ips)
-    elseif ($addIpv6[0][-1] -eq "i"){
-
-        if ($addIpv6.count -ge 1){ #could probably remove this if statement
-
-            $ipv6ip1 = $addIpv6[0].substring(0,$addIpv6[0].length-1)
-            #option to add ip1(o/i) + increment numrules by 2
-
-            if ($addIpv6.count -ge 2){
-
-                $ipv6ip2 = $addIpv6[1]
-                #option to add ip2(o/i) + increment numrules by 2
-
-                if ($addIpv6.count -ge 3){
-
-                $ipv6ip3 = $addIpv6[2]
-                #option to add ip3 + increment numrules by 2
+    #put now all 3 in a triplets for easier processing
+    $triplets = @( #maybe declare above?
+        [pscustomobject]@{Value=$var1;Type=$var1id;Direction=$var1dir}
+        [pscustomobject]@{Value=$var2;Type=$var2id;Direction=$var2dir}
+        [pscustomobject]@{Value=$var3;Type=$var3id;Direction=$var3dir}
+    )
+    # process each triplet
+    foreach ($triplet in $triplets){ 
+        if ($triplet.Value -ne "None"){
+            if ($triplet.Type -eq "IP"){
+                if ($triplet.Direction -eq "Both"){
+                    # single ip both option
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) Inbound" -DisplayName "Allow IPv6 $($triplet.Value) Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) Outbound" -DisplayName "Allow IPv6 $($triplet.Value) Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
+                    $numRules += 2
+                }
+                else{
+                    # single ip in or out option
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) $($triplet.Direction)" -DisplayName "Allow IPv6 $($triplet.Value) $($triplet.Direction) Traffic" -Direction $triplet.Direction -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
+                    $numRules += 1
+                }
+            }
+            elseif ($triplet.Type -eq "Subnet"){
+                if ($triplet.Direction -eq "Both"){
+                    # subnet both option
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) Inbound" -DisplayName "Allow IPv6 Subnet $($triplet.Value) Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) Outbound" -DisplayName "Allow IPv6 Subnet $($triplet.Value) Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
+                    $numRules += 2
+                }
+                else{
+                    # subnet option
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) $($triplet.Direction)" -DisplayName "Allow IPv6 Subnet $($triplet.Value) $($triplet.Direction) Traffic" -Direction $triplet.Direction -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
+                    $numRules += 1
                 }
             }
         }
     }
-    # subnet option (outbound & inbound) + maybe ips (up to total 2 ips)
-    elseif ($addIpv6[0][-1] -eq "s"){ # 1 subnet option + maybe ips
 
-        $ipv6Subnet = $addIpv6[0]
-
-        if ($addIpv6.count -ge 2){
-
-            $ipv6ip1 = $addIpv6[1]
-            #option to add ip1(o/i) + increment numrules by 2
-
-            if ($addIpv6.count -ge 3){
-
-                $ipv6ip2 = $addIpv6[2]
-                #option to add ip2(o/i) + increment numrules by 2
-            }
-        }
-    }
-
-    if (handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Extra Firewall"){
-        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Extra Firewall Rules set" -ForegroundColor white
+    if (handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Extra IPv6 Firewall"){
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Extra IPv6 Firewall Rules set" -ForegroundColor white
     }
 }
-
 
 
 # blocking win32/64 lolbins from making network connections when they shouldn't
