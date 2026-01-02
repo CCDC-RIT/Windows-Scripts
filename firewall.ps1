@@ -450,20 +450,15 @@ if ($addIpv6.count -ne 0){
     #might need a line up here to enable ipv6 if its disabled on the system...
     $numrules = 0
     $errorChecking = @()
-    $var1 = "None"
-    $var2 = "None"
-    $var3 = "None"
-    $var1id = "None"
-    $var2id = "None"
-    $var3id = "None"
-    $var1dir = "None"
-    $var2dir = "None"
-    $var3dir = "None"
+    #put now all 3 in a triplets for easier processing
+    $triplets = @()
     foreach ($part in $addIpv6){
         # all option
         if ($addIpv6[0][-1] -eq "l"){
-            $errorChecking += (New-NetFirewallRule -Name "Allow All IPv6 Inbound" -DisplayName "Allow All IPv6 Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress Any -Profile Any -IPv6 True).PrimaryStatus
-            $errorChecking += (New-NetFirewallRule -Name "Allow All IPv6 Outbound" -DisplayName "Allow All IPv6 Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress Any -Profile Any -IPv6 True).PrimaryStatus
+            $errorChecking += (New-NetFirewallRule -Name "Allow_All_IPv6_Inbound" -DisplayName "Allow All IPv6 Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -RemoteAddress "2000::/3","fc00::/7","fe80::/10" -Profile Any -Enabled True).PrimaryStatus
+            $errorChecking += "  "
+            $errorChecking += (New-NetFirewallRule -Name "Allow All IPv6 Outbound" -DisplayName "Allow All IPv6 Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -RemoteAddress "2000::/3","fc00::/7","fe80::/10" -Profile Any -Enabled True).PrimaryStatus
+            $errorChecking += "  "
             $numRules = 2
             break
         }
@@ -484,77 +479,46 @@ if ($addIpv6.count -ne 0){
         }
         # if subnet 
         if ($isSubnet){
-            if ($var1 -ne "None"){
-                if ($var2 -ne "None"){
-                    $var3 = $cleanvar
-                    $var3id = "Subnet"
-                    $var3dir = $direction
-                }
-                else {
-                    $var2 = $cleanvar
-                    $var2id = "Subnet"
-                    $var2dir = $direction
-                }
-            }
-            else{
-                $var1 = $cleanvar
-                $var1id = "Subnet"
-                $var1dir = $direction
-            }   
+            $triplets += [pscustomobject]@{Value=$cleanvar;Type="Subnet";Direction=$direction}
         }
         # if ip
-        elseif($isSubnet -eq $false) {
-            if ($var1 -ne "None"){
-                if ($var2 -ne "None"){
-                    $var3 = $cleanvar
-                    $var3id = "IP"
-                    $var3dir = $direction
-                }
-                else {
-                    $var2 = $cleanvar
-                    $var2id = "IP"
-                    $var2dir = $direction
-                }
-            }
-            else{
-                $var1 = $cleanvar
-                $var1id = "IP"
-                $var1dir = $direction
-            }
+        else{
+            $triplets += [pscustomobject]@{Value=$cleanvar;Type="IP";Direction=$direction}
         }
     }
-    #put now all 3 in a triplets for easier processing
-    $triplets = @( #maybe declare above?
-        [pscustomobject]@{Value=$var1;Type=$var1id;Direction=$var1dir}
-        [pscustomobject]@{Value=$var2;Type=$var2id;Direction=$var2dir}
-        [pscustomobject]@{Value=$var3;Type=$var3id;Direction=$var3dir}
-    )
+    
     # process each triplet
     foreach ($triplet in $triplets){ 
         if ($triplet.Value -ne "None"){
             if ($triplet.Type -eq "IP"){
                 if ($triplet.Direction -eq "Both"){
                     # single ip both option
-                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) Inbound" -DisplayName "Allow IPv6 $($triplet.Value) Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
-                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) Outbound" -DisplayName "Allow IPv6 $($triplet.Value) Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) Inbound" -DisplayName "Allow IPv6 $($triplet.Value) Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) Outbound" -DisplayName "Allow IPv6 $($triplet.Value) Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
                     $numRules += 2
                 }
                 else{
                     # single ip in or out option
-                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) $($triplet.Direction)" -DisplayName "Allow IPv6 $($triplet.Value) $($triplet.Direction) Traffic" -Direction $triplet.Direction -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) $($triplet.Direction)" -DisplayName "Allow IPv6 $($triplet.Value) $($triplet.Direction) Traffic" -Direction $triplet.Direction -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
                     $numRules += 1
                 }
             }
             elseif ($triplet.Type -eq "Subnet"){
                 if ($triplet.Direction -eq "Both"){
                     # subnet both option
-                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) Inbound" -DisplayName "Allow IPv6 Subnet $($triplet.Value) Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
-                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) Outbound" -DisplayName "Allow IPv6 Subnet $($triplet.Value) Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) Inbound" -DisplayName "Allow IPv6 Subnet $($triplet.Value) Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) Outbound" -DisplayName "Allow IPv6 Subnet $($triplet.Value) Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
                     $numRules += 2
                 }
                 else{
                     # subnet option
-                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) $($triplet.Direction)" -DisplayName "Allow IPv6 Subnet $($triplet.Value) $($triplet.Direction) Traffic" -Direction $triplet.Direction -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -IPv6 True).PrimaryStatus
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) $($triplet.Direction)" -DisplayName "Allow IPv6 Subnet $($triplet.Value) $($triplet.Direction) Traffic" -Direction $triplet.Direction -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
                     $numRules += 1
                 }
             }
