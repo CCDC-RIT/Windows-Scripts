@@ -1415,9 +1415,39 @@ if ($IIS) {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] IIS Hardening Configurations Applied Successfully" -ForegroundColor white
 }
 
-# CA security?
+# CA security
 if ($CA) {
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Certificate Authority Detected" -ForegroundColor white
 
+    # Enables Auditing for Certificate Services Events
+    certutil -setreg ca\auditfilter 127 | Out-Null
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled Auditing for Certificate Services Events" -ForegroundColor white
+
+    # Adds CA Auditing to Event Viewer Logs
+    Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Lsa" -Name "SCENoApplyLegacyPolicy" -Value 1 -Type DWord | Out-Null
+    Auditpol /set /subcategory:"Certification Services" /success:enable /failure:enable | Out-Null #rn might not work properly
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled Event Viewer Logs for the CA" -ForegroundColor white
+
+    # Disables Weak Cryptography
+    certutil -setreg CA\CSP\CNGHashAlgorithm SHA256 | Out-Null
+    certutil -setreg CA\CRLHashAlgorithm SHA256 | Out-Null
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled Weak Cryptography" -ForegroundColor white
+
+    # Sets Key Size Requirements
+    certutil -setreg CA\KeySize 2048 | Out-Null
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Set Key Size Requirements to 2048 Bits" -ForegroundColor white
+
+    # Disables Unnecessary Features
+    certutil -setreg CA\DisablePasswordSaving 1 | Out-Null
+    certutil -setreg CA\DisableRequestThreads 1 | Out-Null
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled Unnecessary CA Features" -ForegroundColor white
+
+    # Restarts the CA to apply changes
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Restarting CA services to apply changes..."
+    Restart-Service CertSvc | Out-Null
+    gpupdate /force | Out-Null
+
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] CA Hardening Configurations Applied Successfully" -ForegroundColor white
 }
 
 # Enabling Constrained Language Mode (the wrong way) (disabled for now because it breaks some tools)
@@ -1435,6 +1465,7 @@ Write-Host "See " -NoNewline -ForegroundColor Cyan; Write-Host (Join-Path -Path 
 # EDIT: Run the command below manually! It does not work in a script. 
 # FOR /F "usebackq tokens=2 delims=:" %a IN (`sc.exe sdshow scmanager`) DO  sc.exe sdset scmanager D:(D;;GA;;;NU)%a
 #Chandi Fortnite
+
 
 
 
