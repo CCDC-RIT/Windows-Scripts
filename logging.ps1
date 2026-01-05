@@ -127,6 +127,7 @@ if (Get-Service -Name W3SVC 2>$null) {
 if (Get-Service -Name CertSvc 2>$null) {
     auditpol /set /subcategory:"Certification Services" /success:enable /failure:enable
     certutil -setreg policy\EditFlags +EDITF_AUDITCERTTEMPLATELOAD
+    Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Lsa" -Name "SCENoApplyLegacyPolicy" -Value 1 -Type DWord | Out-Null
     # Enabling ADCS auditing
     $domain = (Get-ADDomain).DistinguishedName
     $searchBase = "CN=Configuration,$domain"
@@ -154,3 +155,4 @@ if ($wazuhIP) {
 }
     
     #Chandi Fortnite
+
