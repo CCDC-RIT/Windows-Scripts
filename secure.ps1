@@ -1419,15 +1419,6 @@ if ($IIS) {
 if ($CA) {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Certificate Authority Detected" -ForegroundColor white
 
-    # Enables Auditing for Certificate Services Events
-    certutil -setreg ca\auditfilter 127 | Out-Null
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled Auditing for Certificate Services Events" -ForegroundColor white
-
-    # Adds CA Auditing to Event Viewer Logs
-    Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Lsa" -Name "SCENoApplyLegacyPolicy" -Value 1 -Type DWord | Out-Null
-    Auditpol /set /subcategory:"Certification Services" /success:enable /failure:enable | Out-Null #rn might not work properly
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Enabled Event Viewer Logs for the CA" -ForegroundColor white
-
     # Disables Weak Cryptography
     certutil -setreg CA\CSP\CNGHashAlgorithm SHA256 | Out-Null
     certutil -setreg CA\CRLHashAlgorithm SHA256 | Out-Null
@@ -1465,6 +1456,7 @@ Write-Host "See " -NoNewline -ForegroundColor Cyan; Write-Host (Join-Path -Path 
 # EDIT: Run the command below manually! It does not work in a script. 
 # FOR /F "usebackq tokens=2 delims=:" %a IN (`sc.exe sdshow scmanager`) DO  sc.exe sdset scmanager D:(D;;GA;;;NU)%a
 #Chandi Fortnite
+
 
 
 
