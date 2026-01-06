@@ -1,6 +1,7 @@
 # Optional parameter for password
 param (
-    [SecureString]$Password = $(throw "-Password is required.")
+    [SecureString]$Password = $(throw "-Password is required."),
+    [switch]$enableipv6
 )
 
 # Lorge secure script
@@ -793,8 +794,10 @@ ipconfig /flushdns | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Flushed DNS cache" -ForegroundColor white 
 
 ## Disabling ipv6
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\tcpip6\Parameters" /v DisabledComponents /t REG_DWORD /d 255 /f | Out-null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled IPv6" -ForegroundColor white 
+if (-not $enableipv6) {
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\tcpip6\Parameters" /v DisabledComponents /t REG_DWORD /d 255 /f | Out-null
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled IPv6" -ForegroundColor white 
+}
 
 ## Disabling source routing for IPv4 and IPv6
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\tcpip\Parameters" /v DisableIPSourceRouting /t REG_DWORD /d 2 /f | Out-Null
