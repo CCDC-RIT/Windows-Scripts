@@ -1,7 +1,8 @@
 # Optional parameter for password
 param (
     [SecureString]$Password = $(throw "-Password is required."),
-    [switch]$enableipv6
+    [switch]$enableipv6,
+    [switch]$keeppsexec
 )
 
 # Lorge secure script
@@ -553,6 +554,9 @@ try {
     # Block Win32 API calls from Office macro
     Add-MpPreference -AttackSurfaceReductionRules_Ids 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B -AttackSurfaceReductionRules_Actions Enabled | Out-Null
     # Block process creations originating from PSExec and WMI commands
+    if (-not $keeppsexec) {
+        Add-MpPreference -AttackSurfaceReductionRules_Ids 3B576869-A4EC-4529-8536-B80A7769E899 -AttackSurfaceReductionRules_Actions Enabled | Out-Null
+    }
     Add-MpPreference -AttackSurfaceReductionRules_Ids D1E49AAC-8F56-4280-B9BA-993A6D77406C -AttackSurfaceReductionRules_Actions Enabled | Out-Null
     # Block untrusted and unsigned processes that run from USB
     Add-MpPreference -AttackSurfaceReductionRules_Ids B2B3F03D-6A65-4F7B-A9C7-1C7EF74A9BA4 -AttackSurfaceReductionRules_Actions Enabled | Out-Null
@@ -597,8 +601,10 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundC
 
 # ----------- Service security ------------
 ## Stopping psexec with the power of svchost
-reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\PSEXESVC.exe" /v Debugger /t REG_SZ /d "svchost.exe" /f | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Added psexec mitigation" -ForegroundColor white 
+if (-not $keeppsexec) {
+    reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\PSEXESVC.exe" /v Debugger /t REG_SZ /d "svchost.exe" /f | Out-Null
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Added psexec mitigation" -ForegroundColor white 
+}
 ## Disabling offline files
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\CSC" /v Start /t REG_DWORD /d 4 /f | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled offline files" -ForegroundColor white 
@@ -1459,8 +1465,3 @@ Write-Host "See " -NoNewline -ForegroundColor Cyan; Write-Host (Join-Path -Path 
 # EDIT: Run the command below manually! It does not work in a script. 
 # FOR /F "usebackq tokens=2 delims=:" %a IN (`sc.exe sdshow scmanager`) DO  sc.exe sdset scmanager D:(D;;GA;;;NU)%a
 #Chandi Fortnite
-
-
-
-
-
