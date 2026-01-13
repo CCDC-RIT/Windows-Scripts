@@ -50,6 +50,16 @@ if (Get-Service -Name WinRM 2>$null) {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM configuration backed up" -ForegroundColor white
 }
 
+# Creates profiles backup folder
+New-Item -Path $backupPath -Name "profiles" -ItemType "directory" | Out-Null
+$profileBackupPath = Join-Path -Path $backupPath -childPath "profiles"
+
+# Copy's backup script, Suppresses errors in case they don't exist
+Copy-Item "$HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" $profileBackupPath | Out-Null
+Copy-Item "$HOME\Documents\WindowsPowerShell\profile.ps1" $profileBackupPath | Out-Null
+Copy-Item "C:/Windows/System32/WindowsPowerShell/v1.0/profile.ps1" $profileBackupPath |Out-Null
+Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Copied powershell profiles" -ForegroundColor white
+
 # Notes for xcopy
 # /H - Include Hidden Files
 # /I - Creates the Destination Directory if it doesn't exist (Kind of)
