@@ -73,6 +73,8 @@ wget -o /dev/null "$(get_download_url "Logging-Scripts" "yara.bat")" -O "yara.ba
 wget -o /dev/null "$(get_download_url "Windows-Scripts" "usermgmt.ps1")" -O "usermgmt.ps1"
 # SOAR Agent Script
 wget -o /dev/null "$(get_download_url "Windows-Scripts" "SOARAgent.ps1")" -O "soaragent.ps1"
+# Powershell profile
+wget -o /dev/null "$(get_download_url "Windows-Scripts" "profile.ps1")" -O "profile.ps1"
 
 echo "[SUCCESS] Scripts downloaded."
 

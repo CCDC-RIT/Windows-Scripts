@@ -140,6 +140,18 @@
     dest: "{{ scripts_path }}\\scripts\\conf\\def-eg-settings.xml"
     remote_src: false
 
+
+- name: Copy Powershell Profiles
+  win_copy:
+    src: "{{ scripts_ansible_location }}/profile.ps1"
+    dest: "{{ item }}"
+
+    loop:
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/profile.ps1" 
+      - "$HOME/Documents/WindowsPowerShell/profile.ps1"
+
+    remote_src: false
+
 # Copy over stabvest materials
 
 - name: Copy Config.json
