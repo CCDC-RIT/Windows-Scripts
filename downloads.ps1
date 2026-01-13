@@ -116,6 +116,8 @@ $ProgressPreference = 'SilentlyContinue'
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "secure.ps1"), (Join-Path -Path $ScriptPath -ChildPath "secure.ps1"))
 # Powershell Profile
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "profile.ps1"), (Join-Path -Path $ScriptPath -ChildPath "profile.ps1"))
+# Cert Template
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "cert.txt"), (Join-Path -Path $ScriptPath -ChildPath "cert.txt"))
 # Wazuh agent config file
 # (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Logging-Scripts" -file "agent_windows.conf"), (Join-Path -Path $ConfPath -ChildPath "agent_windows.conf"))
 # Yara response script
