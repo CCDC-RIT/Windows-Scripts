@@ -279,6 +279,9 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll", (Join-Path -Path $antipwnyPath -ChildPath "ObjectListView.dll"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Antipwny downloaded" -ForegroundColor white
 
+# Password Manager Client
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/Password-Manager/raw/refs/heads/main/client/windows.exe", (Join-Path -Path $ToolsPath -ChildPath "CCDC-Password-Manager.exe"))
+
 # Extraction
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "ar.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "ar")
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "dll.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "dll")

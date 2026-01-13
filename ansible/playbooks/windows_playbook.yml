@@ -52,6 +52,17 @@
     - copy
     - never
 
+- name: "WIN - Setup Password Manager Client"
+  hosts: windows
+  gather_facts: false
+  roles:
+    - winPasswordManager
+  tags:
+    - windows
+    - password
+    - password_manager
+    - never
+
 - name: "WIN - Logging"
   hosts: windows
   gather_facts: false
