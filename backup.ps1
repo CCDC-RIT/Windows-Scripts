@@ -55,10 +55,23 @@ New-Item -Path $backupPath -Name "profiles" -ItemType "directory" | Out-Null
 $profileBackupPath = Join-Path -Path $backupPath -childPath "profiles"
 
 # Copy's backup script, Suppresses errors in case they don't exist
-Copy-Item "$HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" $profileBackupPath | Out-Null
-Copy-Item "$HOME\Documents\WindowsPowerShell\profile.ps1" $profileBackupPath | Out-Null
-Copy-Item "C:/Windows/System32/WindowsPowerShell/v1.0/profile.ps1" $profileBackupPath |Out-Null
+Copy-Item "$HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" $profileBackupPath -ErrorAction SilentlyContinue
+Copy-Item "$HOME\Documents\WindowsPowerShell\profile.ps1" $profileBackupPath -ErrorAction SilentlyContinue
+Copy-Item "C:/Windows/System32/WindowsPowerShell/v1.0/profile.ps1" $profileBackupPath -ErrorAction SilentlyContinue
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Copied powershell profiles" -ForegroundColor white
+
+# Creates the path directory
+New-Item -Path $backupPath -Name "user_files" -ItemType "directory" | Out-Null
+$userBackupPath = Join-Path -Path $backupPath -childPath "user_files"
+
+# Finds the paths
+$userPaths = Get-ChildItem -Path C:\Users\ -Include _.txt,_.pdf,*.xlsx,*.xls,*.doc,*.docx,*.ini,*.pdf,*.yaml,*.yml,*.log,*.ps1,*.vbs,*.exe,*.tmp,*.db, *.py -File -Recurse -ErrorAction SilentlyContinue
+
+# Copies the items
+foreach ($path in $userPaths){
+    Copy-Item $path $userBackupPath
+}
+
 
 # Notes for xcopy
 # /H - Include Hidden Files
