@@ -116,6 +116,9 @@ wget -o /dev/null "https://www.voidtools.com/ES-1.1.0.27.x64.zip" -O "es.zip"
 # BCU
 wget -o /dev/null "https://github.com/Klocman/Bulk-Crap-Uninstaller/releases/download/v5.7/BCUninstaller_5.7_portable.zip" -O "bcu.zip"
 
+# Password Manager
+wget -o /dev/null "https://github.com/CCDC-RIT/Password-Manager/raw/refs/heads/main/client/windows.exe" -O "CCDC-Password-Manager.exe"
+
 # Get-InjectedThread and Stop-Thread
 wget -o /dev/null "https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1" -O "Get-InjectedThread.ps1"
 wget -o /dev/null "https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Stop-Thread.ps1" -O "Stop-Thread.ps1"
