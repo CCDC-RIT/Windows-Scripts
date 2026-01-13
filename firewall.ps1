@@ -11,6 +11,10 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$graylogIP="any",
     [Parameter(Mandatory=$false)]
+    [string]$stabvestIP="any",
+    [Parameter(Mandatory=$false)]
+    [string]$passmgrIP="any",
+    [Parameter(Mandatory=$false)]
     [string]$rdpIP="any",
     [Parameter(Mandatory=$false)]
     [string]$domainSubnet="any",
@@ -27,7 +31,11 @@ param(
     [Parameter(Mandatory=$false)]
     [bool]$runByAnsible = $false,
     [Parameter(Mandatory=$false)]
-    [array]$randomExtraPorts
+    [array]$randomExtraPorts,
+    [Parameter(Mandatory=$false)]
+    [array]$addIpsFromFile = "none",
+    [Parameter(Mandatory=$false)]
+    [array]$addIpv6
 )
 
 Function handleErrors {
@@ -36,9 +44,11 @@ Function handleErrors {
         [int]$numRules,
         [string]$ruleType
     )
+
     for($i = 0; $i -lt $numRules; $i ++){
         $j = $i * 2
-        if($errorString[$j] -ne "Ok."){
+        
+        if($errorString[$j] -ne "Ok." -and $errorString[$j] -ne "OK"){
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Error When Setting " -ForegroundColor White -NoNewline; Write-Host $ruleType -NoNewline; Write-Host " rules: " -NoNewline; Write-Host $errorString[$j + 1]
             return $false
         }
@@ -82,8 +92,8 @@ if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType
     ## Inbound rules
     $errorChecking = netsh adv f a r n=DC-TCP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=88,135,389,445,464,636,3268,3269
     $errorChecking += netsh adv f a r n=DC-UDP-In dir=in act=allow prof=any prot=udp remoteip=$domainSubnet localport=88,123,135,389,445,464,636
-    $errorChecking += netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc
-    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc-epmap
+    $errorChecking += netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=49152-65535
+    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=135
     $errorChecking += netsh adv f a r n=DNS-Server dir=in act=allow prof=any prot=udp remoteip=$domainSubnet localport=53
 
     if(handleErrors -errorString $errorChecking -numRules 5 -ruleType "Domain Controller"){
@@ -97,10 +107,10 @@ if (Get-WmiObject -Query 'select * from Win32_OperatingSystem where (ProductType
         $errorChecking += netsh adv f a r n=DC-To-DC-UDP-In dir=in act=allow prof=any prot=udp remoteip=$secondDCIP localport=53,88,123,135,389,445,464,636
         $errorChecking += netsh adv f a r n=DC-To-DC-UDP-Out dir=out act=allow prof=any prot=udp remoteip=$secondDCIP remoteport=53,88,123,135,389,445,464,636
 
-        $errorChecking += netsh adv f a r n=DC-To-DC-RPC-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=rpc
-        $errorChecking += netsh adv f a r n=DC-To-DC-EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=rpc-epmap
-        $errorChecking += netsh adv f a r n=DC-To-DC-RPC-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=rpc
-        $errorChecking += netsh adv f a r n=DC-To-DC-EPMAP-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=rpc-epmap
+        $errorChecking += netsh adv f a r n=DC-To-DC-RPC-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=49152-65535
+        $errorChecking += netsh adv f a r n=DC-To-DC-EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$secondDCIP localport=135
+        $errorChecking += netsh adv f a r n=DC-To-DC-RPC-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=49152-65535
+        $errorChecking += netsh adv f a r n=DC-To-DC-EPMAP-Out dir=out act=allow prof=any prot=tcp remoteip=$secondDCIP remoteport=135
 
         if(handleErrors -errorString $errorChecking -numRules 8 -ruleType "Domain Controller to Domain Controller"){
             Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Domain Controller to Domain Controller firewall rules set" -ForegroundColor white
@@ -130,8 +140,8 @@ if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "LSASS"){
 
 ## Certificate Authority
 if (Get-Service -Name CertSvc 2>$null) {
-    $errorChecking = netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc
-    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=rpc-epmap
+    $errorChecking = netsh adv f a r n=RPC-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=49152-65535
+    $errorChecking += netsh adv f a r n=EPMAP-In dir=in act=allow prof=any prot=tcp remoteip=$domainSubnet localport=135
     if(handleErrors -errorString $errorChecking -numRules 2 -ruleType "Certificate Authority"){
         Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority server firewall rule set" -ForegroundColor white
     }
@@ -171,11 +181,13 @@ $protocolArray = @(
     [pscustomobject]@{Service="pandora";Protocol="tcp";Ports="41121"}
     [pscustomobject]@{Service="syslog";Protocol="udp";Ports="514"}
     [pscustomobject]@{Service="kerberos";Protocol="both";Ports="88"}
-    [pscustomobject]@{Service="rpc";Protocol="tcp";Ports="rpc"}
-    [pscustomobject]@{Service="epmap";Protocol="tcp";Ports="rpc-epmap"}
+    [pscustomobject]@{Service="rpc";Protocol="tcp";Ports="49152-65535"}
+    [pscustomobject]@{Service="epmap";Protocol="tcp";Ports="135"}
     [pscustomobject]@{Service="w32time";Protocol="udp";Ports="123"}
     [pscustomobject]@{Service="dns";Protocol="udp";Ports="53"}
     [pscustomobject]@{Service="ntp";Protocol="udp";Ports="123"}
+    [pscustomobject]@{Service="nfs";Protocol="both";Ports="2049"}
+    [pscustomobject]@{Service="snmp";Protocol="udp";Ports="161,162"}
 )
 if($extrarules.count -ne 0){
     foreach($rule in $extrarules){
@@ -361,6 +373,164 @@ if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Grayl
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Graylog firewall rules set" -ForegroundColor white
 }
 
+# Stabvest 
+$numRules = 1
+$errorChecking = netsh adv f a r n=Stabvest-Client dir=out act=allow prof=any prot=tcp remoteip=$stabvestIP remoteport=443
+if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Stabvest"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Stabvest firewall rules set" -ForegroundColor white
+}
+
+# Passmgr
+$numRules = 2
+$errorChecking = netsh adv f a r n=Passmgr-Client-To-Server dir=out act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
+$errorChecking += netsh adv f a r n=Passmgr-Server-To-Client dir=in act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
+if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Passmgr"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Passmgr firewall rules set" -ForegroundColor white
+}
+
+# Extra Firewalls Ips
+if ($addIpsFromFile -ne "none"){
+
+    $filePath = $addIpsFromFile[0]
+    $port = $addIpsFromFile[1]
+
+    # Default behavoir
+    $direction = "Outbound"
+
+    if ($addIpsFromFile.Count -eq 3){
+        $direction = $addIpsFromFile[2]
+
+        if ($direction -eq "in"){
+            $direction = "Inbound"
+        }
+
+        elseif ($direction -eq "both"){
+            $direction = "Both"
+        }
+
+        elseif ($direction -eq "out"){
+            $direction = "Outbound"
+        }
+    }
+
+    # Simple regrex pattern, does not check if their vaild IPs
+    $ips = Get-Content $filePath | Select-STring -Pattern "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+
+    $numRules = $ips.Count
+    $errorChecking = @()
+
+    # Sets the rules
+    foreach ($ip in $ips){
+
+        if ($direction -eq "Outbound"){
+            $errorChecking += (New-NetFirewallRule -DisplayName "Extra Outbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction $direction -RemoteAddress $ip -RemotePort $port).PrimaryStatus
+        }
+
+        elseif ($direction -eq "Inbound"){
+            $errorChecking += (New-NetFirewallRule -DisplayName "Extra Inbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction $direction -RemoteAddress $ip -LocalPort $port).PrimaryStatus
+        }
+
+        elseif ($direction -eq "Both"){
+            $numRules = $ips.Count * 2
+            $errorChecking += (New-NetFirewallRule -DisplayName "Extra Outbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction Outbound -RemoteAddress $ip -RemotePort $port).PrimaryStatus
+            $errorChecking += "  "
+            $errorChecking += (New-NetFirewallRule -DisplayName "Extra Inbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction Inbound -RemoteAddress $ip -LocalPort $port).PrimaryStatus
+        }
+
+        $errorChecking += "  "
+    }
+
+    if (handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Extra Firewall"){
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Extra Firewall Rules set" -ForegroundColor white
+    }
+}
+
+# Add IPv6 Firewall Ips ###UNTESTED AND STILL UNDER DEVELOPMENT
+if ($addIpv6.count -ne 0){
+    #might need a line up here to enable ipv6 if its disabled on the system...
+    $numrules = 0
+    $errorChecking = @()
+    #put now all 3 in a triplets for easier processing
+    $triplets = @()
+    foreach ($part in $addIpv6){
+        # all option
+        if ($addIpv6[0][-1] -eq "l"){
+            $errorChecking += (New-NetFirewallRule -Name "Allow_All_IPv6_Inbound" -DisplayName "Allow All IPv6 Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -RemoteAddress "2000::/3","fc00::/7","fe80::/10" -Profile Any -Enabled True).PrimaryStatus
+            $errorChecking += "  "
+            $errorChecking += (New-NetFirewallRule -Name "Allow All IPv6 Outbound" -DisplayName "Allow All IPv6 Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -RemoteAddress "2000::/3","fc00::/7","fe80::/10" -Profile Any -Enabled True).PrimaryStatus
+            $errorChecking += "  "
+            $numRules = 2
+            break
+        }
+        # determine if a subnet or single ip
+        $isSubnet = $part -like "*/*"
+        # either a clean subnet or ip
+        $cleanvar = $part -replace '[io]+$', ''
+        # determines direction
+        $direction = "None"
+        if ($part.EndsWith("io")) {
+            $direction = "Both"
+        } 
+        elseif ($part.EndsWith("i")) {
+            $direction = "Inbound"
+        } 
+        elseif ($part.EndsWith("o")) {
+            $direction = "Outbound"
+        }
+        # if subnet 
+        if ($isSubnet){
+            $triplets += [pscustomobject]@{Value=$cleanvar;Type="Subnet";Direction=$direction}
+        }
+        # if ip
+        else{
+            $triplets += [pscustomobject]@{Value=$cleanvar;Type="IP";Direction=$direction}
+        }
+    }
+    
+    # process each triplet
+    foreach ($triplet in $triplets){ 
+        if ($triplet.Value -ne "None"){
+            if ($triplet.Type -eq "IP"){
+                if ($triplet.Direction -eq "Both"){
+                    # single ip both option
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) Inbound" -DisplayName "Allow IPv6 $($triplet.Value) Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) Outbound" -DisplayName "Allow IPv6 $($triplet.Value) Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
+                    $numRules += 2
+                }
+                else{
+                    # single ip in or out option
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 $($triplet.Value) $($triplet.Direction)" -DisplayName "Allow IPv6 $($triplet.Value) $($triplet.Direction) Traffic" -Direction $triplet.Direction -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
+                    $numRules += 1
+                }
+            }
+            elseif ($triplet.Type -eq "Subnet"){
+                if ($triplet.Direction -eq "Both"){
+                    # subnet both option
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) Inbound" -DisplayName "Allow IPv6 Subnet $($triplet.Value) Inbound Traffic" -Direction Inbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) Outbound" -DisplayName "Allow IPv6 Subnet $($triplet.Value) Outbound Traffic" -Direction Outbound -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
+                    $numRules += 2
+                }
+                else{
+                    # subnet option
+                    $errorChecking += (New-NetFirewallRule -Name "Allow IPv6 Subnet $($triplet.Value) $($triplet.Direction)" -DisplayName "Allow IPv6 Subnet $($triplet.Value) $($triplet.Direction) Traffic" -Direction $triplet.Direction -Action Allow -Protocol Any -LocalPort Any -RemotePort Any -LocalAddress Any -RemoteAddress $triplet.Value -Profile Any -Enabled True).PrimaryStatus
+                    $errorChecking += "  "
+                    $numRules += 1
+                }
+            }
+        }
+    }
+
+    if (handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Extra IPv6 Firewall"){
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Extra IPv6 Firewall Rules set" -ForegroundColor white
+    }
+}
+
+
 # blocking win32/64 lolbins from making network connections when they shouldn't
 netsh advfirewall firewall add rule name="Block appvlp.exe netconns" program="C:\Program Files (x86)\Microsoft Office\root\client\AppVLP.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
 netsh advfirewall firewall add rule name="Block appvlp.exe netconns" program="C:\Program Files\Microsoft Office\root\client\AppVLP.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
@@ -415,6 +585,7 @@ netsh advfirewall firewall add rule name="Block wmic.exe netconns" program="%sys
 netsh advfirewall firewall add rule name="Block wmic.exe netconns" program="%systemroot%\SysWOW64\wbem\wmic.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
 netsh advfirewall firewall add rule name="Block wscript.exe netconns" program="%systemroot%\system32\wscript.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
 netsh advfirewall firewall add rule name="Block wscript.exe netconns" program="%systemroot%\SysWOW64\wscript.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
+netsh advfirewall firewall add rule name="Block PSEXESVC.exe" program="C:\Windows\PSEXESVC.exe" protocol=tcp dir=out enable=yes action=block profile=any | Out-Null
 
 # Logic to add all fw rules to group for WFC
 Get-NetFirewallRule -All | ForEach-Object {$_.Group = 'bingus'; $_ | Set-NetFirewallRule}
@@ -434,5 +605,8 @@ if ($LockoutPrevention) {
 }
 
 #Chandi Fortnite
+
+
+
 
 

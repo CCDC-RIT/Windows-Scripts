@@ -22,6 +22,11 @@
     path: "{{ scripts_path }}\\zipped"
     state: directory
 
+- name: Create stabvest Directory
+  ansible.builtin.win_file:
+    path: "{{ scripts_path }}\\stabvest"
+    state: directory
+
 # Directories inside scripts directory
 
 - name: Create conf Directory
@@ -88,6 +93,11 @@
     dest: "{{ scripts_path }}\\scripts\\logging.ps1"
     remote_src: false
 
+- name: Disable Windows Defender Script
+  win_shell: |
+    Set-MpPreference -DisableRealtimeMonitoring $true
+  ignore_errors: true
+
 - name: Copy PrivescCheck Script
   win_copy:
     src: "{{ scripts_ansible_location }}/PrivescCheck.ps1"
@@ -118,17 +128,29 @@
     dest: "{{ scripts_path }}\\scripts\\yara.bat"
     remote_src: false
 
-- name: Copy Windows Wazuh Config File
-  win_copy:
-    src: "{{ scripts_ansible_location }}/agent_windows.conf"
-    dest: "{{ scripts_path }}\\scripts\\conf\\agent_windows.conf"
-    remote_src: false
+# - name: Copy Windows Wazuh Config File
+#   win_copy:
+#     src: "{{ scripts_ansible_location }}/agent_windows.conf"
+#     dest: "{{ scripts_path }}\\scripts\\conf\\agent_windows.conf"
+#     remote_src: false
 
 - name: Copy Defender Exploit Guard Settings
   win_copy:
     src: "{{ scripts_ansible_location }}/def-eg-settings.xml"
     dest: "{{ scripts_path }}\\scripts\\conf\\def-eg-settings.xml"
     remote_src: false
+
+# Copy over stabvest materials
+
+- name: Copy Config.json
+  win_copy:
+    src: "{{ scripts_ansible_location }}/config.json"
+    dest: "{{ scripts_path }}\\stabvest\\config.json"
+
+- name: Copy Stabvest Agent
+  win_copy:
+    src: "{{ scripts_ansible_location }}/agent.exe"
+    dest: "{{ scripts_path }}\\stabvest\\agent.exe"
 
 # Install Bitlocker and Defender
 
@@ -277,10 +299,10 @@
     src: "{{ scripts_ansible_location }}/hh64.zip"
     dest: "{{ scripts_path }}\\hh64.zip"
 
-- name: Copy Wazuh Agent
-  win_copy:
-    src: "{{ scripts_ansible_location }}/wazuhagent.msi"
-    dest: "{{ scripts_path }}\\installers\\wazuhagent.msi"
+# - name: Copy Wazuh Agent
+#   win_copy:
+#     src: "{{ scripts_ansible_location }}/wazuhagent.msi"
+#     dest: "{{ scripts_path }}\\installers\\wazuhagent.msi"
 
 - name: Copy Sysmon Conf file
   win_copy:
@@ -438,55 +460,107 @@
     src: "{{ scripts_path }}\\ar.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\ar"
 
+- name: Get Autoruns executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ar" -Filter "*.exe").BaseName
+  register: autoruns_exes
+
+- name: Rename Autoruns executables
+  win_shell: |
+    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ar\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
+  loop: "{{ autoruns_exes.stdout_lines }}"
+  loop_control:
+    label: "{{ item }}"
+
 - name: Extract PSExec
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\ps.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\ps"
+
+- name: Rename PSExec executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ps" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ps\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract List DLLs
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\dll.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\dll"
 
+- name: Rename List DLLs executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\dll" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\dll\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+
 - name: Extract Process Explorer
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\pe.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\pe"
+
+- name: Rename Process Explorer executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pe" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pe\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Process Monitor
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\pm.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\pm"
 
+- name: Rename Process Monitor executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+
 - name: Extract Sig Check
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\sc.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\sc"
+
+- name: Rename Sig Check executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sc" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sc\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract TCP View
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\tv.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\tv"
 
+- name: Rename TCP View executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\tv" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\tv\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+
 - name: Extract Streams
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\stm.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\stm"
+
+- name: Rename Streams executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\stm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\stm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Sysmon
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\sm.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\sm"
 
+- name: Rename Sysmon executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+
 - name: Extract Access Check
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\ac.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\ac"
 
+- name: Rename Access Check executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ac" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ac\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+
 - name: Extract Strings
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\str.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\str"
+
+- name: Rename Strings executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\str" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\str\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Hollows Hunter
   community.windows.win_unzip:
@@ -502,6 +576,10 @@
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\yara.zip"
     dest: "{{ scripts_path }}\\tools\\yara"
+
+- name: Rename Yara executables
+  win_shell: |
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\yara" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\yara\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract Windows Yara Rules
   community.windows.win_unzip:
@@ -522,6 +600,11 @@
   win_shell: |
     Move-Item -Path "{{ scripts_path }}\tools\yara\packages\full\yara-rules-full.yar" -Destination "{{ scripts_path }}\tools\yara\Multi\YaraHQRules.yara"
     Remove-Item -Path "{{ scripts_path }}\tools\yara\packages" -Recurse
+
+- name: Enable WWindows Defender
+  win_shell: |
+    Set-MpPreference -DisableRealtimeMonitoring $false
+  ignore_errors: true
 
 - name: Extract Everything Search Tool
   community.windows.win_unzip:

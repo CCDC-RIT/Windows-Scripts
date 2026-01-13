@@ -35,30 +35,29 @@ all:
             is_win_server: "true"
             server_type: "web"
             is_server_core: "false"
-        hosts:
-           1.1.1.1:
-      #   smb:
-      #     vars:
-      #       scored_services: "smbio"
-      #       is_win_server: "true"
-      #       server_type: "smb"
-      #       is_server_core: "false"
-      #     hosts:
-      #       1.1.1.1:
-      #   winservclient:
-      #     vars:
-      #       scored_services: "a"
-      #       is_win_server: "true"
-      #       server_type: "null"
-      #       is_server_core: "false"
-      #     hosts:
-      #       1.1.1.1:
-      #       2.2.2.2:
-      #   win10client:
-      #     vars:
-      #       scored_services: "a"
-      #       is_win_server: "false"
-      #       server_type: "null"
-      #       is_server_core: "false"
-      #     hosts:
-      #       1.1.1.1:
+          hosts:
+            1.1.1.1:
+        smb:
+          vars:
+            scored_services: "smbio"
+            is_win_server: "true"
+            server_type: "smb"
+            is_server_core: "false"
+          hosts:
+            1.1.1.1:
+        winservclient:
+          vars:
+            scored_services: "a"
+            is_win_server: "true"
+            server_type: "null"
+            is_server_core: "false"
+          hosts:
+            1.1.1.1:
+        win10client:
+          vars:
+            scored_services: "a"
+            is_win_server: "false"
+            server_type: "null"
+            is_server_core: "false"
+          hosts:
+            1.1.1.1:

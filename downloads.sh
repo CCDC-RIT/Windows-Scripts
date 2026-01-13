@@ -66,7 +66,7 @@ wget -o /dev/null "$(get_download_url "Windows-Scripts" "logging.ps1")" -O "logg
 # Secure baseline script
 wget -o /dev/null "$(get_download_url "Windows-Scripts" "secure.ps1")" -O "secure.ps1"
 # Wazuh agent config file
-wget -o /dev/null "$(get_download_url "Logging-Scripts" "agent_windows.conf")" -O "agent_windows.conf"
+# wget -o /dev/null "$(get_download_url "Logging-Scripts" "agent_windows.conf")" -O "agent_windows.conf"
 # Yara response script
 wget -o /dev/null "$(get_download_url "Logging-Scripts" "yara.bat")" -O "yara.bat"
 # User Management script
@@ -130,7 +130,7 @@ wget -o /dev/null "https://aka.ms/vs/17/release/vc_redist.x64.exe" -O "vc_redist
 # hollows hunter
 wget -o /dev/null "https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip" -O "hh64.zip"
 # Wazuh agent
-wget -o /dev/null "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.9.2-1.msi" -O "wazuhagent.msi"
+# wget -o /dev/null "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.9.2-1.msi" -O "wazuhagent.msi"
 # Basic Sysmon conf file
 wget -o /dev/null "https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml" -O "sysmon.xml"
 # Windows Firewall Control + .NET 4.8
@@ -168,4 +168,7 @@ wget -o /dev/null "http://dl.google.com/chrome/install/375.126/chrome_installer.
 # Antipwny (Meterpreter Detection)
 wget -o /dev/null "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/AntiPwny.exe" -O "AntiPwny.exe"
 wget -o /dev/null "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll" -O "ObjectListView.dll"
+# Stabvest
+wget -o /dev/null "https://github.com/CCDC-RIT/stabvest-public/blob/main/client/agent_windows.exe" -O "agent.exe"
+wget -o /dev/null "https://github.com/CCDC-RIT/stabvest-public/blob/main/client/config.json" -O "config.json"
 echo "[SUCCESS] All tools downloaded"

@@ -19,7 +19,7 @@ $dateTime = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 
 if (Get-CimInstance -Class Win32_OperatingSystem -Filter 'ProductType = "2"') {
     New-Item -Path $backupPath -Name "sysvol" -ItemType "directory" | Out-Null
-    robocopy c:\windows\sysvol (Join-Path $backupPath "sysvol") /copyall /mir /b /r:0 /xd | Out-Null
+    robocopy "C:\Windows\SYSVOL" (Join-Path $backupPath "sysvol") /MIR /COPYALL /B /R:0 /XD "DfsrPrivate" "staging" "staging areas" "ContentSet*" | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SYSVOL folder backed up" -ForegroundColor white
 
     dnscmd /exportsettings | Out-Null
@@ -83,4 +83,5 @@ foreach ($dir in $extraDirs){
 
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] $($lastDir) folder backed up" -ForegroundColor white
 }
+
 
