@@ -47,7 +47,9 @@ if (Get-Service -Name CertSvc 2>$null) {
 
 if (Get-Service -Name adfssrv 2>$null) {
     $adfsBackupPath = Join-Path -Path $backupPath -childPath "adfs_backup" | Out-Null
+    Import-Module 'C:\Program Files (x86)\ADFS Rapid Recreation Tool\ADFSRapidRecreationTool.dll' 
     Backup-ADFS -StorageType "FileSystem" -StoragePath $adfsBackupPath -EncryptionPassword $adfsPasswd -BackupDKM
+    Remove-Module ADFSRapidRecreationTool
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ADFS backup completed" -ForegroundColor white
 }
 
