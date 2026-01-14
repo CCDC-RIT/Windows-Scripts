@@ -1,6 +1,5 @@
 # IMPORTANT NEEDS TO BE ENABLED ON ALL BOXES!!!
-# winrm set winrm/config/service @{AllowUnencrypted="true"}
-# winrm set winrm/config/service/auth @{Basic="true"}
+#https://community.fortinet.com/t5/FortiSOAR-Knowledge-Base/Troubleshooting-Tip-Exchange-Microsoft-WinRM-Connector-Error/ta-p/324015
 
 # Output to /opt/passwordmanager/starting_clients.txt
 
@@ -64,16 +63,19 @@ def gather_windows_info(hosts, username, password):
             try:
                 session = winrm.Session(
                     host,
-                    auth=(username, password),
-                    server_cert_validation='ignore'
+                    auth=(f"luke\\{username}", password),
+                    server_cert_validation='ignore',
+                    transport='ntlm'
                 )
                 detect_scored_services(session)
                 log(IP_FILE, host)
                 continue
             except Exception as e:
-                port_scan_only(host, command_output)
+                print(e)
+                #port_scan_only(host, command_output)
         else:
-            port_scan_only(host, command_output)
+            #port_scan_only(host, command_output)
+            pass
     return command_output
 
 # Determines scored service via WinRM
