@@ -159,6 +159,9 @@ wget -o /dev/null "https://download.sysinternals.com/files/PsExec.zip" -O "ps.zi
 
 echo "[SUCCESS] Sysinternals downloaded."
 
+# adfs rapid recreation tool
+wget -o /dev/null "https://download.microsoft.com/download/6/8/a/68af3cd3-1337-4389-967c-a6751182f286/ADFSRapidRecreationTool.msi"
+echo "[SUCCESS] ADFS Rapid Recreation Tool downloaded."
 # yara
 wget -o /dev/null "https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip" -O "yara.zip"
 wget -o /dev/null "$(get_download_url "YaraRules" "Windows.zip")" -O "Windows.zip"
