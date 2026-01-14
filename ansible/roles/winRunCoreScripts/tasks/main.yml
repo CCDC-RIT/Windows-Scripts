@@ -1,6 +1,6 @@
 - name: Run Backup Script
   win_shell: |
-    .\backup.ps1
+    .\backup.ps1 -adfspasswd "{{ adfs_backup_password }}"
   args:
     chdir: "{{ scripts_path }}\\scripts"
 
