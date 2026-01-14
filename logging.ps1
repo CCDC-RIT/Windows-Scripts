@@ -136,6 +136,13 @@ if (Get-Service -Name CertSvc 2>$null) {
     Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] CA Logging Enabled" -ForegroundColor White
 }
 
+# ADFS logging
+if (Get-Service -Name adfssrv 2>$null) {
+    Set-AdfsProperties -AuditLevel Basic
+    auditpol.exe /set /subcategory:"Application Generated" /failure:enable /success:enable
+    Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] ADFS Logging Enabled" -ForegroundColor White
+}
+
 if ($wazuhIP) {
     # Fix Wazuh config file
     $file = Join-Path -Path $scriptDir -ChildPath "conf\agent_windows.conf"

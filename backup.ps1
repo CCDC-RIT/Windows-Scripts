@@ -1,6 +1,8 @@
 param(
     [Parameter(Mandatory=$false)]
-    [Array]$extraDirs
+    [Array]$extraDirs,
+    [Parameter(Mandatory=$false)]
+    [string]$adfsPasswd
 )
 
 [string]$path = ($MyInvocation.MyCommand.Path).substring(0,($MyInvocation.MyCommand.Path).indexOf("scripts\backup.ps1"))
@@ -41,6 +43,12 @@ if (Get-Service -Name CertSvc 2>$null) {
     Get-Content -Path (Join-Path -Path $backupPath -ChildPath "ca_backup\ca_templates\CATemplates.txt") | ForEach-Object {certutil -v -template $_ > (Join-Path -Path $backupPath -ChildPath "ca_backup\ca_templates\$_.txt")}
     reg export HKLM\System\CurrentControlSet\Services\CertSvc\Configuration (Join-Path -Path $backupPath -childPath "ca_backup\regkey.reg") | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] CA certs, templates, and settings backed up" -ForegroundColor white
+}
+
+if (Get-Service -Name adfssrv 2>$null) {
+    $adfsBackupPath = Join-Path -Path $backupPath -childPath "adfs_backup" | Out-Null
+    Backup-ADFS -StorageType "FileSystem" -StoragePath $adfsBackupPath -EncryptionPassword $adfsPasswd -BackupDKM
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] ADFS backup completed" -ForegroundColor white
 }
 
 if (Get-Service -Name WinRM 2>$null) {
