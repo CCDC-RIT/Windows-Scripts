@@ -31,12 +31,12 @@ def scan_all_hosts(subnet):
         for host in [x for x in nm.all_hosts()]:
             os_version = determine_os(nm, host)
             if os_version == "Windows":
-                print(f"Windows Host ",end="")
+                print(f"Windows Host {host} detected:\n",end="")
                 create_log_file(host)
                 log(f'{LOG_FOLDER}/{host}.txt', f"Found Windows Host: {host}")
                 # determine_os_version
             else:
-                print(f"Unix Host ",end="")
+                print(f"Unix Host {host} detected:\n",end="")
                 create_log_file(host)
                 log(f'{LOG_FOLDER}/{host}.txt', f"Found Unix Host: {host}")
 
@@ -63,19 +63,24 @@ def scan_all_hosts(subnet):
                     found_hosts[host]['WinRM_HTTP'] = True
                 elif port == 5986 and nm[host]['tcp'][port]['state'] == 'open':
                     found_hosts[host]['WinRM_HTTPS'] = True
-            print(f"{host}: ", end="")
+            if not (found_hosts[host]['SSH'] or found_hosts[host]['RDP'] or found_hosts[host]['WinRM_HTTP'] or found_hosts[host]['WinRM_HTTPS']):
+                print("Failed to detect any remoting services.",end="")
+            else:
+                print("Detected remoting services: ", end="")
             if found_hosts[host]['SSH']:
                 print("SSH ", end="")
             if found_hosts[host]['RDP']:
                 print("RDP ", end="")
-            if found_hosts[host]['WinRM_HTTP'] or found_hosts[host]['WinRM_HTTPS']:
-                print("WinRM ", end="")
+            if found_hosts[host]['WinRM_HTTP']:
+                print("WinRM_HTTP ", end="")
+            if found_hosts[host]['WinRM_HTTPS']:
+                print("WinRM_HTTPS ", end="")
             
             print("")
             print("")
             log(f'{LOG_FOLDER}/{host}.txt', "")
-
-    return found_hosts
+            
+    return found_hosts, nm
 
 def find_grafana(host):
     global GRAFANA_IP
@@ -86,34 +91,43 @@ def find_grafana(host):
     GRAFANA_IP = nm.all_hosts()[0]
 
 # Attempts to gather additional information about Windows hosts
-def gather_windows_info(hosts):
+def gather_info(hosts, original_scan):
     command_output = {}
+    
     for host in hosts:
-        if hosts[host]['WinRM_HTTP']:
-            log(f'{LOG_FOLDER}/{host}.txt', f"Attempting WinRM HTTP connection to {host}")
-            try:
-                session = winrm.Session(
-                    host,
-                    auth=(f"{DOMAIN_USERNAME}", DOMAIN_PASSWORD),
-                    server_cert_validation='ignore',
-                    transport='ntlm'
-                )
-                detect_scored_services(session, host)
-                determine_os_version(session, host)
-                log(IP_FILE, host)
-                continue
-            except Exception as e:
-                print(e)
+        os_version = determine_os(original_scan, host)
+        if os_version == "Windows":
+            if hosts[host]['WinRM_HTTP']:
+                log(f'{LOG_FOLDER}/{host}.txt', f"Attempting WinRM HTTP connection to {host}")
+                try:
+                    session = winrm.Session(
+                        host,
+                        auth=(f"{DOMAIN_USERNAME}", DOMAIN_PASSWORD),
+                        server_cert_validation='ignore',
+                        transport='ntlm'
+                    )
+                    print(f"Windows Host {host} WinRM Scan:\n",end="")
+                    detect_scored_services(session, host)
+                    determine_os_version(session, host)
+                    log(IP_FILE, host)
+                    continue
+                except Exception as e:
+                    print(e)
+                    print(f"Windows Host {host} Failed WinRM Scan, Running Port Scan:\n",end="")
+                    port_scan_only(host, command_output)
+            else:
+                print(f"Windows Host {host} has WinRM Disabled, Running Port Scan:\n",end="")
                 port_scan_only(host, command_output)
         else:
+            print(f"Unix Host {host} Port Scan:\n",end="")
             port_scan_only(host, command_output)
-            pass
+        
     return command_output
 
 # Determines scored service via WinRM
 def detect_scored_services(session, ip_address):
     log_file = f'{LOG_FOLDER}/{ip_address}.txt'
-    print(f"{ip_address}: ",end="")
+    print("Detected Potential Scored Services: ",end="")
     check_ftp = session.run_cmd('sc query ftpsvc')
     if check_ftp.status_code != 0:
         log(log_file, "FTP service not found.")
@@ -269,15 +283,22 @@ def determine_os_version(session, ip_address):
     log_file = f'{LOG_FOLDER}/{ip_address}.txt'
     check_os_type = session.run_cmd('powershell -c Get-ItemPropertyValue \'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\' InstallationType')
     check_os_version = session.run_cmd('powershell -c Get-ItemPropertyValue \'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\' ProductName')
-    if check_os_type.std_out.decode() == '':
-        log(log_file, f"Could not determine OS type for {ip_address}\n")
+    if check_os_type.std_out.decode() != '' and check_os_version.std_out.decode() != '':
+        print(f"Detected OS: {check_os_version.std_out.decode().strip()} ({check_os_type.std_out.decode().strip()})\n",end="")
     else:
-        log(log_file, f"OS Type for {ip_address}: {check_os_type.std_out.decode().strip()}\n")
-    if check_os_version.std_out.decode() == '':
-        log(log_file, f"Could not determine OS version for {ip_address}\n")
-    else:
-        log(log_file, f"OS Version for {ip_address}: {check_os_version.std_out.decode().strip()}\n")
-    print(f"{ip_address}: {check_os_version.std_out.decode().strip()} ({check_os_type.std_out.decode().strip()})\n",end="")
+        if check_os_type.std_out.decode() == '':
+            log(log_file, f"Could not determine OS type for {ip_address}\n")
+            print("Could not determine OS Type\n",end="")
+        else:
+            log(log_file, f"OS Type for {ip_address}: {check_os_type.std_out.decode().strip()}\n")
+            print(f"Detected OS Type: {check_os_type.std_out.decode().strip()}",end="")
+        if check_os_version.std_out.decode() == '':
+            log(log_file, f"Could not determine OS version for {ip_address}\n")
+            print("Could not determine OS Version\n",end="")
+        else:
+            log(log_file, f"OS Version for {ip_address}: {check_os_version.std_out.decode().strip()}\n")
+            print(f"Detected OS Version: {check_os_version.std_out.decode().strip()}",end="")
+    print("")
 
 def log(file, content):
     with open(file, 'a') as log_file:
@@ -293,7 +314,7 @@ def create_log_file(host):
 
 def port_scan_only(host, command_output):
     log_file = f'{LOG_FOLDER}/{host}.txt'
-    print(f"{host}: ",end="")
+    print("Detected Potential Scored Services: ",end="")
     log(log_file, f"Could not connect to {host} via WinRM, downgrading to Port Scanning only.")
     try:
         ps = nmap.PortScanner()
@@ -327,13 +348,14 @@ def port_scan_only(host, command_output):
                     command_output[host] = f"Open ports: {port} ({service})"
                 else:
                     command_output[host] += f", {port} ({service})"
-        print("")
+        print("\n\n",end="")
     except Exception as e:
+        print(f"Port scan failed: {str(e)}\n",end="")
         log(log_file, f"Port scan failed for {host}: {str(e)}")
 
 # Adds information about Windows hosts to the Ansible inventory file
 def add_to_ansible_inventory(hosts):
-    pass
+    print(f"Adding hosts to Ansible inventory file: {ANSIBLE_INVENTORY_FILE}\n")
 
 def main():
     # Parse command line arguments
@@ -342,6 +364,11 @@ def main():
     parser.add_argument('-u', required=True, help='Domain username for WinRM authentication')
     parser.add_argument('-p', required=True, help='Domain password for WinRM authentication')
     args = parser.parse_args()
+
+    # Clear Terminal
+    os.system('clear')
+
+    print("\n=======================================GENERAL SETUP=======================================\n\n")
 
     # Make sure log folder is empty and exists
     if not os.path.exists(LOG_FOLDER):
@@ -383,13 +410,16 @@ def main():
     SUBNET = args.s
     DOMAIN_USERNAME = args.u
     DOMAIN_PASSWORD = args.p
-    print(f"Scanning subnet: {SUBNET} with username: {DOMAIN_USERNAME} and password: {DOMAIN_PASSWORD}")
+    print("\n\n======================================SUBNET SCANNING======================================\n\n")
+    print(f"Scanning subnet: {SUBNET} with username: {DOMAIN_USERNAME} and password: {DOMAIN_PASSWORD}\n")
     log(GENERAL_LOG_FILE, f"Scanning subnet: {SUBNET} with username: {DOMAIN_USERNAME}")
 
-    found_hosts = scan_all_hosts(SUBNET)
+    found_hosts, original_scan = scan_all_hosts(SUBNET)
     #print(json.dumps(found_hosts, indent=4)) #json output for debugging
-    command_output = gather_windows_info(found_hosts)
+    print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
+    gather_info(found_hosts, original_scan)
     #print(json.dumps(command_output, indent=4))
+    print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
     add_to_ansible_inventory(found_hosts)
 
 if __name__ == "__main__":
