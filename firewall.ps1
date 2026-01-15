@@ -157,7 +157,8 @@ if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "CA Client"){
 # This array contains all of the possible services that we would want to allow in the firewall, along with what protocol and ports they use
 $protocolArray = @(
     [pscustomobject]@{Service="icmp";Protocol="none";Ports="none"}
-    [pscustomobject]@{Service="http";Protocol="tcp";Ports="80,443"}
+    [pscustomobject]@{Service="http";Protocol="tcp";Ports="80"}
+    [pscustomobject]@{Service="https";Protocol="tcp";Ports="443"}
     [pscustomobject]@{Service="rdp";Protocol="both";Ports="3389"}
     [pscustomobject]@{Service="winrm";Protocol="tcp";Ports="5985,5986"}
     [pscustomobject]@{Service="ssh";Protocol="tcp";Ports="22"}
