@@ -11,7 +11,7 @@ all:
         ansible_password: "" #REPLACE
         scripts_path: "" #REPLACE
         scripts_ansible_location: "/Windows-Scripts"
-        wazuh_ip: "" #REPLACE
+        grafana_ip: "" #REPLACE
         password_manager_ip: "" #REPLACE
         adfs_backup_password: "" #REPLACE
       children:

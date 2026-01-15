@@ -482,7 +482,9 @@ children:
 
     for host in HOST_INFO.keys():
         server_type = "none"
-        if 'SMB' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
+        if 'ADFS ' in HOST_INFO[host]['Services']:
+            server_type = "adfs"
+        elif 'SMB' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
             server_type = "dc"
         elif 'CA' in HOST_INFO[host]['Services']:
             server_type = "ca"
