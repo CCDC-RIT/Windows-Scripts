@@ -76,9 +76,12 @@ wget -o /dev/null "$(get_download_url "Windows-Scripts" "SOARAgent.ps1")" -O "so
 # Powershell profile
 wget -o /dev/null "$(get_download_url "Windows-Scripts" "profile.ps1")" -O "profile.ps1"
 # HTTPS cert template
-wget -o /dev/null "$(get_download_url "Windows-Scripts" "cert.txt")" -O "cert.txt"
+wget -o /dev/null "$(get_download_url "Windows-Scripts" "cert.txt")" -O "cert.txt"\
+
 # Ansible Dynamic Inventory Script
 wget -o /dev/null "$(get_download_url "Windows-Scripts" "windows-recon.py")" -O "windows-recon.py"
+wget -o /dev/null "$(get_download_url "Windows-Scripts" "recon-requirements.txt")" -O "recon-requirements.txt"
+wget -o /dev/null "$(get_download_url "Windows-Scripts" "fix_openssl.py")" -O "fix_openssl.py"
 
 echo "[SUCCESS] Scripts downloaded."
 
