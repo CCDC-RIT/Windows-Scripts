@@ -7,9 +7,9 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$ansibleIP="any",
     [Parameter(Mandatory=$false)]
-    [string]$wazuhIP="any",
+    [string]$siemIP="any",
     [Parameter(Mandatory=$false)]
-    [string]$graylogIP="any",
+    [array]$siemPorts,
     [Parameter(Mandatory=$false)]
     [string]$stabvestIP="169.254.0.0/16",
     [Parameter(Mandatory=$false)]
@@ -149,6 +149,16 @@ if (Get-Service -Name CertSvc 2>$null) {
 $errorChecking = netsh adv f a r n=CA-Client dir=out act=allow prof=any prot=tcp remoteip=$caIP remoteport=135
 if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "CA Client"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority client firewall rule set" -ForegroundColor white
+}
+
+# SIEM Firewall Rules
+if ($siemIP) {
+    foreach ($port in $siemPorts) {
+        $errorChecking = netsh adv f a r n=SIEM-Client dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=$port
+        if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "SIEM (Port $port)"){
+            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SIEM (Port $port) firewall rule set" -ForegroundColor white
+        }
+    }
 }
 
 # All possible ports needed to be allowed through firewall for various services/scorechecks
