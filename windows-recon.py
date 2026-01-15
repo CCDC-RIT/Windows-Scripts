@@ -542,87 +542,87 @@ children:
         inventory_file.write(ansible_header_content)
 
 def main():
-#     # Parse command line arguments
-#     parser = argparse.ArgumentParser(description='Windows Reconnaissance Script to Fill Out Ansible Inventory')
-#     parser.add_argument('-s', required=True, help='Subnet to scan for Windows hosts (e.g., 192.168.1.0/24)')
-#     parser.add_argument('-c', required=True, help='Windows Domain Credentials in the format username:password,username:password')
-#     parser.add_argument('-lc', required=False, help='Linux Credentials in the format username:password,username:password')
-#     parser.add_argument('-sp', required=True, help='Scripts Path')
-#     args = parser.parse_args()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Windows Reconnaissance Script to Fill Out Ansible Inventory')
+    parser.add_argument('-s', required=True, help='Subnet to scan for Windows hosts (e.g., 192.168.1.0/24)')
+    parser.add_argument('-c', required=True, help='Windows Domain Credentials in the format username:password,username:password')
+    parser.add_argument('-lc', required=False, help='Linux Credentials in the format username:password,username:password')
+    parser.add_argument('-sp', required=True, help='Scripts Path')
+    args = parser.parse_args()
 
-#     # Clear Terminal
-#     os.system('clear')
+    # Clear Terminal
+    os.system('clear')
 
-#     print("\n=======================================GENERAL SETUP=======================================\n\n")
+    print("\n=======================================GENERAL SETUP=======================================\n\n")
 
-#     # Make sure log folder is empty and exists
-#     if not os.path.exists(LOG_FOLDER):
-#         os.makedirs(os.path.dirname(LOG_FOLDER), exist_ok=True)
-#         print(f"Log folder created: {LOG_FOLDER}")
-#     else:
-#         for filename in os.listdir(LOG_FOLDER):
-#             file_path = os.path.join(LOG_FOLDER, filename)
-#             try:
-#                 os.remove(file_path)
-#             except Exception as e:
-#                 print(f'Failed to delete {file_path}. Reason: {e}')
-#         print(f"Cleaned up old logging content: {LOG_FOLDER}")
+    # Make sure log folder is empty and exists
+    if not os.path.exists(LOG_FOLDER):
+        os.makedirs(os.path.dirname(LOG_FOLDER), exist_ok=True)
+        print(f"Log folder created: {LOG_FOLDER}")
+    else:
+        for filename in os.listdir(LOG_FOLDER):
+            file_path = os.path.join(LOG_FOLDER, filename)
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
+        print(f"Cleaned up old logging content: {LOG_FOLDER}")
     
-#     # Make sure general log file exists
-#     if not os.path.exists(GENERAL_LOG_FILE):
-#         os.makedirs(os.path.dirname(GENERAL_LOG_FILE), exist_ok=True)
-#         print(f"General log file created: {GENERAL_LOG_FILE}")
-#     with open(GENERAL_LOG_FILE, 'w') as general_log_file:
-#         general_log_file.write('General Reconnaissance Log:' + '\n')
+    # Make sure general log file exists
+    if not os.path.exists(GENERAL_LOG_FILE):
+        os.makedirs(os.path.dirname(GENERAL_LOG_FILE), exist_ok=True)
+        print(f"General log file created: {GENERAL_LOG_FILE}")
+    with open(GENERAL_LOG_FILE, 'w') as general_log_file:
+        general_log_file.write('General Reconnaissance Log:' + '\n')
 
-#     # Make sure IP file exists
-#     if not os.path.exists(IP_FILE):
-#         os.makedirs(os.path.dirname(IP_FILE), exist_ok=True)
-#         print(f"IP file created: {IP_FILE}")
-#     with open(IP_FILE, 'w') as ip_file:
-#         ip_file.write('[INI HEADER]' + '\n')
+    # Make sure IP file exists
+    if not os.path.exists(IP_FILE):
+        os.makedirs(os.path.dirname(IP_FILE), exist_ok=True)
+        print(f"IP file created: {IP_FILE}")
+    with open(IP_FILE, 'w') as ip_file:
+        ip_file.write('[INI HEADER]' + '\n')
 
-#     # Set global variables
-#     global SUBNET
-#     global DOMAIN_CREDENTIALS
-#     global LINUX_CREDENTIALS
-#     global PASSWORD_MANAGER_IP
-#     global GRAFANA_IP
-#     global SCRIPTS_PATH
+    # Set global variables
+    global SUBNET
+    global DOMAIN_CREDENTIALS
+    global LINUX_CREDENTIALS
+    global PASSWORD_MANAGER_IP
+    global GRAFANA_IP
+    global SCRIPTS_PATH
 
-#     SCRIPTS_PATH = args.sp
+    SCRIPTS_PATH = args.sp
 
-#     PASSWORD_MANAGER_IP = None
-#     GRAFANA_IP = None
+    PASSWORD_MANAGER_IP = None
+    GRAFANA_IP = None
 
-#     global HOST_INFO
-#     HOST_INFO = {}
+    global HOST_INFO
+    HOST_INFO = {}
 
-#     SUBNET = args.s
-#     DOMAIN_CREDENTIALS = args.c.split(',')
-#     for i in range(len(DOMAIN_CREDENTIALS)):
-#         DOMAIN_CREDENTIALS[i] = DOMAIN_CREDENTIALS[i].split(':')
-#     LINUX_CREDENTIALS = args.lc.split(',') if args.lc is not None else None
-#     if LINUX_CREDENTIALS is not None:
-#         for i in range(len(LINUX_CREDENTIALS)):
-#             LINUX_CREDENTIALS[i] = LINUX_CREDENTIALS[i].split(':')
-#             print(f"Using Linux Credentials | Credentials: {LINUX_CREDENTIALS}\n")
-#     else:
-#         print("")
-
-#     print("\n\n======================================SUBNET SCANNING======================================\n\n")
-#     print(f"Scanning subnet: {SUBNET}")
-#     print(f"Using Windows Credentials | {DOMAIN_CREDENTIALS}\n")
-#     log(GENERAL_LOG_FILE, f"Scanning subnet: {SUBNET} with credentials: {DOMAIN_CREDENTIALS}\n")
-
-#     original_scan = scan_all_hosts(SUBNET)
-#     print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
-#     gather_info(original_scan)
-#     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
-#     add_to_ansible_inventory()
     get_local_ip()
-    global LOCAL_IP
-    print(LOCAL_IP)
+
+    SUBNET = args.s
+    DOMAIN_CREDENTIALS = args.c.split(',')
+    for i in range(len(DOMAIN_CREDENTIALS)):
+        DOMAIN_CREDENTIALS[i] = DOMAIN_CREDENTIALS[i].split(':')
+    LINUX_CREDENTIALS = args.lc.split(',') if args.lc is not None else None
+    if LINUX_CREDENTIALS is not None:
+        for i in range(len(LINUX_CREDENTIALS)):
+            LINUX_CREDENTIALS[i] = LINUX_CREDENTIALS[i].split(':')
+            print(f"Using Linux Credentials | Credentials: {LINUX_CREDENTIALS}\n")
+    else:
+        print("")
+
+    print("\n\n======================================SUBNET SCANNING======================================\n\n")
+    print(f"Scanning subnet: {SUBNET}")
+    print(f"Using Windows Credentials | {DOMAIN_CREDENTIALS}\n")
+    log(GENERAL_LOG_FILE, f"Scanning subnet: {SUBNET} with credentials: {DOMAIN_CREDENTIALS}\n")
+
+    original_scan = scan_all_hosts(SUBNET)
+    print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
+    gather_info(original_scan)
+    print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
+    add_to_ansible_inventory()
+    
 
 if __name__ == "__main__":
     main()
