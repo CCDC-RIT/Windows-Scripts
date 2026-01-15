@@ -457,17 +457,9 @@
     src: "{{ scripts_path }}\\ar.zip"
     dest: "{{ scripts_path }}\\tools\\sys\\ar"
 
-- name: Get Autoruns executables
-  win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ar" -Filter "*.exe").BaseName
-  register: autoruns_exes
-
 - name: Rename Autoruns executables
   win_shell: |
-    Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ar\\{{ item }}.exe" -NewName "{{ item }}_ccdc.exe"
-  loop: "{{ autoruns_exes.stdout_lines }}"
-  loop_control:
-    label: "{{ item }}"
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ar" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ar\\$($_).exe" -NewName "$($_)_ccdc.exe" }
 
 - name: Extract PSExec
   community.windows.win_unzip:
