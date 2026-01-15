@@ -11,9 +11,9 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$graylogIP="any",
     [Parameter(Mandatory=$false)]
-    [string]$stabvestIP="any",
+    [string]$stabvestIP="169.254.0.0/16",
     [Parameter(Mandatory=$false)]
-    [string]$passmgrIP="any",
+    [string]$passmgrIP="169.254.0.0/16",
     [Parameter(Mandatory=$false)]
     [string]$rdpIP="any",
     [Parameter(Mandatory=$false)]
@@ -157,7 +157,8 @@ if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "CA Client"){
 # This array contains all of the possible services that we would want to allow in the firewall, along with what protocol and ports they use
 $protocolArray = @(
     [pscustomobject]@{Service="icmp";Protocol="none";Ports="none"}
-    [pscustomobject]@{Service="http";Protocol="tcp";Ports="80,443"}
+    [pscustomobject]@{Service="http";Protocol="tcp";Ports="80"}
+    [pscustomobject]@{Service="https";Protocol="tcp";Ports="443"}
     [pscustomobject]@{Service="rdp";Protocol="both";Ports="3389"}
     [pscustomobject]@{Service="winrm";Protocol="tcp";Ports="5985,5986"}
     [pscustomobject]@{Service="ssh";Protocol="tcp";Ports="22"}
@@ -348,43 +349,21 @@ if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "WinRM"){
 }
 
 # Logging Protocols
-## Wazuh 
-$numRules = 2
-$errorChecking = netsh adv f a r n=Wazuh-Client dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=1514
-if($wazuhIP -ne "Any"){
-    $errorChecking += netsh adv f a r n=Wazuh-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=80,443
-    $numRules++
-}
-### Temporary rule to allow enrollment of an agent
-$errorChecking += netsh adv f a r n=Wazuh-Agent-Enrollment dir=out act=allow prof=any prot=tcp remoteip=$wazuhIP remoteport=1515
-
-if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Wazuh"){
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh firewall rules set" -ForegroundColor white
-}
-
-$numRules = 1
-$errorChecking = netsh adv f a r n=Graylog-Client dir=out act=allow prof=any prot=tcp remoteip=$graylogIP remoteport=1514,9000,9200,9300,27017
-if($graylogIP -ne "Any"){
-    $errorChecking += netsh adv f a r n=Graylog-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$graylogIP remoteport=80,443
-    $numRules++
-}
-
-if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Graylog"){
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Graylog firewall rules set" -ForegroundColor white
+## Grafana
+$errorChecking = netsh adv f a r n=Grafana-Client dir=out act=allow prof=any prot=tcp remoteip=$grafanaIP remoteport=1468,1514,1515,5044,14680,9000,9200,9300,12201,27017
+if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "Grafana"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Grafana firewall rules set" -ForegroundColor white
 }
 
 # Stabvest 
-$numRules = 1
 $errorChecking = netsh adv f a r n=Stabvest-Client dir=out act=allow prof=any prot=tcp remoteip=$stabvestIP remoteport=443
-if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Stabvest"){
+if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "Stabvest"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Stabvest firewall rules set" -ForegroundColor white
 }
 
 # Passmgr
-$numRules = 2
-$errorChecking = netsh adv f a r n=Passmgr-Client-To-Server dir=out act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
-$errorChecking += netsh adv f a r n=Passmgr-Server-To-Client dir=in act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
-if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Passmgr"){
+$errorChecking = netsh adv f a r n=Passmgr-Client dir=out act=allow prof=any prot=tcp remoteip=$passmgrIP remoteport=443
+if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "Passmgr"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Passmgr firewall rules set" -ForegroundColor white
 }
 
@@ -394,7 +373,7 @@ if ($addIpsFromFile -ne "none"){
     $filePath = $addIpsFromFile[0]
     $port = $addIpsFromFile[1]
 
-    # Default behavoir
+    # Default behavior
     $direction = "Outbound"
 
     if ($addIpsFromFile.Count -eq 3){

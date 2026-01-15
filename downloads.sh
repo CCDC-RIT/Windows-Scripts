@@ -65,20 +65,17 @@ wget -o /dev/null "$(get_download_url "Windows-Scripts" "inventory.ps1")" -O "in
 wget -o /dev/null "$(get_download_url "Windows-Scripts" "logging.ps1")" -O "logging.ps1"
 # Secure baseline script
 wget -o /dev/null "$(get_download_url "Windows-Scripts" "secure.ps1")" -O "secure.ps1"
-# Wazuh agent config file
-# wget -o /dev/null "$(get_download_url "Logging-Scripts" "agent_windows.conf")" -O "agent_windows.conf"
 # Yara response script
 wget -o /dev/null "$(get_download_url "Logging-Scripts" "yara.bat")" -O "yara.bat"
-# User Management script
-wget -o /dev/null "$(get_download_url "Windows-Scripts" "usermgmt.ps1")" -O "usermgmt.ps1"
-# SOAR Agent Script
-wget -o /dev/null "$(get_download_url "Windows-Scripts" "SOARAgent.ps1")" -O "soaragent.ps1"
 # Powershell profile
 wget -o /dev/null "$(get_download_url "Windows-Scripts" "profile.ps1")" -O "profile.ps1"
 # HTTPS cert template
-wget -o /dev/null "$(get_download_url "Windows-Scripts" "cert.txt")" -O "cert.txt"
+wget -o /dev/null "$(get_download_url "Windows-Scripts" "cert.txt")" -O "cert.txt"\
+
 # Ansible Dynamic Inventory Script
 wget -o /dev/null "$(get_download_url "Windows-Scripts" "windows-recon.py")" -O "windows-recon.py"
+wget -o /dev/null "$(get_download_url "Windows-Scripts" "recon-requirements.txt")" -O "recon-requirements.txt"
+wget -o /dev/null "$(get_download_url "Windows-Scripts" "fix_openssl.py")" -O "fix_openssl.py"
 
 echo "[SUCCESS] Scripts downloaded."
 
@@ -134,9 +131,7 @@ wget -o /dev/null "https://github.com/itm4n/PrivescCheck/releases/latest/downloa
 wget -o /dev/null "https://github.com/WithSecureLabs/chainsaw/releases/latest/download/chainsaw_all_platforms+rules.zip" -O "cs.zip"
 wget -o /dev/null "https://aka.ms/vs/17/release/vc_redist.x64.exe" -O "vc_redist.64.exe"
 # hollows hunter
-wget -o /dev/null "https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip" -O "hh64.zip"
-# Wazuh agent
-# wget -o /dev/null "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.9.2-1.msi" -O "wazuhagent.msi"
+wget -o /dev/null "https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip" -O "hh64.zip"a
 # Basic Sysmon conf file
 wget -o /dev/null "https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml" -O "sysmon.xml"
 # Windows Firewall Control + .NET 4.8

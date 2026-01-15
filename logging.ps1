@@ -142,24 +142,3 @@ if (Get-Service -Name adfssrv 2>$null) {
     auditpol.exe /set /subcategory:"Application Generated" /failure:enable /success:enable
     Write-Host "[" -NoNewline; Write-Host "SUCCESS" -ForegroundColor Green -NoNewline; Write-Host "] ADFS Logging Enabled" -ForegroundColor White
 }
-
-if ($wazuhIP) {
-    # Fix Wazuh config file
-    $file = Join-Path -Path $scriptDir -ChildPath "conf\agent_windows.conf"
-    $content = Get-Content $file
-    # This line is a work in progress
-    # $content | ForEach-Object { $_ -replace "<address></address>", "<address>$($wazuhIP)</address>"; $_ -replace "<config-profile>windows, windows2019, windows-server, windows-server-2019</config-profile>", "<config-profile></config-profile>" } | Set-Content $file
-    $content | ForEach-Object { $_ -replace "<address></address>", "<address>$($wazuhIP)</address>" } | Set-Content $file
-    
-    # setup wazuh agent, config file, backup
-    Start-Process -FilePath (Join-Path -Path $rootDir -ChildPath "installers\wazuhagent.msi") -ArgumentList ("/q WAZUH_MANAGER='" + $wazuhIP + "'") -Wait
-    Remove-Item "C:\Program Files (x86)\ossec-agent\ossec.conf" -Force
-    Copy-Item -Path (Join-Path -Path $scriptDir -ChildPath "conf\agent_windows.conf") -Destination "C:\Program Files (x86)\ossec-agent\ossec.conf"
-    
-    # Start the wazuh agent
-    $result = net start Wazuh
-    printSuccessOrError -name "Wazuh Service Started" -result $result -desiredResult "The Wazuh service was started successfully." -multiple $true
-}
-    
-    #Chandi Fortnite
-

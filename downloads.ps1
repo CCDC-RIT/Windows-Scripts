@@ -118,12 +118,8 @@ $ProgressPreference = 'SilentlyContinue'
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "profile.ps1"), (Join-Path -Path $ScriptPath -ChildPath "profile.ps1"))
 # Cert Template
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "cert.txt"), (Join-Path -Path $ScriptPath -ChildPath "cert.txt"))
-# Wazuh agent config file
-# (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Logging-Scripts" -file "agent_windows.conf"), (Join-Path -Path $ConfPath -ChildPath "agent_windows.conf"))
 # Yara response script
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Logging-Scripts" -file "yara.bat"), (Join-Path -Path $ScriptPath -ChildPath "yara.bat"))
-# User Management script
-(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "usermgmt.ps1"), (Join-Path -Path $ScriptPath -ChildPath "usermgmt.ps1"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] System scripts and config files downloaded" -ForegroundColor white
 
 # Service tooling 
