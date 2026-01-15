@@ -185,16 +185,54 @@ def detect_scored_services(session, ip_address):
             log(log_file, "DHCP is Present")
             log(log_file, check_dhcp.std_out.decode())
 
-    check_http = session.run_cmd('sc query w3svc')
-    if check_http.status_code != 0:
-        log(log_file, "HTTP service not found.")
+    check_http_iis = session.run_cmd('sc query w3svc')
+    if check_http_iis.status_code != 0:
+        log(log_file, "HTTP_IIS service not found.")
     else:
         if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":80"').std_out.decode() == '':
-            log(log_file, "HTTP service is not running.")
+            log(log_file, "HTTP_IIS service is not running.")
         else:
-            print("HTTP:80 ",end="")
-            log(log_file, "HTTP is Present")
-            log(log_file, check_http.std_out.decode())
+            print("HTTP_IIS:80 ",end="")
+            log(log_file, "HTTP_IIS is Present")
+            log(log_file, check_http_iis.std_out.decode())
+        if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":443"').std_out.decode() != '':
+            print("HTTPS_IIS:443 ",end="")
+            log(log_file, "HTTPS_IIS is Present")
+            log(log_file, check_http_iis.std_out.decode())
+
+    check_http_nginx = session.run_cmd('sc query nginx')
+    if check_http_nginx.status_code != 0:
+        log(log_file, "HTTP_Nginx service not found.")
+    else:
+        if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":80"').std_out.decode() == '':
+            log(log_file, "HTTP_Nginx service is not running.")
+        else:
+            print("HTTP_Nginx:80 ",end="")
+            log(log_file, "HTTP_Nginx is Present")
+            log(log_file, check_http_nginx.std_out.decode())
+        if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":443"').std_out.decode() != '':
+            print("HTTPS_Nginx:443 ",end="")
+            log(log_file, "HTTPS_Nginx is Present")
+            log(log_file, check_http_nginx.std_out.decode())
+
+    check_http_apache = session.run_cmd('sc query Apache2.4')
+    if check_http_apache.status_code != 0:
+        check_http_apache = session.run_cmd('sc query Apache24')
+        if check_http_apache.status_code != 0:
+            check_http_apache = session.run_cmd('sc query Apache')
+            if check_http_apache.status_code != 0:
+                log(log_file, "HTTP_Apache service not found.")
+    else:
+        if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":80"').std_out.decode() == '':
+            log(log_file, "HTTP_Apache service is not running.")
+        else:
+            print("HTTP_Apache:80 ",end="")
+            log(log_file, "HTTP_Apache is Present")
+            log(log_file, check_http_apache.std_out.decode())
+        if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":443"').std_out.decode() != '':
+            print("HTTPS_Apache:443 ",end="")
+            log(log_file, "HTTPS_Apache is Present")
+            log(log_file, check_http_apache.std_out.decode())
 
     check_ntp = session.run_cmd('sc query w32time')
     if check_ntp.status_code != 0:
@@ -225,17 +263,6 @@ def detect_scored_services(session, ip_address):
         print("ADFS ",end="")
         log(log_file, "ADFS is Present")
         log(log_file, check_adfs.std_out.decode())
-
-    check_https = session.run_cmd('sc query w3svc')
-    if check_https.status_code != 0:
-        log(log_file, "HTTPS service not found.")
-    else:
-        if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":443"').std_out.decode() == '':
-            log(log_file, "HTTPS service is not running.")
-        else:
-            print("HTTPS:443 ")
-            log(log_file, "HTTPS is Present")
-            log(log_file, check_https.std_out.decode())
 
     check_ca = session.run_cmd('sc query certsvc')
     if check_ca.status_code != 0:
