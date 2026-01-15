@@ -5,9 +5,9 @@
 import os
 import os
 import nmap
-import json
 import winrm
 import argparse
+import paramiko
 
 # Global Variables
 ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
@@ -17,6 +17,8 @@ GENERAL_LOG_FILE = '/Windows-Scripts/recon_logs/general_log.txt'
 global SUBNET
 global DOMAIN_USERNAME
 global DOMAIN_PASSWORD
+global LINUX_USERNAME
+global LINUX_PASSWORD
 
 global PASSWORD_MANAGER_IP
 global GRAFANA_IP
@@ -39,13 +41,9 @@ def scan_all_hosts(subnet):
                 print(f"Unix Host {host} detected:\n",end="")
                 create_log_file(host)
                 log(f'{LOG_FOLDER}/{host}.txt', f"Found Unix Host: {host}")
-
                 if GRAFANA_IP is None:
                     find_grafana(host)
-                if os_version == "Ubuntu":
-                    global PASSWORD_MANAGER_IP
-                    if PASSWORD_MANAGER_IP is None:
-                        PASSWORD_MANAGER_IP = host
+
             lport = nm[host]['tcp'].keys()
             found_hosts[host] = {
                     'SSH': False,
@@ -84,11 +82,11 @@ def scan_all_hosts(subnet):
 
 def find_grafana(host):
     global GRAFANA_IP
-    if GRAFANA_IP is not None:
-        return
     nm = nmap.PortScanner()
     nm.scan(hosts=host, arguments='-p 3000')
-    GRAFANA_IP = nm.all_hosts()[0]
+    if nm[host].has_tcp(3000) and nm[host]['tcp'][3000]['state'] == 'open':
+        GRAFANA_IP = host
+        print(f"Set as Grafana IP\n",end="")
 
 # Attempts to gather additional information about Windows hosts
 def gather_info(hosts, original_scan):
@@ -108,7 +106,7 @@ def gather_info(hosts, original_scan):
                     )
                     print(f"Windows Host {host} WinRM Scan:\n",end="")
                     detect_scored_services(session, host)
-                    determine_os_version(session, host)
+                    determine_windows_os_version(session, host)
                     log(IP_FILE, host)
                     continue
                 except Exception as e:
@@ -121,6 +119,10 @@ def gather_info(hosts, original_scan):
         else:
             print(f"Unix Host {host} Port Scan:\n",end="")
             port_scan_only(host, command_output)
+            if hosts[host]['SSH'] and LINUX_USERNAME is not None and LINUX_PASSWORD is not None:
+                determine_unix_os_version(host)
+            else:
+                print("")
         
     return command_output
 
@@ -270,16 +272,20 @@ def determine_os(nm, host):
     os_match = nm[host].get('osmatch', [])
     
     if os_match:
-        # Check if any OS match indicates Windows
+        # Check all matches for Windows first (higher priority)
         for os_info in os_match:
+            #print(os_info) Debugging line
             if 'Windows' in os_info.get('name', ''):
                 return 'Windows'
-            if 'Ubuntu' in os_info.get('name', ''):
-                return 'Ubuntu'
+        
+        # If no Windows match found, check for Linux/Unix
+        for os_info in os_match:
+            if 'Linux' in os_info.get('name', ''):
+                return 'Linux'
             
-    return None
+    return 'FreeBSD'  # Default to FreeBSD if no matches found
 
-def determine_os_version(session, ip_address):
+def determine_windows_os_version(session, ip_address):
     log_file = f'{LOG_FOLDER}/{ip_address}.txt'
     check_os_type = session.run_cmd('powershell -c Get-ItemPropertyValue \'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\' InstallationType')
     check_os_version = session.run_cmd('powershell -c Get-ItemPropertyValue \'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\' ProductName')
@@ -298,6 +304,32 @@ def determine_os_version(session, ip_address):
         else:
             log(log_file, f"OS Version for {ip_address}: {check_os_version.std_out.decode().strip()}\n")
             print(f"Detected OS Version: {check_os_version.std_out.decode().strip()}",end="")
+    print("")
+
+def determine_unix_os_version(ip_address):
+    log_file = f'{LOG_FOLDER}/{ip_address}.txt'
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        ssh_client.connect(ip_address, username=LINUX_USERNAME, password=LINUX_PASSWORD, timeout=10)
+        stdin, stdout, stderr = ssh_client.exec_command('cat /etc/os-release | grep PRETTY_NAME | cut -d "=" -f2 | tr -d \'"\'')
+        os_info = stdout.read().decode().strip()
+        if os_info == '':
+            stdin, stdout, stderr = ssh_client.exec_command('freebsd-version')
+            os_info = "FreeBSD " + stdout.read().decode().strip()
+        print(f"Detected OS: {os_info}\n",end="")
+        log(log_file, f"OS Information for {ip_address}:\n{os_info}\n")
+        if "Ubuntu" in os_info:
+            global PASSWORD_MANAGER_IP
+            if PASSWORD_MANAGER_IP is None:
+                PASSWORD_MANAGER_IP = ip_address
+                print(f"Set as Password Manager IP\n",end="")
+        if "FreeBSD" in os_info:
+            print(f"Router Detected\n",end="")
+        ssh_client.close()
+    except Exception as e:
+        log(log_file, f"Could not determine OS for {ip_address}\n")
+        print(f"Could not determine OS for {ip_address}\n",end="")
     print("")
 
 def log(file, content):
@@ -348,7 +380,7 @@ def port_scan_only(host, command_output):
                     command_output[host] = f"Open ports: {port} ({service})"
                 else:
                     command_output[host] += f", {port} ({service})"
-        print("\n\n",end="")
+        print("\n",end="")
     except Exception as e:
         print(f"Port scan failed: {str(e)}\n",end="")
         log(log_file, f"Port scan failed for {host}: {str(e)}")
@@ -361,8 +393,10 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Windows Reconnaissance Script to Fill Out Ansible Inventory')
     parser.add_argument('-s', required=True, help='Subnet to scan for Windows hosts (e.g., 192.168.1.0/24)')
-    parser.add_argument('-u', required=True, help='Domain username for WinRM authentication')
-    parser.add_argument('-p', required=True, help='Domain password for WinRM authentication')
+    parser.add_argument('-wu', required=True, help='Domain username for WinRM authentication')
+    parser.add_argument('-wp', required=True, help='Domain password for WinRM authentication')
+    parser.add_argument('-lu', required=False, help='Linux username for SSH authentication')
+    parser.add_argument('-lp', required=False, help='Linux password for SSH authentication')
     args = parser.parse_args()
 
     # Clear Terminal
@@ -401,6 +435,8 @@ def main():
     global SUBNET
     global DOMAIN_USERNAME
     global DOMAIN_PASSWORD
+    global LINUX_USERNAME
+    global LINUX_PASSWORD
     global PASSWORD_MANAGER_IP
     global GRAFANA_IP
 
@@ -408,11 +444,23 @@ def main():
     GRAFANA_IP = None
 
     SUBNET = args.s
-    DOMAIN_USERNAME = args.u
-    DOMAIN_PASSWORD = args.p
+    DOMAIN_USERNAME = args.wu
+    DOMAIN_PASSWORD = args.wp
+    LINUX_USERNAME = None
+    LINUX_PASSWORD = None
+
     print("\n\n======================================SUBNET SCANNING======================================\n\n")
-    print(f"Scanning subnet: {SUBNET} with username: {DOMAIN_USERNAME} and password: {DOMAIN_PASSWORD}\n")
+    print(f"Scanning subnet: {SUBNET}")
+    print(f"Using Windows Credentials | Username: {DOMAIN_USERNAME} and password: {DOMAIN_PASSWORD}")
     log(GENERAL_LOG_FILE, f"Scanning subnet: {SUBNET} with username: {DOMAIN_USERNAME}")
+
+    # Optional Linux credentials for SSH
+    if args.lu is not None and args.lp is not None:
+        LINUX_USERNAME = args.lu
+        LINUX_PASSWORD = args.lp
+        print(f"Using Linux Credentials | Username: {LINUX_USERNAME} and password: {LINUX_PASSWORD}\n")
+    else:
+        print("")
 
     found_hosts, original_scan = scan_all_hosts(SUBNET)
     #print(json.dumps(found_hosts, indent=4)) #json output for debugging
