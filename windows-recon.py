@@ -11,6 +11,7 @@ import paramiko
 
 # Global Variables
 ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
+#ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/test_inventory.yml' # Used for testing without destroying actual inventory
 IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
 LOG_FOLDER = '/Windows-Scripts/recon_logs/'
 GENERAL_LOG_FILE = '/Windows-Scripts/recon_logs/general_log.txt'
@@ -415,6 +416,27 @@ def port_scan_only(host, command_output):
 # Adds information about Windows hosts to the Ansible inventory file
 def add_to_ansible_inventory(hosts):
     print(f"Adding hosts to Ansible inventory file: {ANSIBLE_INVENTORY_FILE}\n")
+
+    ansible_header_content = f"""---
+all:
+children:
+    windows:
+    vars:
+        ansible_connection: winrm
+        ansible_winrm_server_cert_validation: ignore
+        ansible_winrm_port: 5985
+        ansible_winrm_transport: ntlm
+        ansible_user: "{DOMAIN_USERNAME}"
+        ansible_password: "{DOMAIN_PASSWORD}"
+        scripts_path: "" #REPLACE
+        scripts_ansible_location: "/Windows-Scripts"
+        password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
+        grafana_ip: "{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
+        adfs_backup_password: "" #REPLACE
+    children:
+    """
+    with open(ANSIBLE_INVENTORY_FILE, 'w') as inventory_file:
+        inventory_file.write(ansible_header_content)
 
 def main():
     # Parse command line arguments
