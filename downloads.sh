@@ -131,7 +131,7 @@ wget -o /dev/null "https://github.com/itm4n/PrivescCheck/releases/latest/downloa
 wget -o /dev/null "https://github.com/WithSecureLabs/chainsaw/releases/latest/download/chainsaw_all_platforms+rules.zip" -O "cs.zip"
 wget -o /dev/null "https://aka.ms/vs/17/release/vc_redist.x64.exe" -O "vc_redist.64.exe"
 # hollows hunter
-wget -o /dev/null "https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip" -O "hh64.zip"a
+wget -o /dev/null "https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip" -O "hh64.zip"
 # Basic Sysmon conf file
 wget -o /dev/null "https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml" -O "sysmon.xml"
 # Windows Firewall Control + .NET 4.8
