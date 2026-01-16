@@ -26,21 +26,29 @@
 - name: Install NuGet on CA
   win_shell: |
     Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+  args:
+    no_profile: true
   when: server_type == "ca"
 
 - name: Install PSRepository to PSGallery on CA
   win_shell: |
     Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
+  args:
+    no_profile: true
   when: server_type == "ca"
 
 - name: Install Locksmith dependencies on CA
   win_shell: |
     Install-WindowsFeature -Name RSAT-AD-PowerShell,RSAT-ADCS-Mgmt
+  args:
+    no_profile: true
   when: server_type == "ca"
 
 - name: Install Locksmith on CA
   win_shell: |
     Install-Module -Name Locksmith -Scope CurrentUser
+  args:
+    no_profile: true
   when: server_type == "ca"
 
   # ADFS backup support
@@ -49,8 +57,12 @@
     src: "{{ scripts_ansible_location }}/ADFSRapidRecreationTool.msi"
     dest: "{{ scripts_path }}\\ADFSRapidRecreationTool.msi"
     remote_src: false
+  args:
+    no_profile: true
 
 - name: Install ADFS Rapid Recreation Tool
   win_shell: |
     {{ scripts_path }}\ADFSRapidRecreationTool.msi /quiet
+  args:
+    no_profile: true
   when: server_type == "adfs"
