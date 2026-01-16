@@ -96,6 +96,8 @@
 - name: Disable Windows Defender Script
   win_shell: |
     Set-MpPreference -DisableRealtimeMonitoring $true
+  args:
+    no_profile: true
   ignore_errors: true
 
 - name: Copy PrivescCheck Script
@@ -124,6 +126,8 @@
 
 - name: Get UserName
   win_shell: whoami
+  args:
+    no_profile: true
   register: profile_username
 
 - name: Extract username
@@ -167,6 +171,8 @@
 - name: Install Bitlocker and Defender on Windows Server
   win_shell: |
     Install-WindowsFeature -Name Bitlocker,Windows-Defender
+  args:
+    no_profile: true  
   when: is_win_server == "true"
   ignore_errors: true
 
@@ -302,6 +308,8 @@
   win_shell: |
     .\vc_redist.64.exe /install /passive /norestart
   args:
+    no_profile: true
+  args:
     chdir: "{{ scripts_path }}\\installers"
 
 - name: Copy Hollows Hunter
@@ -327,6 +335,8 @@
 - name: Silently Install .net 4.8
   win_shell: |
     .\net_installer.exe /passive /norestart
+  args:
+    no_profile: true
   args:
     chdir: "{{ scripts_path }}\\installers"
 
@@ -420,6 +430,8 @@
   win_shell: |
     .\notepadpp_installer.exe /S
   args:
+    no_profile: true
+  args:
     chdir: "{{ scripts_path }}\\installers"
 
 - name: Copy Google Chrome
@@ -430,6 +442,8 @@
 - name: Silently Install Chrome
   win_shell: |
     .\chromeinstall.exe /silent /install
+  args:
+    no_profile: true
   args:
     chdir: "{{ scripts_path }}\\installers"
 
@@ -468,6 +482,8 @@
 - name: Rename Autoruns executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ar" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ar\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract PSExec
   community.windows.win_unzip:
@@ -477,6 +493,8 @@
 - name: Rename PSExec executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ps" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ps\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract List DLLs
   community.windows.win_unzip:
@@ -486,6 +504,8 @@
 - name: Rename List DLLs executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\dll" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\dll\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract Process Explorer
   community.windows.win_unzip:
@@ -495,6 +515,8 @@
 - name: Rename Process Explorer executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pe" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pe\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract Process Monitor
   community.windows.win_unzip:
@@ -504,6 +526,8 @@
 - name: Rename Process Monitor executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract Sig Check
   community.windows.win_unzip:
@@ -513,6 +537,8 @@
 - name: Rename Sig Check executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sc" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sc\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract TCP View
   community.windows.win_unzip:
@@ -522,6 +548,8 @@
 - name: Rename TCP View executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\tv" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\tv\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract Streams
   community.windows.win_unzip:
@@ -531,6 +559,8 @@
 - name: Rename Streams executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\stm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\stm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract Sysmon
   community.windows.win_unzip:
@@ -540,6 +570,8 @@
 - name: Rename Sysmon executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract Access Check
   community.windows.win_unzip:
@@ -549,6 +581,8 @@
 - name: Rename Access Check executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ac" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ac\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract Strings
   community.windows.win_unzip:
@@ -558,6 +592,8 @@
 - name: Rename Strings executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\str" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\str\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract Hollows Hunter
   community.windows.win_unzip:
@@ -577,6 +613,8 @@
 - name: Rename Yara executables
   win_shell: |
     (Get-ChildItem -Path "{{ scripts_path }}\\tools\\yara" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\yara\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+  args:
+    no_profile: true
 
 - name: Extract Windows Yara Rules
   community.windows.win_unzip:
@@ -597,10 +635,14 @@
   win_shell: |
     Move-Item -Path "{{ scripts_path }}\tools\yara\packages\full\yara-rules-full.yar" -Destination "{{ scripts_path }}\tools\yara\Multi\YaraHQRules.yara"
     Remove-Item -Path "{{ scripts_path }}\tools\yara\packages" -Recurse
+  args:
+    no_profile: true
 
 - name: Enable WWindows Defender
   win_shell: |
     Set-MpPreference -DisableRealtimeMonitoring $false
+  args:
+    no_profile: true
   ignore_errors: true
 
 - name: Extract Everything Search Tool
