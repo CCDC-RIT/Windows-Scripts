@@ -9,7 +9,8 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$siemIP="any",
     [Parameter(Mandatory=$false)]
-    [array]$siemPorts,
+    [ValidateSet("Grafana","Graylog","Wazuh","none")]
+    [array]$siemName = "none",
     [Parameter(Mandatory=$false)]
     [string]$stabvestIP="169.254.0.0/16",
     [Parameter(Mandatory=$false)]
@@ -149,16 +150,6 @@ if (Get-Service -Name CertSvc 2>$null) {
 $errorChecking = netsh adv f a r n=CA-Client dir=out act=allow prof=any prot=tcp remoteip=$caIP remoteport=135
 if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "CA Client"){
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Certificate Authority client firewall rule set" -ForegroundColor white
-}
-
-# SIEM Firewall Rules
-if ($siemIP) {
-    foreach ($port in $siemPorts) {
-        $errorChecking = netsh adv f a r n=SIEM-Client dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=$port
-        if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "SIEM (Port $port)"){
-            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SIEM (Port $port) firewall rule set" -ForegroundColor white
-        }
-    }
 }
 
 # All possible ports needed to be allowed through firewall for various services/scorechecks
@@ -359,10 +350,39 @@ if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "WinRM"){
 }
 
 # Logging Protocols
-## Grafana
-$errorChecking = netsh adv f a r n=Grafana-Client dir=out act=allow prof=any prot=tcp remoteip=$grafanaIP remoteport=1468,1514,1515,5044,14680,9000,9200,9300,12201,27017
-if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "Grafana"){
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Grafana firewall rules set" -ForegroundColor white
+# SIEM Firewall Rules
+if ($siemName -ne "none") {
+    if ($siemIP -eq "any") {
+        $siemIP = Read-Host "Enter the SIEM IP"
+    }
+    switch ($siemName) {
+        "Grafana" {
+            $numRules = 2
+            $errorChecking = netsh adv f a r n=Grafana-Client dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=3100
+            $errorChecking += netsh adv f a r n=Grafana-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=3000
+            if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "SIEM Grafana"){
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] SIEM Grafana firewall rules set" -ForegroundColor white
+            }
+        }
+        "Graylog" {
+            $numRules = 2
+            $errorChecking = netsh adv f a r n=Graylog-Client dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=1514
+            $errorChecking += netsh adv f a r n=Graylog-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=80,443
+            if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Graylog"){
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Graylog firewall rules set" -ForegroundColor white
+            }
+        }
+        "Wazuh" {
+            $numRules = 3
+            $errorChecking = netsh adv f a r n=Wazuh-Client dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=1514
+            $errorChecking += netsh adv f a r n=Wazuh-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=80,443
+            ### Temporary rule to allow enrollment of an agent
+            $errorChecking += netsh adv f a r n=Wazuh-Agent-Enrollment dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=1515
+            if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Wazuh"){
+                Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh firewall rules set" -ForegroundColor white
+            }
+        }
+    }
 }
 
 # Stabvest 
