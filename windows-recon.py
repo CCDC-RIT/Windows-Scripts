@@ -8,6 +8,7 @@ import winrm
 import argparse
 import paramiko
 import socket
+import re
 
 # Global File Locations
 #ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
@@ -25,13 +26,35 @@ global GRAFANA_IP
 global LOCAL_IP
 global HOST_INFO
 
+# Fixes PyWinRM ipv6 issue (Shoutout illidian80 on github)
+_original_build_url = winrm.Session._build_url
+@staticmethod
+def _patched_build_url(target, transport):
+    # IPv6 pattern matching
+    ipv6_match = re.match(
+        r'(?i)^((?P<scheme>http[s]?)://)?(\[(?P<ipv6>[0-9a-f:]+)\])(:(?P<port>\d+))?(?P<path>(/)?(wsman)?)?',
+        target
+    )
+    if ipv6_match:
+        scheme = ipv6_match.group('scheme') or ('https' if transport == 'ssl' else 'http')
+        host = '[' + ipv6_match.group('ipv6') + ']'
+        port = ipv6_match.group('port') or ('5986' if transport == 'ssl' else '5985')
+        path = ipv6_match.group('path') or 'wsman'
+        return '{0}://{1}:{2}/{3}'.format(scheme, host, port, path.lstrip('/'))
+    return _original_build_url(target, transport)
+winrm.Session._build_url = _patched_build_url
+
 # Scans the given subnet for hosts
 def scan_all_hosts(subnet):
     global HOST_INFO
     nm = nmap.PortScanner()
     # param gets passed as comma separated, nmap wants spaces
     subnet = subnet.replace(',', ' ')
-    nm.scan(hosts=subnet, arguments='-O -p 22,3389,5985,5986')
+    # Use -6 flag for IPv6 scanning
+    if ':' in subnet:
+        nm.scan(hosts=subnet, arguments='-O -6 -p 22,3389,5985,5986')
+    else:
+        nm.scan(hosts=subnet, arguments='-O -p 22,3389,5985,5986')
     for host in [x for x in nm.all_hosts()]:
         os_version = determine_os(nm, host)
         if os_version == "Windows":
@@ -76,7 +99,10 @@ def scan_all_hosts(subnet):
 def find_grafana(host):
     global GRAFANA_IP
     nm = nmap.PortScanner()
-    nm.scan(hosts=host, arguments='-p 3000')
+    if ":" in host:
+        nm.scan(hosts=host, arguments='-6 -p 3000')
+    else:
+        nm.scan(hosts=host, arguments='-p 3000')
     if nm[host].has_tcp(3000) and nm[host]['tcp'][3000]['state'] == 'open':
         GRAFANA_IP = host
         print(f"Set as Grafana IP\n",end="")
@@ -94,8 +120,10 @@ def gather_info(original_scan):
                     username = DOMAIN_CREDENTIALS[i][0]
                     password = DOMAIN_CREDENTIALS[i][1]
                     try:
+                        # Wrap IPv6 addresses in brackets
+                        host_addr = f"[{host}]" if ':' in host and not host.startswith('[') else host
                         session = winrm.Session(
-                            host,
+                            f'http://{host_addr}:5985/wsman',
                             auth=(f"{username}", password),
                             server_cert_validation='ignore',
                             transport='ntlm'
@@ -131,7 +159,6 @@ def gather_info(original_scan):
         services_str = ','.join(sorted(HOST_INFO[host]['Services'])) if HOST_INFO[host]['Services'] else 'None'
         os_version = HOST_INFO[host]['OS_Version']
         if os_version:
-            import re
             os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
         log(TOPOLOGY_FILE, f"{SUBNET},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
     return command_output
@@ -327,7 +354,11 @@ def port_scan_only(host, command_output):
     print("Detected Potential Scored Services: ",end="")
     try:
         ps = nmap.PortScanner()
-        ps.scan(hosts=host, arguments='-sV -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986')
+        # Use -6 flag for IPv6 scanning
+        if ':' in host:
+            ps.scan(hosts=host, arguments='-sV -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986 -6')
+        else:
+            ps.scan(hosts=host, arguments='-sV -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986')
         port_dict = {
             21: "FTP",
             22: "SSH",
@@ -363,11 +394,17 @@ def port_scan_only(host, command_output):
 
 def get_local_ip():
     global LOCAL_IP
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    LOCAL_IP = s.getsockname()[0]
-    s.close()
-
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        LOCAL_IP = s.getsockname()[0]
+        s.close()
+    except Exception as e:
+        s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        s.connect(("2001:4860:4860::8888", 80))
+        LOCAL_IP = s.getsockname()[0]
+        s.close()
+        
 # Adds information about Windows hosts to the Ansible inventory file
 def add_to_ansible_inventory():
     global HOST_INFO
