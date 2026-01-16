@@ -107,7 +107,7 @@ def find_grafana(host):
         print(f"Set as Grafana IP\n",end="")
 
 # Attempts to gather additional information about Windows hosts
-def gather_info(original_scan):
+def gather_info(original_scan, subnet):
     global HOST_INFO
     command_output = {}
     
@@ -159,7 +159,7 @@ def gather_info(original_scan):
         os_version = HOST_INFO[host]['OS_Version']
         if os_version:
             os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
-        log(TOPOLOGY_FILE, f"{SUBNET},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
+        log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
     return command_output
 
 # Determines scored service via WinRM
@@ -565,9 +565,9 @@ def main():
     if ipv6_subnet is not None:
         original_ipv6_scan = scan_all_hosts(ipv6_subnet)
     print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
-    gather_info(original_ipv4_scan)
+    gather_info(original_ipv4_scan, original_ipv4_scan)
     if ipv6_subnet is not None:
-        gather_info(original_ipv6_scan)
+        gather_info(original_ipv6_scan, original_ipv6_scan)
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
     add_to_ansible_inventory()
     print("\n==================================RECONNAISSANCE COMPLETE==================================\n\n")
