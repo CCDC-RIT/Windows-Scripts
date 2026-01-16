@@ -366,7 +366,7 @@ if ($siemName -ne "none") {
         }
         "Graylog" {
             $numRules = 2
-            $errorChecking = netsh adv f a r n=Graylog-Client dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=1514
+            $errorChecking = netsh adv f a r n=Graylog-Client dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=1468,5044,12201,
             $errorChecking += netsh adv f a r n=Graylog-HTTP-Dashboard dir=out act=allow prof=any prot=tcp remoteip=$siemIP remoteport=80,443
             if(handleErrors -errorString $errorChecking -numRules $numRules -ruleType "Graylog"){
                 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Graylog firewall rules set" -ForegroundColor white
