@@ -143,7 +143,7 @@ def gather_info(original_scan, subnet):
             else:
                 print(f"Windows Host {host} has WinRM Disabled, Running Port Scan:\n",end="")
                 port_scan_only(host, command_output)
-        else:
+        elif LINUX_CREDENTIALS is not None:
             for i in range(len(LINUX_CREDENTIALS)):
                 username = LINUX_CREDENTIALS[i][0]
                 password = LINUX_CREDENTIALS[i][1]
