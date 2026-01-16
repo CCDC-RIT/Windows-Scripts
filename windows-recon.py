@@ -56,6 +56,7 @@ def scan_all_hosts(subnet):
         nm.scan(hosts=subnet, arguments='-O -p 22,3389,5985,5986')
     for host in [x for x in nm.all_hosts()]:
         os_version = determine_os(nm, host)
+        print(os_version)
         if os_version == "Windows":
             print(f"Windows Host {host} detected:\n",end="")
         else:
