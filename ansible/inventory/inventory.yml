@@ -16,6 +16,7 @@ all:
         adfs_backup_password: "" #REPLACE
         siem_IP: "any" #REPLACE
         siem_Name: "none" #REPLACE
+        winrm_ip: "" #REPLACE
       children:
         dc:
           vars:
