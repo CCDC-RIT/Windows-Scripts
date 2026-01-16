@@ -75,51 +75,64 @@ def gather_information(session, host, file_path, process_name, service_name, run
     ARTIFACTS[host] = {
         "File Path": file_path,
         "Process Name": process_name,
-        "Process ID": None,
+        "Process ID": set(),
         "Service Name": service_name,
         "Run Key Location": run_key_location,
         "Scheduled Task Name": scheduled_task_name
     }
 
-    if file_path is not None:
-        ps_script = f'Test-Path -Path "{file_path}"'
-        output = session.run_cmd(f'powershell -c "{ps_script}"')
-        if output.status_code == 0:
-            if process_name is None:
+    if len(file_path) != 0:
+        file_paths = [file_path]
+        if "," in file_path:
+            file_paths = file_path.split(",")
+        for file_path in file_paths:
+            ps_script = f'Test-Path -Path \'{file_path}\''
+            output = session.run_cmd(f'powershell -c "{ps_script}"')
+            if output.status_code == 0:
+                # Process Information
                 ps_script = 'get-process | where-object { $_.path -eq \'' + file_path + '\'} | select-object name, id, path | format-table -HideTableHeaders'
                 output = session.run_cmd(f'powershell -c "{ps_script}"')
                 output = output.std_out.decode().strip()
                 if len(output) != 0:
                     tokens = output.split()
                     if len(tokens) >= 2:
-                        ARTIFACTS[host]["Process Name"] = tokens[0]
-                        ARTIFACTS[host]["Process ID"] = tokens[1]
-            if service_name is None:
+                        ARTIFACTS[host]["Process Name"].add(tokens[0])
+                        ARTIFACTS[host]["Process ID"].add(tokens[1])
+                
+                # Service Information
                 ps_script = 'Get-CimInstance -ClassName win32_service | where-object { $_.PathName -eq \'' +  file_path + '\'} | select-object -ExpandProperty name'
                 output = session.run_cmd(f'powershell -c "{ps_script}"')
                 output = output.std_out.decode().strip()
                 if len(output) != 0:
-                    ARTIFACTS[host]["Service Name"] = output
-                elif run_key_location is None:
-                    ps_script = (
-                        f'Get-ItemProperty -Path \'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run\';'
-                        f'Get-ItemProperty -Path \'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\';'
-                        f'Get-ItemProperty -Path \'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\';'
-                        f'Get-ItemProperty -Path \'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\''
-                    )
-                    output = session.run_cmd(f'powershell -c "{ps_script}"')
-                    tokens = output.std_out.decode().strip().split('\r\n')
-                    for token in tokens:
-                        if file_path in token:
-                            key_location = token.split(':')[0].strip()
-                            ARTIFACTS[host]["Run Key Location"] = key_location
-                            break
-                elif scheduled_task_name is None:
-                    ps_script = "schtasks /query /fo LIST /v"
-                    output = session.run_cmd(f"powershell -c {ps_script}")
-                    task_name = parse_scheduled_task_output(output.std_out.decode(), file_path)
-                    if task_name is not None:
-                        ARTIFACTS[host]["Scheduled Task Name"] = task_name
+                    ARTIFACTS[host]["Service Name"].add(output.split("\r\n")[0])
+
+                # Run Key Information
+                ps_script = (
+                    f'Get-ItemProperty -Path \'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run\';'
+                    f'Get-ItemProperty -Path \'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\';'
+                    f'Get-ItemProperty -Path \'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\';'
+                    f'Get-ItemProperty -Path \'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\''
+                )
+                output = session.run_cmd(f'powershell -c "{ps_script}"')
+                tokens = output.std_out.decode().strip().split('\r\n')
+                for token in tokens:
+                    if file_path in token:
+                        key_location = token.split(':')[0].strip()
+                        ARTIFACTS[host]["Run Key Location"].add(key_location)
+                        break
+
+                # Scheduled Task Information
+                ps_script = "schtasks /query /fo LIST /v"
+                output = session.run_cmd(f"powershell -c {ps_script}")
+                task_name = parse_scheduled_task_output(output.std_out.decode(), file_path)
+                if task_name is not None:
+                    ARTIFACTS[host]["Scheduled Task Name"].add(task_name)
+
+    ARTIFACTS[host]["Process Name"] = list(ARTIFACTS[host]["Process Name"])
+    ARTIFACTS[host]["Process ID"] = list(ARTIFACTS[host]["Process ID"])
+    ARTIFACTS[host]["Service Name"] = list(ARTIFACTS[host]["Service Name"])
+    ARTIFACTS[host]["Run Key Location"] = list(ARTIFACTS[host]["Run Key Location"])
+    ARTIFACTS[host]["Scheduled Task Name"] = list(ARTIFACTS[host]["Scheduled Task Name"])
 
 def format_artifacts():
     json_output = json.dumps(ARTIFACTS, indent=4)
@@ -141,11 +154,21 @@ def main():
     username = args.u
     password = args.p
 
-    file_path = args.file_path
-    process_name = args.process_name
-    service_name = args.service_name
-    run_key_location = args.run_key_location
-    scheduled_task_name = args.scheduled_task_name
+    process_name = set()
+    service_name = set()
+    run_key_location = set()
+    scheduled_task_name = set()
+
+    if args.file_path is not None:
+        file_path = args.file_path
+    if args.process_name is not None:
+        process_name.add(args.process_name)
+    if args.service_name is not None:
+        service_name.add(args.service_name)
+    if args.run_key_location is not None:
+        run_key_location.add(args.run_key_location)
+    if args.scheduled_task_name is not None:
+        scheduled_task_name.add(args.scheduled_task_name)
 
     # Clear Terminal
     os.system('clear')
