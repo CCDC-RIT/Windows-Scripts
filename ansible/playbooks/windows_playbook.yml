@@ -42,7 +42,7 @@
     - firewall
     - never
 
-- name: "WIN - Run Core Scripts"
+- name: "WIN - Distributed Backups"
   hosts: windows
   gather_facts: false
   roles:
