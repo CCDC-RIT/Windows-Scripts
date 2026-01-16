@@ -42,6 +42,19 @@
     - firewall
     - never
 
+- name: "WIN - Distributed Backups"
+  hosts: windows
+  gather_facts: false
+  roles:
+    - winAdvBackup
+  tags:
+    - winAdvBackup
+    - windows
+    - windowsOld
+    - backup
+    - firewall
+    - never
+
 - name: "WIN - Copy Scripts and Tools"
   hosts: windows
   gather_facts: false
