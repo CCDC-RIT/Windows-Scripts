@@ -70,21 +70,18 @@ def parse_scheduled_task_output(output, file_path):
                 return match.group(1).strip()
     return None
 
-def gather_information(session, host, file_path, process_name, service_name, run_key_location, scheduled_task_name):
+def gather_information(session, host, file_paths):
     global ARTIFACTS
     ARTIFACTS[host] = {
-        "File Path": file_path,
-        "Process Name": process_name,
+        "File Paths": file_paths,
+        "Process Name": set(),
         "Process ID": set(),
-        "Service Name": service_name,
-        "Run Key Location": run_key_location,
-        "Scheduled Task Name": scheduled_task_name
+        "Service Name": set(),
+        "Run Key Location": set(),
+        "Scheduled Task Name": set()
     }
 
-    if len(file_path) != 0:
-        file_paths = [file_path]
-        if "," in file_path:
-            file_paths = file_path.split(",")
+    if len(file_paths) != 0:
         for file_path in file_paths:
             ps_script = f'Test-Path -Path \'{file_path}\''
             output = session.run_cmd(f'powershell -c "{ps_script}"')
@@ -134,6 +131,42 @@ def gather_information(session, host, file_path, process_name, service_name, run
     ARTIFACTS[host]["Run Key Location"] = list(ARTIFACTS[host]["Run Key Location"])
     ARTIFACTS[host]["Scheduled Task Name"] = list(ARTIFACTS[host]["Scheduled Task Name"])
 
+def contain(session, host):
+    powershell_contain_command = ''
+    # Remove Services
+    for service_name in ARTIFACTS[host]["Service Name"]:
+        service_name = service_name.strip()
+        powershell_contain_command += f'Stop-Service -Name \'{service_name}\'; Disable-Service -Name \'{service_name}\'; sc.exe delete \'{service_name}\'; '
+
+    # Remove Scheduled Tasks
+    for task_name in ARTIFACTS[host]["Scheduled Task Name"]:
+        task_name = task_name.strip()
+        powershell_contain_command += f'Schtasks /Delete /TN \'{task_name}\' /F; '
+
+    # Remove Run Keys
+    for run_key in ARTIFACTS[host]["Run Key Location"]:
+        run_key = run_key.strip()
+        powershell_contain_command += f'Remove-ItemProperty -Path \'Registry::{run_key}\' -Name *;'
+
+    # Remove Processes
+    for process_id in ARTIFACTS[host]["Process ID"]:
+        process_id = process_id.strip()
+        powershell_contain_command += f'Stop-Process -Id {process_id} -Force; '
+
+    # Remove File Path
+    for file_path in ARTIFACTS[host]["File Paths"]:
+        file_path = file_path.strip()
+        powershell_contain_command += f'takeown /f \'{file_path}\'; Remove-Item -Path \'{file_path}\' -Force; '
+
+    print(f"Running Contain Command: {powershell_contain_command} ... on {host}")
+    output = session.run_cmd(f'powershell -c "{powershell_contain_command}"')
+    if output.status_code == 0:
+        print(f"Containment Successful on {host}")
+    else:
+        print(f"Containment Failed on {host}")
+        print(f"Error: {output.std_err.decode().strip()}")
+
+
 def format_artifacts():
     json_output = json.dumps(ARTIFACTS, indent=4)
     return json_output
@@ -143,32 +176,21 @@ def main():
     parser = argparse.ArgumentParser(description='Windows Containment Script')
     parser.add_argument('-u', required=True, help='Windows Domain Admin Username')
     parser.add_argument('-p', required=True, help='Windows Domain Admin Password')
-    parser.add_argument('--file-path', required=False, help='File path to contain from remote hosts')
-    parser.add_argument('--process-name', required=False, help='Process name to contain from remote hosts')
-    parser.add_argument('--service-name', required=False, help='Service name to contain from remote hosts')
-    parser.add_argument('--run-key-location', required=False, help='Registry Run Key location to contain from remote hosts')
-    parser.add_argument('--scheduled-task-name', required=False, help='Scheduled Task name to contain from remote hosts')
+    parser.add_argument('--file-path', required=True, help='File path to contain from remote hosts')
     args = parser.parse_args()
     
     # Define variables
     username = args.u
     password = args.p
 
-    process_name = set()
-    service_name = set()
-    run_key_location = set()
-    scheduled_task_name = set()
-
-    if args.file_path is not None:
-        file_path = args.file_path
-    if args.process_name is not None:
-        process_name.add(args.process_name)
-    if args.service_name is not None:
-        service_name.add(args.service_name)
-    if args.run_key_location is not None:
-        run_key_location.add(args.run_key_location)
-    if args.scheduled_task_name is not None:
-        scheduled_task_name.add(args.scheduled_task_name)
+    file_path = args.file_path
+    if "," in file_path:
+        file_path = file_path.split(",")
+    else:
+        file_path = [file_path]
+    
+    for i in range(len(file_path)):
+        file_path[i] = file_path[i].strip()
 
     # Clear Terminal
     os.system('clear')
@@ -184,10 +206,18 @@ def main():
         ARTIFACTS[host] = {}
         session = create_session(host, username, password)
         if session is not None:
-            gather_information(session, host, file_path, process_name, service_name, run_key_location, scheduled_task_name)
+            gather_information(session, host, file_path)
 
     json_output = format_artifacts()
     print(json_output)
+
+    contain_artifact = input("Remove Artifact? (Y/N): ")
+    if contain_artifact.lower() == "y":
+        for host in hosts:
+            session = create_session(host, username, password)
+            contain(session, host)
+    else:
+        pass
 
 if __name__ == "__main__":
     main()
