@@ -117,7 +117,14 @@ $ProgressPreference = 'SilentlyContinue'
 # Powershell Profile
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "profile.ps1"), (Join-Path -Path $ScriptPath -ChildPath "profile.ps1"))
 # Cert Template
-(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "cert.txt"), (Join-Path -Path $ScriptPath -ChildPath "cert.txt"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts/certs" -file "cert.txt"), (Join-Path -Path $ScriptPath -ChildPath "cert.txt"))
+# Windows Contain script
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "windows-contain.py"), (Join-Path -Path $ScriptPath -ChildPath "windows-contain.py"))
+# Dynamic inventory script
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "windows-recon.py"), (Join-Path -Path $ScriptPath -ChildPath "windows-recon.py"))
+# Recon requirements and OpenSSL fix
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "recon-requirements.txt"), (Join-Path -Path $ScriptPath -ChildPath "recon-requirements.txt"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "fix_openssl.py"), (Join-Path -Path $ScriptPath -ChildPath "fix_openssl.py"))
 # Yara response script
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Logging-Scripts" -file "yara.bat"), (Join-Path -Path $ScriptPath -ChildPath "yara.bat"))
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] System scripts and config files downloaded" -ForegroundColor white
