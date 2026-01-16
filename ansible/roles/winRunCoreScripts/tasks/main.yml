@@ -5,6 +5,15 @@
     chdir: "{{ scripts_path }}\\scripts"
     no_profile: true
 
+- name: Get IP Address of remote host
+  win_shell: |
+    Get-NetIPAddress -AddressFamily IPv4 |
+    Where-Object { $_.IPAddress -notlike '169.*' -and $_.IPAddress -ne '127.0.0.1' } |
+    Select-Object -ExpandProperty IPAddress
+  args:
+    no_profile: true
+  register: ip_output
+
 - name: Set IP address variable
   set_fact:
     ip_address: "{{ ip_output.stdout_lines[0] }}"
