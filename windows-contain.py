@@ -3,6 +3,7 @@ import winrm
 import re
 import argparse
 import os
+import json
 
 ALL_HOSTS = "/opt/passwordmanager/windows_starting_clients.txt"
 
@@ -32,8 +33,8 @@ def _patched_build_url(target, transport):
     return _original_build_url(target, transport)
 winrm.Session._build_url = _patched_build_url
 
-# Runs commands using PyWinRM
-def run_command(host, username, password):
+# Establish WinRM Session
+def create_session(host, username, password):
     try:
         # Wrap IPv6 addresses in brackets
         host_addr = f"[{host}]" if ':' in host and not host.startswith('[') else host
@@ -43,9 +44,9 @@ def run_command(host, username, password):
             server_cert_validation='ignore',
             transport='ntlm'
         )
-        session.run_cmd(...)
+        return session
     except Exception as e:
-        pass
+        return None
 
 # Gets all IPs from the password manager file
 def get_ips():
@@ -60,6 +61,70 @@ def get_ips():
             WINDOWS_HOSTS.append(host)
     return WINDOWS_HOSTS
 
+def parse_scheduled_task_output(output, file_path):
+    tasks = output.split('\r\n\r\n')
+    for task in tasks:
+        if file_path in task:
+            match = re.search(r'TaskName:\s+(.*)', task)
+            if match:
+                return match.group(1).strip()
+    return None
+
+def gather_information(session, host, file_path, process_name, service_name, run_key_location, scheduled_task_name):
+    global ARTIFACTS
+    ARTIFACTS[host] = {
+        "File Path": file_path,
+        "Process Name": process_name,
+        "Process ID": None,
+        "Service Name": service_name,
+        "Run Key Location": run_key_location,
+        "Scheduled Task Name": scheduled_task_name
+    }
+
+    if file_path is not None:
+        ps_script = f'Test-Path -Path "{file_path}"'
+        output = session.run_cmd(f'powershell -c "{ps_script}"')
+        if output.status_code == 0:
+            if process_name is None:
+                ps_script = 'get-process | where-object { $_.path -eq \'' + file_path + '\'} | select-object name, id, path | format-table -HideTableHeaders'
+                output = session.run_cmd(f'powershell -c "{ps_script}"')
+                output = output.std_out.decode().strip()
+                if len(output) != 0:
+                    tokens = output.split()
+                    if len(tokens) >= 2:
+                        ARTIFACTS[host]["Process Name"] = tokens[0]
+                        ARTIFACTS[host]["Process ID"] = tokens[1]
+            if service_name is None:
+                ps_script = 'Get-CimInstance -ClassName win32_service | where-object { $_.PathName -eq \'' +  file_path + '\'} | select-object -ExpandProperty name'
+                output = session.run_cmd(f'powershell -c "{ps_script}"')
+                output = output.std_out.decode().strip()
+                if len(output) != 0:
+                    ARTIFACTS[host]["Service Name"] = output
+                elif run_key_location is None:
+                    ps_script = (
+                        f'Get-ItemProperty -Path \'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run\';'
+                        f'Get-ItemProperty -Path \'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\';'
+                        f'Get-ItemProperty -Path \'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\';'
+                        f'Get-ItemProperty -Path \'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\''
+                    )
+                    output = session.run_cmd(f'powershell -c "{ps_script}"')
+                    tokens = output.std_out.decode().strip().split('\r\n')
+                    for token in tokens:
+                        if file_path in token:
+                            key_location = token.split(':')[0].strip()
+                            ARTIFACTS[host]["Run Key Location"] = key_location
+                            break
+                elif scheduled_task_name is None:
+                    ps_script = "schtasks /query /fo LIST /v"
+                    output = session.run_cmd(f"powershell -c {ps_script}")
+                    task_name = parse_scheduled_task_output(output.std_out.decode(), file_path)
+                    if task_name is not None:
+                        ARTIFACTS[host]["Scheduled Task Name"] = task_name
+
+def format_artifacts():
+    json_output = json.dumps(ARTIFACTS, indent=4)
+    return json_output
+
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Windows Containment Script')
@@ -72,9 +137,15 @@ def main():
     parser.add_argument('--scheduled-task-name', required=False, help='Scheduled Task name to contain from remote hosts')
     args = parser.parse_args()
     
-    # Set global variables
+    # Define variables
     username = args.u
     password = args.p
+
+    file_path = args.file_path
+    process_name = args.process_name
+    service_name = args.service_name
+    run_key_location = args.run_key_location
+    scheduled_task_name = args.scheduled_task_name
 
     # Clear Terminal
     os.system('clear')
@@ -82,9 +153,18 @@ def main():
     # Gets all Windows IPs
     hosts = get_ips()
 
+    global ARTIFACTS
+    ARTIFACTS = {}
+
     # Runs commands against all hosts
     for host in hosts:
-        run_command(host, username, password)
+        ARTIFACTS[host] = {}
+        session = create_session(host, username, password)
+        if session is not None:
+            gather_information(session, host, file_path, process_name, service_name, run_key_location, scheduled_task_name)
+
+    json_output = format_artifacts()
+    print(json_output)
 
 if __name__ == "__main__":
     main()
