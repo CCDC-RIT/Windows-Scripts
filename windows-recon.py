@@ -13,6 +13,7 @@ import socket
 #ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
 ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/test_inventory.yml' # Used for testing without destroying actual inventory
 IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
+TOPOLOGY_FILE = '/Windows-Scripts/topology.csv'
 
 # Global Variables
 global SUBNET
@@ -47,6 +48,7 @@ def scan_all_hosts(subnet):
             'OS_Version': '',
             'Username': None,
             'Password': None,
+            'Hostname': None,
             'Services': set(),
         }
 
@@ -126,7 +128,12 @@ def gather_info(original_scan):
                     determine_unix_os_version(host, username, password)
                 else:
                     print("")
-        
+        services_str = ','.join(sorted(HOST_INFO[host]['Services'])) if HOST_INFO[host]['Services'] else 'None'
+        os_version = HOST_INFO[host]['OS_Version']
+        if os_version:
+            import re
+            os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
+        log(TOPOLOGY_FILE, f"{SUBNET},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
     return command_output
 
 # Determines scored service via WinRM
@@ -134,8 +141,10 @@ def detect_scored_services(session, ip_address):
     global HOST_INFO
     
     try:
-        basic_query = session.run_cmd('ipconfig') #proves connection works
+        basic_query = session.run_cmd('hostname') #proves connection works
         if basic_query.status_code == 0:
+            hostname = basic_query.std_out.decode().strip()
+            HOST_INFO[ip_address]['Hostname'] = hostname
             print("Detected Potential Scored Services: ",end="")
 
         check_ftp = session.run_cmd('sc query ftpsvc')
@@ -297,6 +306,11 @@ def determine_unix_os_version(ip_address, username, password):
                 print(f"Set as Password Manager IP\n",end="")
         if "FreeBSD" in os_info:
             print(f"Router Detected\n",end="")
+
+        # Get Hostname
+        stdin, stdout, stderr = ssh_client.exec_command('hostname')
+        hostname = stdout.read().decode().strip()
+        HOST_INFO[ip_address]['Hostname'] = hostname
         ssh_client.close()
     except Exception as e:
         print(f"Credentials Used: {username}:{password}")
@@ -454,6 +468,15 @@ def main():
     with open(IP_FILE, 'w') as ip_file:
         ip_file.write('[INI HEADER]' + '\n')
 
+    # Make sure Topology CSV file exists
+    if not os.path.exists(TOPOLOGY_FILE):
+        os.makedirs(os.path.dirname(TOPOLOGY_FILE), exist_ok=True)
+        print(f"Topology file created: {TOPOLOGY_FILE}")
+    else:
+        print(f"Topology file found: {TOPOLOGY_FILE}")
+    with open(TOPOLOGY_FILE, 'w') as topology_file:
+        topology_file.write('subnet,ip,hostname,os,services' + '\n')
+    
     # Set global variables
     global SUBNET
     global DOMAIN_CREDENTIALS
