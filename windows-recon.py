@@ -13,8 +13,6 @@ import socket
 #ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
 ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/test_inventory.yml' # Used for testing without destroying actual inventory
 IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
-LOG_FOLDER = '/Windows-Scripts/recon_logs/'
-GENERAL_LOG_FILE = '/Windows-Scripts/recon_logs/general_log.txt'
 
 # Global Variables
 global SUBNET
@@ -37,13 +35,8 @@ def scan_all_hosts(subnet):
         os_version = determine_os(nm, host)
         if os_version == "Windows":
             print(f"Windows Host {host} detected:\n",end="")
-            create_log_file(host)
-            log(f'{LOG_FOLDER}/{host}.txt', f"Found Windows Host: {host}")
-            # determine_os_version
         else:
             print(f"Unix Host {host} detected:\n",end="")
-            create_log_file(host)
-            log(f'{LOG_FOLDER}/{host}.txt', f"Found Unix Host: {host}")
             if GRAFANA_IP is None:
                 find_grafana(host)
 
@@ -58,7 +51,6 @@ def scan_all_hosts(subnet):
         }
 
         for port in lport:
-            log(f'{LOG_FOLDER}/{host}.txt', 'port : %s\tstate : %s' % (port, nm[host]['tcp'][port]['state']))
             if port == 22 and nm[host]['tcp'][port]['state'] == 'open':
                 HOST_INFO[host]['Services'].add('SSH')
             elif port == 3389 and nm[host]['tcp'][port]['state'] == 'open':
@@ -76,7 +68,6 @@ def scan_all_hosts(subnet):
                     print(f"{service} ", end="")
     
         print("\n")
-        log(f'{LOG_FOLDER}/{host}.txt', "")
             
     return nm
 
@@ -97,7 +88,6 @@ def gather_info(original_scan):
         os_version = determine_os(original_scan, host)
         if os_version == "Windows":
             if 'WinRM_HTTP' in HOST_INFO[host]['Services'] or 'WinRM_HTTPS' in HOST_INFO[host]['Services']:
-                log(f'{LOG_FOLDER}/{host}.txt', f"Attempting WinRM HTTP connection to {host}")
                 for i in range(len(DOMAIN_CREDENTIALS)):
                     username = DOMAIN_CREDENTIALS[i][0]
                     password = DOMAIN_CREDENTIALS[i][1]
@@ -142,8 +132,6 @@ def gather_info(original_scan):
 # Determines scored service via WinRM
 def detect_scored_services(session, ip_address):
     global HOST_INFO
-
-    log_file = f'{LOG_FOLDER}/{ip_address}.txt'
     
     try:
         basic_query = session.run_cmd('ipconfig') #proves connection works
@@ -151,96 +139,50 @@ def detect_scored_services(session, ip_address):
             print("Detected Potential Scored Services: ",end="")
 
         check_ftp = session.run_cmd('sc query ftpsvc')
-        if check_ftp.status_code != 0:
-            log(log_file, "FTP service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":21"').std_out.decode() == '':
-                log(log_file, "FTP service is not running.")
-            else:
+        if check_ftp.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":21"').std_out.decode() != '':
                 print("FTP:21 ",end="")
-                log(log_file, "FTP is Present")
-                log(log_file, check_ftp.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('FTP')
 
         check_ssh = session.run_cmd('sc query sshd')
-        if check_ssh.status_code != 0:
-            log(log_file, "SSH service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":22"').std_out.decode() == '':
-                log(log_file, "SSH service is not running.")
-            else:
-                print("SSH:22 ")
-                log(log_file, "SSH is Present")
-                log(log_file, check_ssh.std_out.decode())
+        if check_ssh.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":22"').std_out.decode() != '':
+                print("SSH:22 ",end="")
                 HOST_INFO[ip_address]['Services'].add('SSH')
 
         check_telnet = session.run_cmd('sc query telnet')
-        if check_telnet.status_code != 0:
-            log(log_file, "Telnet service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":23"').std_out.decode() == '':
-                log(log_file, "Telnet service is not running.")
-            else:
+        if check_telnet.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":23"').std_out.decode() != '':
                 print("Telnet:23 ",end="")
-                log(log_file, "Telnet is Present")
-                log(log_file, check_telnet.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('Telnet')
 
         check_dns = session.run_cmd('sc query dns')
-        if check_dns.status_code != 0:
-            log(log_file, "DNS service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":53"').std_out.decode() == '':
-                log(log_file, "DNS service is not running.")
-            else:
+        if check_dns.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":53"').std_out.decode() != '':
                 print("DNS:53 ",end="")
-                log(log_file, "DNS is Present")
-                log(log_file, check_dns.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('DNS')
 
         check_dhcp = session.run_cmd('sc query dhcpserver')
-        if check_dhcp.status_code != 0:
-            log(log_file, "DHCP service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":67"').std_out.decode() == '':
-                log(log_file, "DHCP service is not running.")
-            else:
+        if check_dhcp.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":67"').std_out.decode() != '':
                 print("DHCP:67 ",end="")
-                log(log_file, "DHCP is Present")
-                log(log_file, check_dhcp.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('DHCP')
 
         check_http_iis = session.run_cmd('sc query w3svc')
-        if check_http_iis.status_code != 0:
-            log(log_file, "HTTP_IIS service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":80"').std_out.decode() == '':
-                log(log_file, "HTTP_IIS service is not running.")
-            else:
+        if check_http_iis.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":80"').std_out.decode() != '':
                 print("HTTP_IIS:80 ",end="")
-                log(log_file, "HTTP_IIS is Present")
-                log(log_file, check_http_iis.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('HTTP')
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":443"').std_out.decode() != '':
                 print("HTTPS_IIS:443 ",end="")
-                log(log_file, "HTTPS_IIS is Present")
-                log(log_file, check_http_iis.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('HTTPS')
         check_http_nginx = session.run_cmd('sc query nginx')
-        if check_http_nginx.status_code != 0:
-            log(log_file, "HTTP_Nginx service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":80"').std_out.decode() == '':
-                log(log_file, "HTTP_Nginx service is not running.")
-            else:
+        if check_http_nginx.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":80"').std_out.decode() != '':
                 print("HTTP_Nginx:80 ",end="")
-                log(log_file, "HTTP_Nginx is Present")
-                log(log_file, check_http_nginx.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('HTTP')
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":443"').std_out.decode() != '':
                 print("HTTPS_Nginx:443 ",end="")
-                log(log_file, "HTTPS_Nginx is Present")
-                log(log_file, check_http_nginx.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('HTTPS')
 
         check_http_apache = session.run_cmd('sc query Apache2.4')
@@ -248,86 +190,46 @@ def detect_scored_services(session, ip_address):
             check_http_apache = session.run_cmd('sc query Apache24')
             if check_http_apache.status_code != 0:
                 check_http_apache = session.run_cmd('sc query Apache')
-                if check_http_apache.status_code != 0:
-                    log(log_file, "HTTP_Apache service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":80"').std_out.decode() == '':
-                log(log_file, "HTTP_Apache service is not running.")
-            else:
+        if check_http_apache.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":80"').std_out.decode() != '':
                 print("HTTP_Apache:80 ",end="")
-                log(log_file, "HTTP_Apache is Present")
-                log(log_file, check_http_apache.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('HTTP')
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":443"').std_out.decode() != '':
                 print("HTTPS_Apache:443 ",end="")
-                log(log_file, "HTTPS_Apache is Present")
-                log(log_file, check_http_apache.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('HTTPS')
 
         check_ntp = session.run_cmd('sc query w32time')
-        if check_ntp.status_code != 0:
-            log(log_file, "NTP service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":123"').std_out.decode() == '':
-                log(log_file, "NTP service is not running.")
-            else:
+        if check_ntp.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":123"').std_out.decode() != '':
                 print("NTP:123 ",end="")
-                log(log_file, "NTP is Present")
-                log(log_file, check_ntp.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('NTP')
 
         check_ldap = session.run_cmd('sc query ntds')
-        if check_ldap.status_code != 0:
-            log(log_file, "LDAP service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":389"').std_out.decode() == '':
-                log(log_file, "LDAP service is not running.")
-            else:
+        if check_ldap.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":389"').std_out.decode() != '':
                 print("LDAP:389 ", end="")
-                log(log_file, "LDAP is Present")
-                log(log_file, check_ldap.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('LDAP')
 
         check_adfs = session.run_cmd('sc query adfssrv')
-        if check_adfs.status_code != 0:
-            log(log_file, "ADFS service not found.")
-        else:
+        if check_adfs.status_code == 0:
             print("ADFS ",end="")
-            log(log_file, "ADFS is Present")
-            log(log_file, check_adfs.std_out.decode())
             HOST_INFO[ip_address]['Services'].add('ADFS')
 
         check_ca = session.run_cmd('sc query certsvc')
-        if check_ca.status_code != 0:
-            log(log_file, "Certificate Authority service not found.")
-        else:
+        if check_ca.status_code == 0:
             print("CA ",end="")
-            log(log_file, "Certificate Authority is Present")
-            log(log_file, check_ca.std_out.decode())
             HOST_INFO[ip_address]['Services'].add('CA')
 
         check_smb = session.run_cmd('sc query lanmanserver')
-        if check_smb.status_code != 0:
-            log(log_file, "SMB service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":445"').std_out.decode() == '':
-                log(log_file, "SMB service is not running.")
-            else:
+        if check_smb.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":445"').std_out.decode() != '':
                 print("SMB:445 ",end="")
-                log(log_file, "SMB is Present")
-                log(log_file, check_smb.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('SMB')
 
         check_rdp = session.run_cmd('sc query termservice')
-        if check_rdp.status_code != 0:
-            log(log_file, "RDP service not found.")
-        else:
-            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":3389"').std_out.decode() == '':
-                log(log_file, "RDP service is not running.")
-            else:
+        if check_rdp.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":3389"').std_out.decode() != '':
                 print("RDP:3389",end="")
-                log(log_file, "RDP is Present")
-                log(log_file, check_rdp.std_out.decode())
                 HOST_INFO[ip_address]['Services'].add('RDP')
         print("\n",end="")
     except Exception as e:
@@ -353,7 +255,6 @@ def determine_os(nm, host):
 
 def determine_windows_os_version(session, ip_address):
     global HOST_INFO
-    log_file = f'{LOG_FOLDER}/{ip_address}.txt'
 
     # Determines Windows OS Version
     check_os_type = session.run_cmd('powershell -c Get-ItemPropertyValue \'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\' InstallationType')
@@ -363,17 +264,13 @@ def determine_windows_os_version(session, ip_address):
         HOST_INFO[ip_address]['OS_Version'] = f"{check_os_version.std_out.decode().strip()} ({check_os_type.std_out.decode().strip()})"
     else:
         if check_os_type.std_out.decode() == '':
-            log(log_file, f"Could not determine OS type for {ip_address}\n")
             print("Could not determine OS Type\n",end="")
         else:
-            log(log_file, f"OS Type for {ip_address}: {check_os_type.std_out.decode().strip()}\n")
             print(f"Detected OS Type: {check_os_type.std_out.decode().strip()}",end="")
             HOST_INFO[ip_address]['OS_Version'] = f"{check_os_type.std_out.decode().strip()}"
         if check_os_version.std_out.decode() == '':
-            log(log_file, f"Could not determine OS version for {ip_address}\n")
             print("Could not determine OS Version\n",end="")
         else:
-            log(log_file, f"OS Version for {ip_address}: {check_os_version.std_out.decode().strip()}\n")
             print(f"Detected OS Version: {check_os_version.std_out.decode().strip()}",end="")
             HOST_INFO[ip_address]['OS_Version'] += f" {check_os_version.std_out.decode().strip()}"
     print("")
@@ -381,7 +278,6 @@ def determine_windows_os_version(session, ip_address):
 def determine_unix_os_version(ip_address, username, password):
     global HOST_INFO
 
-    log_file = f'{LOG_FOLDER}/{ip_address}.txt'
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
@@ -394,7 +290,6 @@ def determine_unix_os_version(ip_address, username, password):
         print(f"Credentials Used: {username}:{password}")
         print(f"Detected OS: {os_info}\n",end="")
         HOST_INFO[ip_address]['OS_Version'] = os_info
-        log(log_file, f"OS Information for {ip_address}:\n{os_info}\n")
         if "Ubuntu" in os_info:
             global PASSWORD_MANAGER_IP
             if PASSWORD_MANAGER_IP is None:
@@ -406,27 +301,16 @@ def determine_unix_os_version(ip_address, username, password):
     except Exception as e:
         print(f"Credentials Used: {username}:{password}")
         print(f"Failed to create SSH session.\n",end="")
-        log(log_file, f"Could not determine OS for {ip_address}\n")
     print("")
 
 def log(file, content):
     with open(file, 'a') as log_file:
         log_file.write(content + '\n')
 
-def create_log_file(host):
-    log_file = f'{LOG_FOLDER}{host}.txt'
-    if not os.path.exists(log_file):
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
-        print(f"Log file created: {log_file}")
-    with open(log_file, 'w') as file:
-        file.write(f'{host} Reconnaissance Log:' + '\n')
-
 def port_scan_only(host, command_output):
     global HOST_INFO
 
-    log_file = f'{LOG_FOLDER}/{host}.txt'
     print("Detected Potential Scored Services: ",end="")
-    log(log_file, f"Could not connect to {host} via WinRM, downgrading to Port Scanning only.")
     try:
         ps = nmap.PortScanner()
         ps.scan(hosts=host, arguments='-sV -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986')
@@ -453,7 +337,6 @@ def port_scan_only(host, command_output):
             port_state = ps[host]['tcp'][port]['state']
             if port_state == 'open':
                 service = port_dict.get(port, f"Unknown ({port})")
-                log(log_file, f"{host}:{port} ({service}) is {port_state}")
                 print(f"{service}:{port} ",end="")
                 HOST_INFO[host]['Services'].add(service)
                 if host not in command_output:
@@ -463,7 +346,6 @@ def port_scan_only(host, command_output):
         print("\n",end="")
     except Exception as e:
         print(f"Port scan failed: {str(e)}\n",end="")
-        log(log_file, f"Port scan failed for {host}: {str(e)}")
 
 def get_local_ip():
     global LOCAL_IP
@@ -563,30 +445,12 @@ def main():
 
     print("\n=======================================GENERAL SETUP=======================================\n\n")
 
-    # Make sure log folder is empty and exists
-    if not os.path.exists(LOG_FOLDER):
-        os.makedirs(os.path.dirname(LOG_FOLDER), exist_ok=True)
-        print(f"Log folder created: {LOG_FOLDER}")
-    else:
-        for filename in os.listdir(LOG_FOLDER):
-            file_path = os.path.join(LOG_FOLDER, filename)
-            try:
-                os.remove(file_path)
-            except Exception as e:
-                print(f'Failed to delete {file_path}. Reason: {e}')
-        print(f"Cleaned up old logging content: {LOG_FOLDER}")
-    
-    # Make sure general log file exists
-    if not os.path.exists(GENERAL_LOG_FILE):
-        os.makedirs(os.path.dirname(GENERAL_LOG_FILE), exist_ok=True)
-        print(f"General log file created: {GENERAL_LOG_FILE}")
-    with open(GENERAL_LOG_FILE, 'w') as general_log_file:
-        general_log_file.write('General Reconnaissance Log:' + '\n')
-
     # Make sure IP file exists
     if not os.path.exists(IP_FILE):
         os.makedirs(os.path.dirname(IP_FILE), exist_ok=True)
         print(f"IP file created: {IP_FILE}")
+    else:
+        print(f"IP file found: {IP_FILE}")
     with open(IP_FILE, 'w') as ip_file:
         ip_file.write('[INI HEADER]' + '\n')
 
@@ -634,8 +498,6 @@ def main():
         if formatted_linux_creds:
             cred_str = " | ".join(formatted_linux_creds)
             print(f"Using Linux Credentials | {cred_str}\n")
-
-    log(GENERAL_LOG_FILE, f"Scanning subnet: {SUBNET} with credentials: {DOMAIN_CREDENTIALS}\n")
 
     original_scan = scan_all_hosts(SUBNET)
     print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
