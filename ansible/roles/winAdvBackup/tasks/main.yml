@@ -2,7 +2,9 @@
   win_shell: |
     Get-NetIPAddress -AddressFamily IPv4 |
     Where-Object { $_.IPAddress -notlike '169.*' -and $_.IPAddress -ne '127.0.0.1' } |
-    Select-Object -ExpandProperty IPAddress
+    Select-Object -ExpandProperty IPAddress'
+  args:
+    no_profile: true
   register: ip_output
 
 - name: Set IP address variable
@@ -12,6 +14,8 @@
 - name: Get hostname of remote Windows host
   win_shell: |
     hostname
+  args:
+    no_profile: true
   register: hostname_output
 
 - name: Set hostname variable
@@ -21,12 +25,15 @@
 - name: Get list of timestamped backup folders under hostname
   win_shell: |
     Get-ChildItem -Path "{{ scripts_path }}\\backup\\{{ hostname }}" -Directory | Select-Object -ExpandProperty Name
+  args:
+    no_profile: true
   register: backup_folders
 
 - name: Zip each timestamped backup folder
   win_shell: |
     Compress-Archive -Path "{{ scripts_path }}\\backup\\{{ hostname }}\\{{ item }}\\*" -DestinationPath "{{ scripts_path }}\\backup\\{{ item }}.zip"
   args:
+    no_profile: true
     creates: "{{ scripts_path }}\\backup\\{{ item }}.zip"
   loop: "{{ backup_folders.stdout_lines }}"
   loop_control:

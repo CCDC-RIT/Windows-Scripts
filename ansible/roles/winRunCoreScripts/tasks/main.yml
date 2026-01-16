@@ -3,9 +3,11 @@
     .\backup.ps1 -adfspasswd "{{ adfs_backup_password }}"
   args:
     chdir: "{{ scripts_path }}\\scripts"
+    no_profile: true
 
 - name: Run Firewall Script
   win_shell: |
     .\firewall.ps1 -ExtraRules httpio,httpsio,{{ scored_services }} -runByAnsible $true -graylogIP "{{ graylog_ip }}" -passmgrIP "{{ password_manager_ip }}" -stabvestIP "{{ stabvest_ip }}" -ansibleIP "{{ ip_address }}"
   args:
     chdir: "{{ scripts_path }}\\scripts"
+    no_profile: true

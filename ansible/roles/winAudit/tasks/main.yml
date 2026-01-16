@@ -3,5 +3,6 @@
     .\audit.ps1 | Out-Null
   args:
     chdir: "{{ scripts_path }}\\scripts"
+    no_profile: true
   
 

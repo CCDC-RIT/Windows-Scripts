@@ -3,3 +3,4 @@
     .\logging.ps1
   args:
     chdir: "{{ scripts_path }}\\scripts"
+    no_profile: true
