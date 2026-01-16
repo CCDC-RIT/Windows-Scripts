@@ -11,9 +11,11 @@ all:
         ansible_password: "" #REPLACE
         scripts_path: "" #REPLACE
         scripts_ansible_location: "/Windows-Scripts"
-        grafana_ip: "" #REPLACE
         password_manager_ip: "" #REPLACE
+        stabvest_ip: "" # REPLACE
         adfs_backup_password: "" #REPLACE
+        siem_IP: "any" #REPLACE
+        siem_Name: "none" #REPLACE
       children:
         dc:
           vars:
