@@ -123,9 +123,17 @@
     remote_src: false
 
 - name: Get UserName
-  win_shell: |
-    (whoami).split('\\')[1]
+  win_shell: whoami
   register: profile_username
+
+- name: Extract username
+  set_fact:
+    username_only: "{{ profile_username.stdout | trim | regex_replace('^.*\\\\', '') }}"
+
+- name: Ensure user PowerShell profile directory exists
+  win_file:
+    path: "C:/Users/{{ username_only }}/Documents/WindowsPowerShell"
+    state: directory
 
 - name: Copy Powershell Profiles
   win_copy:
@@ -133,8 +141,8 @@
     dest: "{{ item }}"
     remote_src: false
   loop:
-    - "C:/Windows/System32/WindowsPowerShell/v1.0/profile.ps1" 
-    - "C:/Users/{{ profile_username.stdout_lines }}/Documents/WindowsPowerShell/profile.ps1"
+    - "C:/Windows/System32/WindowsPowerShell/v1.0/profile.ps1"
+    - "C:/Users/{{ username_only }}/Documents/WindowsPowerShell/profile.ps1"
 
 - name: Copy Cert.txt template
   win_copy:
