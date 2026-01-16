@@ -1,8 +1,8 @@
 # Optional parameter for password
 param (
     [SecureString]$Password = $(throw "-Password is required."),
-    [switch]$enableipv6,
-    [switch]$keeppsexec
+    [bool]$disableIPv6 = $false,
+    [bool]$disablePsExec = $false
 )
 
 # Lorge secure script
@@ -554,7 +554,7 @@ try {
     # Block Win32 API calls from Office macro
     Add-MpPreference -AttackSurfaceReductionRules_Ids 92E97FA1-2EDF-4476-BDD6-9DD0B4DDDC7B -AttackSurfaceReductionRules_Actions Enabled | Out-Null
     # Block process creations originating from PSExec and WMI commands
-    if (-not $keeppsexec) {
+    if ($disablePsExec -eq $true) {
         Add-MpPreference -AttackSurfaceReductionRules_Ids 3B576869-A4EC-4529-8536-B80A7769E899 -AttackSurfaceReductionRules_Actions Enabled | Out-Null
     }
     Add-MpPreference -AttackSurfaceReductionRules_Ids D1E49AAC-8F56-4280-B9BA-993A6D77406C -AttackSurfaceReductionRules_Actions Enabled | Out-Null
@@ -601,7 +601,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundC
 
 # ----------- Service security ------------
 ## Stopping psexec with the power of svchost
-if (-not $keeppsexec) {
+if ($disablePsExec -eq $true) {
     reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\PSEXESVC.exe" /v Debugger /t REG_SZ /d "svchost.exe" /f | Out-Null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Added psexec mitigation" -ForegroundColor white 
 }
@@ -723,12 +723,14 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters" /v Rest
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v NullSessionPipes /t REG_MULTI_SZ /f | Out-Null
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v NullSessionShares /t REG_MULTI_SZ /f | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled access to null session pipes and shares" -ForegroundColor white
-## Disabling SMB admin shares (Server)
-reg add "HKLM\System\CurrentControlSet\Services\LanmanServer\Parameters" /v AutoShareServer /t REG_DWORD /d 0 /f | Out-Null
-## Disabling SMB admin shares (Workstation)
-reg add "HKLM\System\CurrentControlSet\Services\LanmanServer\Parameters" /v AutoShareWks /t REG_DWORD /d 0 /f | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled SMB administrative shares" -ForegroundColor white
-## Hide computer from browse list
+if ($disablePsExec -eq $true) {
+    ## Disabling SMB admin shares (Server)
+    reg add "HKLM\System\CurrentControlSet\Services\LanmanServer\Parameters" /v AutoShareServer /t REG_DWORD /d 0 /f | Out-Null
+    ## Disabling SMB admin shares (Workstation)
+    reg add "HKLM\System\CurrentControlSet\Services\LanmanServer\Parameters" /v AutoShareWks /t REG_DWORD /d 0 /f | Out-Null
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled SMB administrative shares" -ForegroundColor white
+}
+    ## Hide computer from browse list
 reg add "HKLM\System\CurrentControlSet\Services\Lanmanserver\Parameters" /v "Hidden" /t REG_DWORD /d 1 /f | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Hidden computer from share browse list" -ForegroundColor white
 ## Microsoft-Windows-SMBServer\Audit event 3000 shows attempted connections [TEST]
@@ -800,7 +802,7 @@ ipconfig /flushdns | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Flushed DNS cache" -ForegroundColor white 
 
 ## Disabling ipv6
-if (-not $enableipv6) {
+if ($disableIPv6 -eq $true) {
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\tcpip6\Parameters" /v DisabledComponents /t REG_DWORD /d 255 /f | Out-null
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Disabled IPv6" -ForegroundColor white 
 }
