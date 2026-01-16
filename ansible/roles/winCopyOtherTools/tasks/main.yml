@@ -150,7 +150,7 @@
 
 - name: Copy Cert.txt template
   win_copy:
-    src: "{{ scripts_ansible_location }}/cert.txt"
+    src: "{{ scripts_ansible_location }}/certs/cert.txt"
     dest: "{{ scripts_path }}\\scripts\\cert.txt"
     remote_src: false
 
@@ -308,9 +308,9 @@
   win_shell: |
     .\vc_redist.64.exe /install /passive /norestart
   args:
-    no_profile: true
-  args:
     chdir: "{{ scripts_path }}\\installers"
+    no_profile: true
+
 
 - name: Copy Hollows Hunter
   win_copy:
@@ -336,9 +336,8 @@
   win_shell: |
     .\net_installer.exe /passive /norestart
   args:
-    no_profile: true
-  args:
     chdir: "{{ scripts_path }}\\installers"
+    no_profile: true
 
 # Sysinternals
 
@@ -430,9 +429,8 @@
   win_shell: |
     .\notepadpp_installer.exe /S
   args:
-    no_profile: true
-  args:
     chdir: "{{ scripts_path }}\\installers"
+    no_profile: true
 
 - name: Copy Google Chrome
   win_copy:
@@ -443,9 +441,8 @@
   win_shell: |
     .\chromeinstall.exe /silent /install
   args:
-    no_profile: true
-  args:
     chdir: "{{ scripts_path }}\\installers"
+    no_profile: true
 
 - name: Copy Everything search tool
   win_copy:

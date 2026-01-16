@@ -2,7 +2,7 @@
   win_shell: |
     Get-NetIPAddress -AddressFamily IPv4 |
     Where-Object { $_.IPAddress -notlike '169.*' -and $_.IPAddress -ne '127.0.0.1' } |
-    Select-Object -ExpandProperty IPAddress'
+    Select-Object -ExpandProperty IPAddress
   args:
     no_profile: true
   register: ip_output
