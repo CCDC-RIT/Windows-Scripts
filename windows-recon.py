@@ -17,7 +17,6 @@ IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
 TOPOLOGY_FILE = '/Windows-Scripts/topology.csv'
 
 # Global Variables
-global SUBNET
 global DOMAIN_CREDENTIALS
 global LINUX_CREDENTIALS
 global SCRIPTS_PATH
@@ -485,7 +484,8 @@ children:
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Windows Reconnaissance Script to Fill Out Ansible Inventory')
-    parser.add_argument('-s', required=True, help='Subnet(s) to scan for Windows hosts (e.g., 192.168.1.0/24)')
+    parser.add_argument('-s4', required=True, help='Subnet(s) to scan for Windows hosts (e.g., 192.168.1.0/24)')
+    parser.add_argument('-s6', required=False, help='IPv6 Subnet(s) to scan for Windows hosts (e.g., 2001:0db8::/32)')
     parser.add_argument('-c', required=True, help='Windows Domain Credentials in the format username:password,username:password')
     parser.add_argument('-lc', required=False, help='Linux Credentials in the format username:password,username:password')
     parser.add_argument('-sp', required=True, help='Scripts Path')
@@ -515,7 +515,6 @@ def main():
         topology_file.write('subnet,ip,hostname,os,services' + '\n')
     
     # Set global variables
-    global SUBNET
     global DOMAIN_CREDENTIALS
     global LINUX_CREDENTIALS
     global PASSWORD_MANAGER_IP
@@ -524,7 +523,8 @@ def main():
 
     # Gathers Command Line Arguments
     SCRIPTS_PATH = args.sp
-    SUBNET = args.s
+    subnet = args.s4
+    ipv6_subnet = args.s6 if args.s6 is not None else None
 
     PASSWORD_MANAGER_IP = None
     GRAFANA_IP = None
@@ -535,7 +535,9 @@ def main():
     get_local_ip()
 
     print("\n\n======================================SUBNET SCANNING======================================\n\n")
-    print(f"Scanning subnet: {SUBNET}")
+    print(f"Scanning subnet: {subnet}")
+    if ipv6_subnet is not None:
+        print(f"Scanning IPv6 subnet: {ipv6_subnet}\n")
 
     # Gathers and Formats Credentials
     DOMAIN_CREDENTIALS = args.c.split(',')
@@ -559,9 +561,13 @@ def main():
             cred_str = " | ".join(formatted_linux_creds)
             print(f"Using Linux Credentials | {cred_str}\n")
 
-    original_scan = scan_all_hosts(SUBNET)
+    original_ipv4_scan = scan_all_hosts(subnet)
+    if ipv6_subnet is not None:
+        original_ipv6_scan = scan_all_hosts(ipv6_subnet)
     print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
-    gather_info(original_scan)
+    gather_info(original_ipv4_scan)
+    if ipv6_subnet is not None:
+        gather_info(original_ipv6_scan)
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
     add_to_ansible_inventory()
     print("\n==================================RECONNAISSANCE COMPLETE==================================\n\n")
