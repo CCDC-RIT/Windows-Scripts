@@ -275,7 +275,7 @@ def detect_scored_services(session, ip_address):
 def determine_os(nm, host):
     # Check OS detection results
     os_match = nm[host].get('osmatch', [])
-    
+    print(os_match)
     if os_match:
         # Check all matches for Windows first (higher priority)
         for os_info in os_match:
