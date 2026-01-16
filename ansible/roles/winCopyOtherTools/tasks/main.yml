@@ -635,7 +635,7 @@
   args:
     no_profile: true
 
-- name: Enable WWindows Defender
+- name: Enable Windows Defender
   win_shell: |
     Set-MpPreference -DisableRealtimeMonitoring $false
   args:
