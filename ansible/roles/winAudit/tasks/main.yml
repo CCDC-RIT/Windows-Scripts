@@ -4,5 +4,6 @@
   args:
     chdir: "{{ scripts_path }}\\scripts"
     no_profile: true
+    ignore_errors: true
   
 
