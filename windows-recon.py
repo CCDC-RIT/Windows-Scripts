@@ -417,22 +417,22 @@ def add_to_ansible_inventory():
 
     ansible_header_content = f"""---
 all:
-children:
-  windows:
-    vars:
-      ansible_connection: winrm
-      ansible_winrm_server_cert_validation: ignore
-      ansible_winrm_port: 5985
-      ansible_winrm_transport: ntlm
-      scripts_path: "{SCRIPTS_PATH}"
-      scripts_ansible_location: "/Windows-Scripts"
-      password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
-      grafana_ip: "{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
-      adfs_backup_password: "{adfs_backup_password}"
-      stabvest_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
-      winrm_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
-    children:
-      """
+  children:
+    windows:
+      vars:
+        ansible_connection: winrm
+        ansible_winrm_server_cert_validation: ignore
+        ansible_winrm_port: 5985
+        ansible_winrm_transport: ntlm
+        scripts_path: "{SCRIPTS_PATH}"
+        scripts_ansible_location: "/Windows-Scripts"
+        password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
+        grafana_ip: "{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
+        adfs_backup_password: "{adfs_backup_password}"
+        stabvest_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
+        winrm_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
+      children:
+        """
 
     for host in HOST_INFO.keys():
         server_type = "none"
@@ -474,14 +474,16 @@ children:
 
         if HOST_INFO[host]['OS'] == 'Windows':
             ansible_header_content += f"""{host}:
-        ansible_host: {host}
-        ansible_user: "{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
-        ansible_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
-        scored_services: "{scored_services}"
-        is_win_server: "{str(is_win_server).lower()}"
-        is_server_core: "{str(is_server_core).lower()}"
-        server_type: "{server_type}"
-      """
+          ansible_host: {host}
+          ansible_user: "{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
+          ansible_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
+          scored_services: "{scored_services}"
+          is_win_server: "{str(is_win_server).lower()}"
+          is_server_core: "{str(is_server_core).lower()}"
+          server_type: "{server_type}"
+        hosts:
+          {host}:
+        """
     with open(ANSIBLE_INVENTORY_FILE, 'w') as inventory_file:
         inventory_file.write(ansible_header_content)
 
