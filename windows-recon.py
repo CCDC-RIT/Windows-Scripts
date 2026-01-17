@@ -473,7 +473,7 @@ all:
             server_type = "ca"
 
         if HOST_INFO[host]['OS'] == 'Windows':
-            ansible_header_content += f"""{host}:
+            ansible_header_content += f"""win_{host.replace('.', '_').replace(':', '_')}:
           ansible_host: {host}
           ansible_user: "{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
           ansible_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
