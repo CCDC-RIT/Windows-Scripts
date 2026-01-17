@@ -12,7 +12,7 @@ import re
 
 # Global File Locations
 #ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
-ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/test_inventory.yml' # Used for testing without destroying actual inventory
+ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml' # Used for testing without destroying actual inventory
 IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
 TOPOLOGY_FILE = '/Windows-Scripts/topology.csv'
 
@@ -112,18 +112,14 @@ def find_grafana(host):
 
 # Attempts to gather additional information about Windows hosts
 def gather_info(original_scan, subnet):
-    print("1")
     global HOST_INFO
     command_output = {}
     
     for host in HOST_INFO.keys():
-        print("2")
         os_version = HOST_INFO[host]['OS']
         if os_version == "Windows":
-            print("3")
             if 'WinRM_HTTP' in HOST_INFO[host]['Services'] or 'WinRM_HTTPS' in HOST_INFO[host]['Services']:
                 for i in range(len(DOMAIN_CREDENTIALS)):
-                    print("4")
                     username = DOMAIN_CREDENTIALS[i][0]
                     password = DOMAIN_CREDENTIALS[i][1]
                     try:
@@ -135,7 +131,6 @@ def gather_info(original_scan, subnet):
                             server_cert_validation='ignore',
                             transport='ntlm'
                         )
-                        print("5")
                         HOST_INFO[host]['Username'] = username
                         HOST_INFO[host]['Password'] = password
                         print(f"Windows Host {host}:")
