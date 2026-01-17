@@ -568,9 +568,9 @@ def main():
     if ipv6_subnet is not None:
         original_ipv6_scan = scan_all_hosts(ipv6_subnet)
     print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
-    gather_info(original_ipv4_scan, original_ipv4_scan)
+    gather_info(original_ipv4_scan, subnet)
     if ipv6_subnet is not None:
-        gather_info(original_ipv6_scan, original_ipv6_scan)
+        gather_info(original_ipv6_scan, ipv6_subnet)
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
     add_to_ansible_inventory()
     print("\n==================================RECONNAISSANCE COMPLETE==================================\n\n")
