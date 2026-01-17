@@ -154,18 +154,6 @@
     dest: "{{ scripts_path }}\\scripts\\cert.txt"
     remote_src: false
 
-# Copy over stabvest materials
-
-- name: Copy Config.json
-  win_copy:
-    src: "{{ scripts_ansible_location }}/config.json"
-    dest: "{{ scripts_path }}\\stabvest\\config.json"
-
-- name: Copy Stabvest Agent
-  win_copy:
-    src: "{{ scripts_ansible_location }}/agent.exe"
-    dest: "{{ scripts_path }}\\stabvest\\agent.exe"
-
 # Install Bitlocker and Defender
 
 - name: Install Bitlocker and Defender on Windows Server
