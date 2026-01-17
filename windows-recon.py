@@ -474,15 +474,15 @@ all:
 
         if HOST_INFO[host]['OS'] == 'Windows':
             ansible_header_content += f"""win_{host.replace('.', '_').replace(':', '_')}:
-          ansible_host: {host}
-          ansible_user: "{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
-          ansible_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
-          scored_services: "{scored_services}"
-          is_win_server: "{str(is_win_server).lower()}"
-          is_server_core: "{str(is_server_core).lower()}"
-          server_type: "{server_type}"
-        hosts:
-          {host}:
+          vars:
+            ansible_user: "{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
+            ansible_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
+            scored_services: "{scored_services}"
+            is_win_server: "{str(is_win_server).lower()}"
+            is_server_core: "{str(is_server_core).lower()}"
+            server_type: "{server_type}"
+          hosts:
+            {host}:
         """
     with open(ANSIBLE_INVENTORY_FILE, 'w') as inventory_file:
         inventory_file.write(ansible_header_content)
