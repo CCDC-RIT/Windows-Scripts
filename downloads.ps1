@@ -292,6 +292,9 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 # Password Manager Client
 (New-Object System.Net.WebClient).DownloadFile("https://github.com/CCDC-RIT/Password-Manager/raw/refs/heads/main/client/windows.exe", (Join-Path -Path $ToolsPath -ChildPath "CCDC-Password-Manager.exe"))
 
+# Datadog IP Addresses
+(New-Object System.Net.WebClient).DownloadFile("https://ip-ranges.us5.datadoghq.com/", (Join-Path -Path $ScriptPath -ChildPath "datadog_ips.txt"))
+
 # Extraction
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "ar.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "ar")
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "dll.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "dll")

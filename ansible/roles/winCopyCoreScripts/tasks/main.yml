@@ -9,6 +9,12 @@
     dest: "{{ scripts_path }}\\downloads.ps1"
     remote_src: false
 
+- name: Copy Datadog IPs Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/datadog_ips.txt"
+    dest: "{{ scripts_path }}\\scripts\\datadog_ips.txt"
+    remote_src: false
+
 - name: Copy Firewall Script
   win_copy:
     src: "{{ scripts_ansible_location }}/firewall.ps1"
