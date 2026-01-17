@@ -26,6 +26,7 @@
 - name: Create token file
   ansible.windows.win_file:
     path: "C:\\Program Files\\CCDC-Password-Manager\\token.txt"
+    mode: '0644'
     state: touch
     force: yes
 
