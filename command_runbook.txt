@@ -5,7 +5,7 @@ Get-ADUser -Filter "SamAccountName -notlike '$Env:UserName' -and SamAccountName 
 Get-CimInstance -ClassName Win32_UserAccount -Filter "LocalAccount='True'" | Where-Object { $_.Name -notlike $Env:UserName -and $_.Name -notlike '' -and $_.Name -notlike '' } | Select-Object -ExpandProperty Name | Out-File -FilePath "users.txt"
 
 # Firewall Script
-.\firewall.ps1 -ExtraRules <name>io,<name1>i,<name2>o -scoringIP <name>,x.x.x.x -scoringIP2 <name1>,x.x.x.x -ansibleIP x.x.x.x -siemIP x.x.x.x -siemName "Grafana" -rdpIP x.x.x.x -domainSubnet x.x.x.x/x -secondDCIP x.x.x.x -dcIP x.x.x.x,x.x.x.x -caIP x.x.x.x -randomExtraPorts -addIpsFromFile
+.\firewall.ps1 -LockoutPrevention [$true | $false] -ExtraRules <name>io,<name1>i,<name2>o -scoringIP <name>,x.x.x.x -scoingIP2 <name1>,x.x.x.x -ansibleIP x.x.x.x -siemIP x.x.x.x -siemName Grafana -rdpIP x.x.x.x -domainSubnet x.x.x.x/x -caIP x.x.x.x -passmgrIP "x.x.x.x/x" -dcIP x.x.x.x -secondDCIP x.x.x.x -randomExtraPorts 9000 -addIpsFromFile ,<file_path> -addIpv6 ipv6io,ipv6io 
 
 # Remove TacticalRMM and Mesh Agent
 Stop-Service TacticalRMM; Stop-Service 'Mesh Agent'; Remove-Item 'C:\Program Files\Mesh Agent\' -Recurse; Remove-Item "C:\Program Files\TacticalAgent\" -Recurse; Remove-Item 'C:\Program Files\TacticalRMM\' -Recurse
