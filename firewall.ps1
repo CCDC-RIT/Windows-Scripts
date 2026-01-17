@@ -423,13 +423,16 @@ if ($addIpsFromFile -ne "none"){
     }
 
     # Simple regrex pattern, does not check if their vaild IPs
-    $ips = Get-Content $filePath | Select-STring -Pattern "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+    $ips = Get-Content $filePath | Select-String -Pattern "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
+
+    $ips = $ips[1..($ips.Count - 1)]
 
     $numRules = $ips.Count
     $errorChecking = @()
 
     # Sets the rules
     foreach ($ip in $ips){
+        $ip = $ip.ToString().Trim(","," ","`"")
 
         if ($direction -eq "Outbound"){
             $errorChecking += (New-NetFirewallRule -DisplayName "Extra Outbound $ip" -Protocol tcp -Enabled True -Profile Any -Direction $direction -RemoteAddress $ip -RemotePort $port).PrimaryStatus
