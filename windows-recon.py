@@ -427,10 +427,10 @@ children:
       scripts_path: "{SCRIPTS_PATH}"
       scripts_ansible_location: "/Windows-Scripts"
       password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
-      grafana_ip: "{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}"
+      grafana_ip: "{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
       adfs_backup_password: "{adfs_backup_password}"
-      stabvest_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}"
-      winrm_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}"
+      stabvest_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
+      winrm_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
     children:
       """
 
@@ -451,7 +451,8 @@ children:
         scored_services.remove('SSH') if 'SSH' in scored_services else None
         scored_services.remove('FTP') if 'FTP' in scored_services else None
         scored_services.remove('Telnet') if 'Telnet' in scored_services else None
-        scored_services.add('HTTP') if 'CA' in HOST_INFO[host]['Services'] or 'ADFS' in HOST_INFO[host]['Services'] else None
+        scored_services.add('HTTP') if 'CA' in HOST_INFO[host]['Services'] else None
+        scored_services.add('HTTPS') if 'ADFS' in HOST_INFO[host]['Services'] else None
         scored_services.remove('ADFS') if 'ADFS' in scored_services else None
         scored_services.remove('CA') if 'CA' in scored_services else None    
         
