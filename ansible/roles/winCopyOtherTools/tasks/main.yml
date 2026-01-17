@@ -22,11 +22,6 @@
     path: "{{ scripts_path }}\\zipped"
     state: directory
 
-- name: Create stabvest Directory
-  ansible.builtin.win_file:
-    path: "{{ scripts_path }}\\stabvest"
-    state: directory
-
 # Directories inside scripts directory
 
 - name: Create conf Directory
