@@ -55,19 +55,10 @@ def scan_all_hosts(subnet):
     else:
         nm.scan(hosts=subnet, arguments='-O -p 22,3389,5985,5986')
     for host in [x for x in nm.all_hosts()]:
-        os_version = determine_os(nm, host)
-        print(os_version)
-        if os_version == "Windows":
-            print(f"Windows Host {host} detected:\n",end="")
-        else:
-            print(f"Unix Host {host} detected:\n",end="")
-            if GRAFANA_IP is None:
-                find_grafana(host)
-
         lport = nm[host]['tcp'].keys()
 
         HOST_INFO[host] = {
-            'OS': os_version,
+            'OS': '',
             'OS_Version': '',
             'Username': None,
             'Password': None,
@@ -84,6 +75,18 @@ def scan_all_hosts(subnet):
                 HOST_INFO[host]['Services'].add('WinRM_HTTP')
             elif port == 5986 and nm[host]['tcp'][port]['state'] == 'open':
                 HOST_INFO[host]['Services'].add('WinRM_HTTPS')
+
+        os_version = determine_os(nm, host)
+
+        if os_version == "Windows" or ('WinRM_HTTP' in HOST_INFO[host]['Services'] or 'WinRM_HTTPS' in HOST_INFO[host]['Services'] or 'RDP' in HOST_INFO[host]['Services']):
+            HOST_INFO[host]['OS'] = 'Windows'
+            print(f"Windows Host {host} detected:\n",end="")
+        else:
+            print(f"Unix Host {host} detected:\n",end="")
+            HOST_INFO[host]['OS'] = os_version
+            if GRAFANA_IP is None:
+                find_grafana(host)
+
         if HOST_INFO[host]['Services'] == set():
             print("No Detected Remoting Services", end="")
         else:
@@ -275,7 +278,6 @@ def detect_scored_services(session, ip_address):
 def determine_os(nm, host):
     # Check OS detection results
     os_match = nm[host].get('osmatch', [])
-    print(os_match)
     if os_match:
         # Check all matches for Windows first (higher priority)
         for os_info in os_match:
