@@ -423,7 +423,8 @@ all:
         scripts_path: "{SCRIPTS_PATH}"
         scripts_ansible_location: "/Windows-Scripts"
         password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
-        grafana_ip: "{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
+        siem_IP: "{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
+        siem_name: "Grafana"
         adfs_backup_password: "{adfs_backup_password}"
         stabvest_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
         winrm_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
