@@ -18,7 +18,7 @@
 - name: Insert data in conf files
   ansible.windows.win_copy:
     content: |
-      "{{ password_manager_ip }}"
+      {{ password_manager_ip }}
     dest: "C:\\Program Files\\CCDC-Password-Manager\\server_ip_address.txt"
     mode: '0644'
     force: yes
