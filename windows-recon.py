@@ -118,7 +118,7 @@ def gather_info(original_scan, subnet):
     
     for host in HOST_INFO.keys():
         print("2")
-        os_version = determine_os(original_scan, host)
+        os_version = HOST_INFO[host]['OS']
         if os_version == "Windows":
             print("3")
             if 'WinRM_HTTP' in HOST_INFO[host]['Services'] or 'WinRM_HTTPS' in HOST_INFO[host]['Services']:
