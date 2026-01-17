@@ -176,4 +176,6 @@ wget -o /dev/null "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/e
 wget -o /dev/null "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll" -O "ObjectListView.dll"
 # Datadog ip addresses
 wget -o /dev/null "https://ip-ranges.us5.datadoghq.com/" -O "datadog_ips.txt"
+# Tabula Download
+wget -o /dev/null "https://raw.githubusercontent.com/CCDC-RIT/stabvest-public/refs/heads/main/tabula/tabula.py" -O "tabula.py"
 echo "[SUCCESS] All tools downloaded"
