@@ -116,8 +116,7 @@ def gather_info(original_scan, subnet):
     command_output = {}
     
     for host in HOST_INFO.keys():
-        os_version = HOST_INFO[host]['OS']
-        if os_version == "Windows":
+        if HOST_INFO[host]['OS'] == "Windows":
             if 'WinRM_HTTP' in HOST_INFO[host]['Services'] or 'WinRM_HTTPS' in HOST_INFO[host]['Services']:
                 for i in range(len(DOMAIN_CREDENTIALS)):
                     username = DOMAIN_CREDENTIALS[i][0]
@@ -147,18 +146,16 @@ def gather_info(original_scan, subnet):
             else:
                 print(f"Windows Host {host} has WinRM Disabled, Running Port Scan:\n",end="")
                 port_scan_only(host, command_output)
-        elif LINUX_CREDENTIALS is not None:
+        elif LINUX_CREDENTIALS is not None and HOST_INFO[host]['OS'] == 'Linux' and PASSWORD_MANAGER_IP is None:
             for i in range(len(LINUX_CREDENTIALS)):
                 username = LINUX_CREDENTIALS[i][0]
                 password = LINUX_CREDENTIALS[i][1]
-                HOST_INFO[host]['Username'] = username
-                HOST_INFO[host]['Password'] = password
+                # HOST_INFO[host]['Username'] = username
+                # HOST_INFO[host]['Password'] = password
                 print(f"Unix Host {host}:\n",end="")
-                port_scan_only(host, command_output)
-                if HOST_INFO[host]['OS'] == 'Linux' or HOST_INFO[host]['OS'] == 'FreeBSD' and LINUX_CREDENTIALS is not None:
-                    determine_unix_os_version(host, username, password)
-                else:
-                    print("")
+                # port_scan_only(host, command_output)
+                # if HOST_INFO[host]['OS'] == 'Linux' and PASSWORD_MANAGER_IP is None:
+                determine_unix_os_version(host, username, password)
         services_str = ','.join(sorted(HOST_INFO[host]['Services'])) if HOST_INFO[host]['Services'] else 'None'
         os_version = HOST_INFO[host]['OS_Version']
         if os_version:
@@ -327,7 +324,6 @@ def determine_unix_os_version(ip_address, username, password):
             os_info = "FreeBSD " + stdout.read().decode().strip()
         print(f"Credentials Used: {username}:{password}")
         print(f"Detected OS: {os_info}\n",end="")
-        HOST_INFO[ip_address]['OS_Version'] = os_info
         if "Ubuntu" in os_info:
             global PASSWORD_MANAGER_IP
             if PASSWORD_MANAGER_IP is None:
@@ -436,7 +432,7 @@ all:
 
     for host in HOST_INFO.keys():
         server_type = "none"
-        if 'ADFS ' in HOST_INFO[host]['Services']:
+        if 'ADFS' in HOST_INFO[host]['Services']:
             server_type = "adfs"
         elif 'SMB' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
             server_type = "dc"
