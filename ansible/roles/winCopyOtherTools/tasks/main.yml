@@ -294,7 +294,6 @@
     chdir: "{{ scripts_path }}\\installers"
     no_profile: true
 
-
 - name: Copy Hollows Hunter
   win_copy:
     src: "{{ scripts_ansible_location }}/hh64.zip"
@@ -420,12 +419,22 @@
     src: "{{ scripts_ansible_location }}/chromeinstall.exe"
     dest: "{{ scripts_path }}\\installers\\chromeinstall.exe"
 
+- name: Check insalled browsers
+  win_shell: |
+    Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\App Paths\*.exe" |
+    Where-Object { $_.PSChildName -match 'chrome|firefox|edge|opera' } |
+    Select-Object -Property PSChildName
+  args:
+    no_profile: true
+  register: browser_check
+
 - name: Silently Install Chrome
   win_shell: |
     .\chromeinstall.exe /silent /install
   args:
     chdir: "{{ scripts_path }}\\installers"
     no_profile: true
+  when: browser_check.stdout_lines | length == 0
 
 - name: Copy Everything search tool
   win_copy:
