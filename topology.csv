@@ -1,0 +1,6 @@
+subnet,ip,hostname,os,services
+192.168.1.0/24,192.168.1.1,WIN-DC,Windows Server 2022,"DNS,HTTP,LDAP,SMB,WinRM_HTTP"
+192.168.1.0/24,192.168.1.10,ubuntu-virtual-machine,,"22,34414,41641,44592,45484,5353,55956,5990,Local,SSH"
+192.168.1.0/24,192.168.1.254,None,,"SSH"
+192.168.1.0/24,192.168.1.6,WIN-SMB,Windows 10,"HTTP,SMB,WinRM_HTTP"
+192.168.1.0/24,192.168.1.7,ubuntu-virtual-machine,,"22,51901,5353,54096,80,Local,SSH"
