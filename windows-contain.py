@@ -50,13 +50,9 @@ def create_session(host, username, password):
 
 # Gets all IPs from the password manager file
 def get_ips():
-    ignore_first_line = True
     WINDOWS_HOSTS = []
     with open(ALL_HOSTS, 'r') as ip_file:
         for line in ip_file:
-            if ignore_first_line:
-                ignore_first_line = False
-                continue
             host = line.strip()
             WINDOWS_HOSTS.append(host)
     return WINDOWS_HOSTS
