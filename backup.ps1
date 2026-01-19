@@ -82,6 +82,17 @@ foreach ($path in $userPaths){
     Copy-Item $path $userBackupPath
 }
 
+# Creates the path directory
+New-Item -Path $backupPath -Name "SMB" -ItemType "directory" | Out-Null
+$smbBackupPath = Join-Path -Path $backupPath -childPath "SMB"
+
+# Backups SMB Shares
+$smbPaths = (Get-SmbShare -IncludeHidden | ? Name -notin 'ADMIN$','C$','IPC$').path
+
+# Copies the share
+foreach ($path in $smbPaths){
+    Copy-Item $path $smbBackupPath -Recurse -ErrorAction Continue
+}
 
 # Notes for xcopy
 # /H - Include Hidden Files
