@@ -12,7 +12,7 @@ import re
 
 # Global File Locations
 WINDOWS_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
-LINUX_INVENTORY_FILE = '/home/user/linux/ansible/inventory.yml' # Not correct
+LINUX_INVENTORY_FILE = '/home/inventory.yml' # Not correct, gets set in main
 WINDOWS_IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
 LINUX_IP_FILE = '/opt/passwordmanager/linux_starting_clients.txt'
 ALL_IP_FILE = '/opt/passwordmanager/starting_clients.txt'
@@ -25,6 +25,7 @@ global SCRIPTS_PATH
 global PASSWORD_MANAGER_IP
 global GRAFANA_IP
 global LOCAL_IP
+global HOME_DIR_FOUND
 global HOST_INFO
 global RUN_WINDOWS
 global RUN_LINUX
@@ -475,8 +476,54 @@ def get_local_ip():
         LOCAL_IP = s.getsockname()[0]
         s.close()
         
+def create_linux_ansible_inventory():
+    global HOST_INFO
+    print(f"Adding hosts to Ansible inventory file: {LINUX_INVENTORY_FILE}\n")
+    
+    ansible_header_content = f"""---
+all:
+  children:
+    linux:
+      vars:
+        ansible_connection: ssh
+        ssh_port: 22
+        backup_dir: "/usr/share/fonts/roboto-mono"
+        quarantine: "/usr/share/fonts/quar-mono"
+        audit_dir: "/opt/audit"
+        password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
+        siem_ip: "{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
+        stabvest_controller_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
+        ansible_control_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''} 
+        firewall_logging: true
+        siem: "Grafana"
+      children:
+    """
+
+    for host in HOST_INFO.keys():
+        if HOST_INFO[host]['OS'] == 'Linux':
+            scored_ports_tcp = []
+            scored_ports_udp = []
+            for service in HOST_INFO[host]['Services']:
+                if ':' in service:
+                    protocol, port = service.split(':')
+                    if protocol.lower() == 'tcp':
+                        scored_ports_tcp.append(port)
+                    elif protocol.lower() == 'udp':
+                        scored_ports_udp.append(port)
+                
+            ansible_header_content += f"""{HOST_INFO[host]['OS_Version']}_{HOST_INFO[host]['Hostname']}_{host.replace('.', '_').replace(':', '_')}:
+          vars:
+            ansible_user: "{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
+            ansible_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
+            ansible_become_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
+            scored_ports_tcp: { scored_ports_tcp if scored_ports_tcp else [] }
+            scored_ports_udp: { scored_ports_udp if scored_ports_udp else [] }
+          hosts:
+            {host}:
+        """
+
 # Adds information about Windows hosts to the Ansible inventory file
-def add_to_ansible_inventory():
+def create_windows_ansible_inventory():
     global HOST_INFO
 
     print(f"Adding hosts to Ansible inventory file: {WINDOWS_INVENTORY_FILE}\n")
@@ -555,6 +602,24 @@ all:
         """
     with open(WINDOWS_INVENTORY_FILE, 'w') as inventory_file:
         inventory_file.write(ansible_header_content)
+
+def find_home_directory():
+    global LINUX_INVENTORY_FILE
+    global HOME_DIR_FOUND
+    
+    with os.scandir("/home/") as entries:
+        for homedir in entries:
+            if not homedir.is_file():
+                for folder in homedir:
+                    if not folder.is_file():
+                        if folder.name == "linux-ansible":
+                            HOME_DIR_FOUND = True
+                            LINUX_INVENTORY_FILE == f"/home/{homedir.name}/linux-ansible/inventory.yml"
+
+    if not HOME_DIR_FOUND:
+        print("Could not find linux-ansible directory. inventory saved too {LINUX_INVENTORY_FILE}")
+    
+    return HOME_DIR_FOUND
 
 def main():
     # Parse command line arguments
@@ -662,7 +727,10 @@ def main():
     if ipv6_subnet is not None:
         gather_info(ipv6_subnet)
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
-    add_to_ansible_inventory()
+    if RUN_WINDOWS:
+        create_windows_ansible_inventory()
+    if RUN_LINUX and find_home_directory():
+        create_linux_ansible_inventory()
     print("\n==================================RECONNAISSANCE COMPLETE==================================\n\n")
 
 if __name__ == "__main__":
