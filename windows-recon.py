@@ -12,7 +12,7 @@ import re
 
 # Global File Locations
 WINDOWS_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
-LINUX_INVENTORY_FILE = '/home/inventory.yml' # Not correct, gets set in main
+LINUX_INVENTORY_FILE = '/home/inventory.yml' # Gets correctly set in main
 WINDOWS_IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
 LINUX_IP_FILE = '/opt/passwordmanager/linux_starting_clients.txt'
 ALL_IP_FILE = '/opt/passwordmanager/starting_clients.txt'
@@ -65,6 +65,7 @@ def scan_all_hosts(subnet):
         HOST_INFO[host] = {
             'OS': '',
             'OS_Version': '',
+            'OS_Short_Name': '',
             'Username': None,
             'Password': None,
             'Hostname': None,
@@ -309,7 +310,8 @@ def detect_unix_scored_services(session, ip_address):
             if "127.0.0" not in local_address and "::1" not in local_address and port != "Local":
                 HOST_INFO[ip_address]['Services'].add(f"{protocol}:{port}")
         for addy in HOST_INFO[ip_address]['Services']:
-            print(f"{addy}",end=" ")
+            if not (addy == "SSH"):
+                print(f"{addy}",end=" ")
         print("")
         
     except Exception as e:
@@ -363,11 +365,37 @@ def determine_unix_os_version(session, ip_address):
             _, stdout, _ = session.exec_command('freebsd-version')
             os_info = "FreeBSD " + stdout.read().decode().strip()
         print(f"Detected OS: {os_info}\n",end="")
+        HOST_INFO[ip_address]['OS_Version'] = os_info
         if "Ubuntu" in os_info:
             global PASSWORD_MANAGER_IP
             if PASSWORD_MANAGER_IP is None:
                 PASSWORD_MANAGER_IP = ip_address
                 print(f"Set as Password Manager IP\n",end="")
+
+        if "Ubuntu" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'Ubuntu'
+        elif "Debian" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'Debian'
+        elif "CentOS" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'CentOS'
+        elif "FreeBSD" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'FreeBSD'
+        elif "Rocky" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'Rocky'
+        elif "AlmaLinux" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'AlmaLinux'
+        elif "Red Hat" in os_info or "RedHat" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'RedHat'
+        elif "Fedora" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'Fedora'
+        elif "Arch Linux" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'ArchLinux'
+        elif "openSUSE" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'openSUSE'
+        elif "Alpine" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'Alpine'
+        elif "Amazon Linux" in os_info:
+            HOST_INFO[ip_address]['OS_Short_Name'] = 'AmazonLinux'
 
         # Get Hostname
         _, stdout, _ = session.exec_command('hostname')
@@ -478,6 +506,7 @@ def get_local_ip():
         
 def create_linux_ansible_inventory():
     global HOST_INFO
+    global LINUX_INVENTORY_FILE
     print(f"Adding hosts to Ansible inventory file: {LINUX_INVENTORY_FILE}\n")
     
     ansible_header_content = f"""---
@@ -497,7 +526,7 @@ all:
         firewall_logging: true
         siem: "Grafana"
       children:
-    """
+        """
 
     for host in HOST_INFO.keys():
         if HOST_INFO[host]['OS'] == 'Linux':
@@ -511,7 +540,7 @@ all:
                     elif protocol.lower() == 'udp':
                         scored_ports_udp.append(port)
                 
-            ansible_header_content += f"""{HOST_INFO[host]['OS_Version']}_{HOST_INFO[host]['Hostname']}_{host.replace('.', '_').replace(':', '_')}:
+            ansible_header_content += f"""{HOST_INFO[host]['OS_Short_Name']}_{HOST_INFO[host]['Hostname']}_{host.replace('.', '_').replace(':', '_')}:
           vars:
             ansible_user: "{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
             ansible_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
@@ -521,6 +550,8 @@ all:
           hosts:
             {host}:
         """
+    with open(LINUX_INVENTORY_FILE, 'w') as inventory_file:
+        inventory_file.write(ansible_header_content)
 
 # Adds information about Windows hosts to the Ansible inventory file
 def create_windows_ansible_inventory():
@@ -610,16 +641,15 @@ def find_home_directory():
     with os.scandir("/home/") as entries:
         for homedir in entries:
             if not homedir.is_file():
-                for folder in homedir:
-                    if not folder.is_file():
+                with os.scandir(f"/home/{homedir.name}/") as userdir:
+                    for folder in userdir:
                         if folder.name == "linux-ansible":
                             HOME_DIR_FOUND = True
-                            LINUX_INVENTORY_FILE == f"/home/{homedir.name}/linux-ansible/inventory.yml"
+                            LINUX_INVENTORY_FILE = f"/home/{homedir.name}/linux-ansible/inventory.yml"
+                            print(LINUX_INVENTORY_FILE)
 
     if not HOME_DIR_FOUND:
         print("Could not find linux-ansible directory. inventory saved too {LINUX_INVENTORY_FILE}")
-    
-    return HOME_DIR_FOUND
 
 def main():
     # Parse command line arguments
@@ -653,7 +683,6 @@ def main():
         print(f"IP file created: {ALL_IP_FILE}")
     else:
         print(f"IP file found: {ALL_IP_FILE}")
-
 
     # Make sure Topology CSV file exists
     if not os.path.exists(TOPOLOGY_FILE):
@@ -727,9 +756,11 @@ def main():
     if ipv6_subnet is not None:
         gather_info(ipv6_subnet)
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
+    
+    find_home_directory()
     if RUN_WINDOWS:
         create_windows_ansible_inventory()
-    if RUN_LINUX and find_home_directory():
+    if RUN_LINUX:
         create_linux_ansible_inventory()
     print("\n==================================RECONNAISSANCE COMPLETE==================================\n\n")
 
