@@ -41,7 +41,9 @@ get_download_url() {
 
 # Set up folder for backups
 
-sudo mkdir /Windows-Scripts/backups
+if [ ! -d "/Windows-Scripts/backups" ]; then
+	sudo mkdir /Windows-Scripts/backups
+fi
 
 # Downloading Scripts
 
