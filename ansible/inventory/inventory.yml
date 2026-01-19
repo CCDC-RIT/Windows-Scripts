@@ -12,7 +12,7 @@ all:
         password_manager_ip: "192.168.1.10"
         siem_IP: "" #REPLACE
         siem_name: "Grafana"
-        adfs_backup_password: "73ebe341afa853b2c31de100"
+        adfs_backup_password: "c0f97396f68cf45ff46b367a"
         stabvest_ip: "192.168.1.10"
         winrm_ip: "192.168.1.10"
       children:
@@ -20,7 +20,7 @@ all:
           vars:
             ansible_user: "da1"
             ansible_password: "Password-123456"
-            scored_services: "dnsio, ldapio, httpio"
+            scored_services: "httpio, ldapio, dnsio"
             is_win_server: "true"
             is_server_core: "false"
             server_type: "dc"

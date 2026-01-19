@@ -158,6 +158,7 @@ def gather_windows_info(host):
             detect_windows_scored_services(session, host)
             determine_windows_os_version(session, host)
             log(WINDOWS_IP_FILE, host)
+            log(ALL_IP_FILE, host)
             continue
         except Exception as e:
             pass
@@ -177,6 +178,7 @@ def gather_linux_info(host):
             detect_unix_scored_services(session, host)
             determine_unix_os_version(session, host)
             log(LINUX_IP_FILE, host)
+            log(ALL_IP_FILE, host)
             session.close()
         except Exception as e:
             pass
@@ -303,7 +305,7 @@ def detect_unix_scored_services(session, ip_address):
             local_address = tokens[4]
             local_address_tokens = local_address.split(':')
             port = local_address_tokens[-1]
-            if "127.0.0" not in local_address and "::1" not in local_address:
+            if "127.0.0" not in local_address and "::1" not in local_address and port != "Local":
                 HOST_INFO[ip_address]['Services'].add(f"{protocol}:{port}")
                 print(f'{protocol}:{port} ',end="")
         print("")
