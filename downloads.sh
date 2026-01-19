@@ -103,7 +103,7 @@ wget -o /dev/null "https://github.com/lkarlslund/Adalanche/releases/download/v20
 # Local policy file
 wget -o /dev/null "$(get_download_url "Windows-Scripts" "gpos/localpolicy.PolicyRules")" -O "localpolicy.PolicyRules"
 # LGPO tool
-wget -o /dev/null "https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip" -O "lg.zip"
+wget -o /dev/null "https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip" -O "lg.zip" --no-check-certificate
 
 echo "[SUCCESS] Client tools downloaded."
 
