@@ -101,10 +101,10 @@ def gather_information(session, host, file_paths):
 
                 # Run Key Information
                 ps_script = (
-                    f'Get-ItemProperty -Path \'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run\';'
-                    f'Get-ItemProperty -Path \'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\';'
-                    f'Get-ItemProperty -Path \'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\';'
-                    f'Get-ItemProperty -Path \'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\''
+                    f'Get-ItemProperty -Path \'Registry::HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\';'
+                    f'Get-ItemProperty -Path \'Registry::HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce\';'
+                    f'Get-ItemProperty -Path \'Registry::HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\';'
+                    f'Get-ItemProperty -Path \'Registry::HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce\''
                 )
                 output = session.run_cmd(f'powershell -c "{ps_script}"')
                 tokens = output.std_out.decode().strip().split('\r\n')
