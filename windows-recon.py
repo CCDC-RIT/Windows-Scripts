@@ -629,7 +629,7 @@ def main():
         print(f"Scanning IPv6 subnet: {ipv6_subnet}\n")
 
     # Gathers and Formats Credentials
-    DOMAIN_CREDENTIALS = args.c.split(',')
+    DOMAIN_CREDENTIALS = args.wc.split(',')
     formatting_domain_creds = []
     for i in range(len(DOMAIN_CREDENTIALS)):
         DOMAIN_CREDENTIALS[i] = DOMAIN_CREDENTIALS[i].split(':')
