@@ -11,8 +11,8 @@ import socket
 import re
 
 # Global File Locations
-#ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
-ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml' # Used for testing without destroying actual inventory
+WINDOWS_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
+LINUX_INVENTORY_FILE = '/home/user/linux/ansible/inventory.yml' # Not correct
 WINDOWS_IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
 LINUX_IP_FILE = '/opt/passwordmanager/linux_starting_clients.txt'
 ALL_IP_FILE = '/opt/passwordmanager/starting_clients.txt'
@@ -371,7 +371,7 @@ def log(file, content):
     with open(file, 'a') as log_file:
         log_file.write(content + '\n')
 
-def windows_port_scan_only(host, command_output):
+def windows_port_scan_only(host):
     global HOST_INFO
 
     print("Detected Potential Scored Services: ",end="")
@@ -407,16 +407,42 @@ def windows_port_scan_only(host, command_output):
                 service = port_dict.get(port, f"Unknown ({port})")
                 print(f"{service}:{port} ",end="")
                 HOST_INFO[host]['Services'].add(service)
-                if host not in command_output:
-                    command_output[host] = f"Open ports: {port} ({service})"
-                else:
-                    command_output[host] += f", {port} ({service})"
         print("\n",end="")
     except Exception as e:
         print(f"Port scan failed: {str(e)}\n",end="")
 
-def linux_port_scan_only(host, command_output):
-    pass
+def linux_port_scan_only(host):
+    global HOST_INFO
+
+    print("Detected Potential Scored Services: ",end="")
+    try:
+        ps = nmap.PortScanner()
+        # Use -6 flag for IPv6 scanning
+        if ':' in host:
+            ps.scan(hosts=host, arguments='-sV -p [linux ports] -6')
+        else:
+            ps.scan(hosts=host, arguments='-sV -p [linux ports]')
+        port_dict = {
+            21: "FTP",
+            22: "SSH",
+            23: "Telnet",
+            80: "HTTP",
+            123: "NTP",
+            443: "HTTPS",
+            445: "SMB"
+        }
+        lport = ps[host]['tcp'].keys()
+        
+        # Log open ports found
+        for port in lport:
+            port_state = ps[host]['tcp'][port]['state']
+            if port_state == 'open':
+                service = port_dict.get(port, f"Unknown ({port})")
+                print(f"{service}:{port} ",end="")
+                HOST_INFO[host]['Services'].add(service)
+        print("\n",end="")
+    except Exception as e:
+        print(f"Port scan failed: {str(e)}\n",end="")
 
 def get_local_ip():
     global LOCAL_IP
@@ -435,7 +461,7 @@ def get_local_ip():
 def add_to_ansible_inventory():
     global HOST_INFO
 
-    print(f"Adding hosts to Ansible inventory file: {ANSIBLE_INVENTORY_FILE}\n")
+    print(f"Adding hosts to Ansible inventory file: {WINDOWS_INVENTORY_FILE}\n")
 
     adfs_backup_password = os.urandom(12).hex()
 
@@ -509,7 +535,7 @@ all:
           hosts:
             {host}:
         """
-    with open(ANSIBLE_INVENTORY_FILE, 'w') as inventory_file:
+    with open(WINDOWS_INVENTORY_FILE, 'w') as inventory_file:
         inventory_file.write(ansible_header_content)
 
 def main():
