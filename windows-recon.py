@@ -11,9 +11,11 @@ import socket
 import re
 
 # Global File Locations
-#ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
-ANSIBLE_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml' # Used for testing without destroying actual inventory
-IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
+WINDOWS_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
+LINUX_INVENTORY_FILE = '/home/user/linux/ansible/inventory.yml' # Not correct
+WINDOWS_IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
+LINUX_IP_FILE = '/opt/passwordmanager/linux_starting_clients.txt'
+ALL_IP_FILE = '/opt/passwordmanager/starting_clients.txt'
 TOPOLOGY_FILE = '/Windows-Scripts/topology.csv'
 
 # Global Variables
@@ -24,6 +26,8 @@ global PASSWORD_MANAGER_IP
 global GRAFANA_IP
 global LOCAL_IP
 global HOST_INFO
+global RUN_WINDOWS
+global RUN_LINUX
 
 # Fixes PyWinRM ipv6 issue (Shoutout illidian80 on github)
 _original_build_url = winrm.Session._build_url
@@ -96,8 +100,6 @@ def scan_all_hosts(subnet):
                     print(f"{service} ", end="")
     
         print("\n")
-            
-    return nm
 
 def find_grafana(host):
     global GRAFANA_IP
@@ -111,60 +113,76 @@ def find_grafana(host):
         print(f"Set as Grafana IP\n",end="")
 
 # Attempts to gather additional information about Windows hosts
-def gather_info(original_scan, subnet):
+def gather_info(subnet):
     global HOST_INFO
-    command_output = {}
     
     for host in HOST_INFO.keys():
-        if HOST_INFO[host]['OS'] == "Windows":
+        if HOST_INFO[host]['OS'] == "Windows" and RUN_WINDOWS:
             if 'WinRM_HTTP' in HOST_INFO[host]['Services'] or 'WinRM_HTTPS' in HOST_INFO[host]['Services']:
-                for i in range(len(DOMAIN_CREDENTIALS)):
-                    username = DOMAIN_CREDENTIALS[i][0]
-                    password = DOMAIN_CREDENTIALS[i][1]
-                    try:
-                        # Wrap IPv6 addresses in brackets
-                        host_addr = f"[{host}]" if ':' in host and not host.startswith('[') else host
-                        session = winrm.Session(
-                            f'http://{host_addr}:5985/wsman',
-                            auth=(f"{username}", password),
-                            server_cert_validation='ignore',
-                            transport='ntlm'
-                        )
-                        HOST_INFO[host]['Username'] = username
-                        HOST_INFO[host]['Password'] = password
-                        print(f"Windows Host {host}:")
-                        print(f"Credentials Used: {username}:{password}")
-                        detect_scored_services(session, host)
-                        determine_windows_os_version(session, host)
-                        log(IP_FILE, host)
-                        continue
-                    except Exception as e:
-                        pass
+                gather_windows_info(host)
                 if HOST_INFO[host]['Username'] is None or HOST_INFO[host]['Password'] is None:
                     print(f"Windows Host {host} WinRM Authentication Failed, Running Port Scan:\n",end="")
-                    port_scan_only(host, command_output)
+                    windows_port_scan_only(host)
             else:
                 print(f"Windows Host {host} has WinRM Disabled, Running Port Scan:\n",end="")
-                port_scan_only(host, command_output)
-        elif LINUX_CREDENTIALS is not None and HOST_INFO[host]['OS'] == 'Linux' and PASSWORD_MANAGER_IP is None:
-            for i in range(len(LINUX_CREDENTIALS)):
-                username = LINUX_CREDENTIALS[i][0]
-                password = LINUX_CREDENTIALS[i][1]
-                # HOST_INFO[host]['Username'] = username
-                # HOST_INFO[host]['Password'] = password
-                print(f"Unix Host {host}:\n",end="")
-                # port_scan_only(host, command_output)
-                # if HOST_INFO[host]['OS'] == 'Linux' and PASSWORD_MANAGER_IP is None:
-                determine_unix_os_version(host, username, password)
+                windows_port_scan_only(host)
+        elif LINUX_CREDENTIALS is not None and HOST_INFO[host]['OS'] == 'Linux' and RUN_LINUX:
+            if 'SSH' in HOST_INFO[host]['Services']:
+                gather_linux_info(host)
+            else:
+                print(f"Unix Host {host} has SSH Disabled, Running Port Scan:\n",end="")
+                linux_port_scan_only(host)
         services_str = ','.join(sorted(HOST_INFO[host]['Services'])) if HOST_INFO[host]['Services'] else 'None'
         os_version = HOST_INFO[host]['OS_Version']
         if os_version:
             os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
         log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
-    return command_output
+
+def gather_windows_info(host):
+    for i in range(len(DOMAIN_CREDENTIALS)):
+        username = DOMAIN_CREDENTIALS[i][0]
+        password = DOMAIN_CREDENTIALS[i][1]
+        try:
+            # Wrap IPv6 addresses in brackets
+            host_addr = f"[{host}]" if ':' in host and not host.startswith('[') else host
+            session = winrm.Session(
+                f'http://{host_addr}:5985/wsman',
+                auth=(f"{username}", password),
+                server_cert_validation='ignore',
+                transport='ntlm'
+            )
+            HOST_INFO[host]['Username'] = username
+            HOST_INFO[host]['Password'] = password
+            print(f"Windows Host {host}:")
+            print(f"Credentials Used: {username}:{password}")
+            detect_windows_scored_services(session, host)
+            determine_windows_os_version(session, host)
+            log(WINDOWS_IP_FILE, host)
+            continue
+        except Exception as e:
+            pass
+
+def gather_linux_info(host):
+    for i in range(len(LINUX_CREDENTIALS)):
+        username = LINUX_CREDENTIALS[i][0]
+        password = LINUX_CREDENTIALS[i][1]
+        try:
+            session = paramiko.SSHClient()
+            session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            session.connect(host, username=username, password=password, timeout=10)
+            HOST_INFO[host]['Username'] = username
+            HOST_INFO[host]['Password'] = password
+            print(f"Linux Host {host}:")
+            print(f"Credentials Used: {username}:{password}")
+            detect_unix_scored_services(session, host)
+            determine_unix_os_version(session, host)
+            log(LINUX_IP_FILE, host)
+            session.close()
+        except Exception as e:
+            pass
 
 # Determines scored service via WinRM
-def detect_scored_services(session, ip_address):
+def detect_windows_scored_services(session, ip_address):
     global HOST_INFO
     
     try:
@@ -212,6 +230,7 @@ def detect_scored_services(session, ip_address):
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":443"').std_out.decode() != '':
                 print("HTTPS_IIS:443 ",end="")
                 HOST_INFO[ip_address]['Services'].add('HTTPS')
+
         check_http_nginx = session.run_cmd('sc query nginx')
         if check_http_nginx.status_code == 0:
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":80"').std_out.decode() != '':
@@ -256,9 +275,7 @@ def detect_scored_services(session, ip_address):
             print("CA ",end="")
             HOST_INFO[ip_address]['Services'].add('CA')
 
-
-        # switch this to Get-NetShare, filter out default shares
-        check_smb = session.run_cmd('sc query lanmanserver')
+        check_smb = session.run_cmd('powershell -c \"Get-SmbShare -IncludeHidden | ? Name -notin \'ADMIN$\',\'C$\',\'IPC$\'\"')
         if check_smb.status_code == 0:
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":445"').std_out.decode() != '':
                 print("SMB:445 ",end="")
@@ -273,6 +290,25 @@ def detect_scored_services(session, ip_address):
     except Exception as e:
         print("Failed to create WinRM session\n\n",end="")
             
+def detect_unix_scored_services(session, ip_address):
+    global HOST_INFO
+
+    try:
+        print("Detected Potential Scored Services: ",end="")
+        _, stdout, _ = session.exec_command('ss -tulnp')
+        lines = stdout.read().decode().strip()
+        for line in lines.split('\n'):
+            tokens = line.split()
+            protocol = tokens[0]
+            local_address = tokens[4]
+            local_address_tokens = local_address.split(':')
+            port = local_address_tokens[-1]
+            if "127.0.0" not in local_address and "::1" not in local_address:
+                HOST_INFO[ip_address]['Services'].add(port)
+                print(f'{port} ',end="")
+        print("")
+    except Exception as e:
+        print("Unexpected SSH error\n\n",end="")
 
 def determine_os(nm, host):
     # Check OS detection results
@@ -312,43 +348,36 @@ def determine_windows_os_version(session, ip_address):
             HOST_INFO[ip_address]['OS_Version'] += f" {check_os_version.std_out.decode().strip()}"
     print("")
 
-def determine_unix_os_version(ip_address, username, password):
+def determine_unix_os_version(session, ip_address):
     global HOST_INFO
 
-    ssh_client = paramiko.SSHClient()
-    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        ssh_client.connect(ip_address, username=username, password=password, timeout=10)
-        stdin, stdout, stderr = ssh_client.exec_command('cat /etc/os-release | grep PRETTY_NAME | cut -d "=" -f2 | tr -d \'"\'')
+        _, stdout, _ = session.exec_command('cat /etc/os-release | grep PRETTY_NAME | cut -d "=" -f2 | tr -d \'"\'')
         os_info = stdout.read().decode().strip()
         if os_info == '':
-            stdin, stdout, stderr = ssh_client.exec_command('freebsd-version')
+            _, stdout, _ = session.exec_command('freebsd-version')
             os_info = "FreeBSD " + stdout.read().decode().strip()
-        print(f"Credentials Used: {username}:{password}")
         print(f"Detected OS: {os_info}\n",end="")
         if "Ubuntu" in os_info:
             global PASSWORD_MANAGER_IP
             if PASSWORD_MANAGER_IP is None:
                 PASSWORD_MANAGER_IP = ip_address
                 print(f"Set as Password Manager IP\n",end="")
-        if "FreeBSD" in os_info:
-            print(f"Router Detected\n",end="")
 
         # Get Hostname
-        stdin, stdout, stderr = ssh_client.exec_command('hostname')
+        _, stdout, _ = session.exec_command('hostname')
         hostname = stdout.read().decode().strip()
         HOST_INFO[ip_address]['Hostname'] = hostname
-        ssh_client.close()
+        session.close()
     except Exception as e:
-        print(f"Credentials Used: {username}:{password}")
-        print(f"Failed to create SSH session.\n",end="")
+        print(f"Unexpected SSH Error\n",end="")
     print("")
 
 def log(file, content):
     with open(file, 'a') as log_file:
         log_file.write(content + '\n')
 
-def port_scan_only(host, command_output):
+def windows_port_scan_only(host):
     global HOST_INFO
 
     print("Detected Potential Scored Services: ",end="")
@@ -384,10 +413,47 @@ def port_scan_only(host, command_output):
                 service = port_dict.get(port, f"Unknown ({port})")
                 print(f"{service}:{port} ",end="")
                 HOST_INFO[host]['Services'].add(service)
-                if host not in command_output:
-                    command_output[host] = f"Open ports: {port} ({service})"
-                else:
-                    command_output[host] += f", {port} ({service})"
+        print("\n",end="")
+    except Exception as e:
+        print(f"Port scan failed: {str(e)}\n",end="")
+
+def linux_port_scan_only(host):
+    global HOST_INFO
+
+    print("Detected Potential Scored Services: ",end="")
+    try:
+        ps = nmap.PortScanner()
+        # Use -6 flag for IPv6 scanning
+        if ':' in host:
+            ps.scan(hosts=host, arguments='-sV -p [linux ports] -6')
+        else:
+            ps.scan(hosts=host, arguments='-sV -p [linux ports]')
+        port_dict = {
+            21: "FTP",
+            22: "SSH",
+            23: "Telnet",
+            80: "HTTP",
+            123: "NTP",
+            443: "HTTPS",
+            445: "SMB",
+            514: "Graylog",
+            3000: "Grafana",
+            5044: "Graylog",
+            5555: "Graylog",
+            9000: "Graylog",
+            9200: "Graylog",
+            9300: "Graylog",
+            27017: "Graylog",
+        }
+        lport = ps[host]['tcp'].keys()
+        
+        # Log open ports found
+        for port in lport:
+            port_state = ps[host]['tcp'][port]['state']
+            if port_state == 'open':
+                service = port_dict.get(port, f"Unknown ({port})")
+                print(f"{service}:{port} ",end="")
+                HOST_INFO[host]['Services'].add(service)
         print("\n",end="")
     except Exception as e:
         print(f"Port scan failed: {str(e)}\n",end="")
@@ -409,7 +475,7 @@ def get_local_ip():
 def add_to_ansible_inventory():
     global HOST_INFO
 
-    print(f"Adding hosts to Ansible inventory file: {ANSIBLE_INVENTORY_FILE}\n")
+    print(f"Adding hosts to Ansible inventory file: {WINDOWS_INVENTORY_FILE}\n")
 
     adfs_backup_password = os.urandom(12).hex()
 
@@ -483,7 +549,7 @@ all:
           hosts:
             {host}:
         """
-    with open(ANSIBLE_INVENTORY_FILE, 'w') as inventory_file:
+    with open(WINDOWS_INVENTORY_FILE, 'w') as inventory_file:
         inventory_file.write(ansible_header_content)
 
 def main():
@@ -491,21 +557,34 @@ def main():
     parser = argparse.ArgumentParser(description='Windows Reconnaissance Script to Fill Out Ansible Inventory')
     parser.add_argument('-s4', required=True, help='Subnet(s) to scan for Windows hosts (e.g., 192.168.1.0/24)')
     parser.add_argument('-s6', required=False, help='IPv6 Subnet(s) to scan for Windows hosts (e.g., 2001:0db8::/32)')
-    parser.add_argument('-c', required=True, help='Windows Domain Credentials in the format username:password,username:password')
-    parser.add_argument('-lc', required=False, help='Linux Credentials in the format username:password,username:password')
+    parser.add_argument('-wc', required=True, help='Windows Domain Credentials in the format username:password,username:password')
+    parser.add_argument('-lc', required=True, help='Linux Credentials in the format username:password,username:password')
     parser.add_argument('-sp', required=True, help='Scripts Path')
+    parser.add_argument('-windows', action='store_true', help='Choose to only run reconnaissance on Windows hosts')
+    parser.add_argument('-linux', action='store_true', help='Choose to only run reconnaissance on Unix hosts')
     args = parser.parse_args()
 
     print("\n=======================================GENERAL SETUP=======================================\n\n")
 
-    # Make sure IP file exists
-    if not os.path.exists(IP_FILE):
-        os.makedirs(os.path.dirname(IP_FILE), exist_ok=True)
-        print(f"IP file created: {IP_FILE}")
+    # Make sure IP files exists
+    if not os.path.exists(WINDOWS_IP_FILE):
+        os.makedirs(os.path.dirname(WINDOWS_IP_FILE), exist_ok=True)
+        print(f"IP file created: {WINDOWS_IP_FILE}")
     else:
-        print(f"IP file found: {IP_FILE}")
-    with open(IP_FILE, 'w') as ip_file:
-        ip_file.write('[INI HEADER]' + '\n')
+        print(f"IP file found: {WINDOWS_IP_FILE}")
+
+    if not os.path.exists(LINUX_IP_FILE):
+        os.makedirs(os.path.dirname(LINUX_IP_FILE), exist_ok=True)
+        print(f"IP file created: {LINUX_IP_FILE}")
+    else:
+        print(f"IP file found: {LINUX_IP_FILE}")
+
+    if not os.path.exists(ALL_IP_FILE):
+        os.makedirs(os.path.dirname(ALL_IP_FILE), exist_ok=True)
+        print(f"IP file created: {ALL_IP_FILE}")
+    else:
+        print(f"IP file found: {ALL_IP_FILE}")
+
 
     # Make sure Topology CSV file exists
     if not os.path.exists(TOPOLOGY_FILE):
@@ -536,6 +615,14 @@ def main():
 
     get_local_ip()
 
+    global RUN_WINDOWS
+    global RUN_LINUX
+    RUN_WINDOWS = args.windows
+    RUN_LINUX = args.linux
+    if not args.windows and not args.linux:
+        RUN_WINDOWS = True
+        RUN_LINUX = True
+
     print("\n\n======================================SUBNET SCANNING======================================\n\n")
     print(f"Scanning subnet: {subnet}")
     if ipv6_subnet is not None:
@@ -563,13 +650,13 @@ def main():
             cred_str = " | ".join(formatted_linux_creds)
             print(f"Using Linux Credentials | {cred_str}\n")
 
-    original_ipv4_scan = scan_all_hosts(subnet)
+    scan_all_hosts(subnet)
     if ipv6_subnet is not None:
-        original_ipv6_scan = scan_all_hosts(ipv6_subnet)
+        scan_all_hosts(ipv6_subnet)
     print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
-    gather_info(original_ipv4_scan, subnet)
+    gather_info(subnet)
     if ipv6_subnet is not None:
-        gather_info(original_ipv6_scan, ipv6_subnet)
+        gather_info(ipv6_subnet)
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
     add_to_ansible_inventory()
     print("\n==================================RECONNAISSANCE COMPLETE==================================\n\n")
