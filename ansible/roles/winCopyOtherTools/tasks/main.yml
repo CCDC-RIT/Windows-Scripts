@@ -143,10 +143,10 @@
     - "C:/Windows/System32/WindowsPowerShell/v1.0/profile.ps1"
     - "C:/Users/{{ username_only }}/Documents/WindowsPowerShell/profile.ps1"
 
-- name: Copy Cert.txt template
+- name: Copy Cert.inf template
   win_copy:
-    src: "{{ scripts_ansible_location }}/certs/cert.txt"
-    dest: "{{ scripts_path }}\\scripts\\cert.txt"
+    src: "{{ scripts_ansible_location }}/certs/cert.inf"
+    dest: "{{ scripts_path }}\\scripts\\cert.inf"
     remote_src: false
 
 # Install Bitlocker and Defender
@@ -162,6 +162,7 @@
 # DC Tools
 
 # Group Policies
+
 - name: Copy Group Policies to Domain Controller
   win_copy:
     src: "{{ scripts_ansible_location }}/{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
@@ -194,27 +195,7 @@
     dest: "{{ scripts_path }}\\scripts\\Reset-KrbtgtKeyInteractive.ps1"
   when: server_type == "dc"
 
-# Pingcastle and Adalanche
-
-- name: Copy Pingcastle to Domain Controller
-  win_copy:
-    src: "{{ scripts_ansible_location }}/pc.zip"
-    dest: "{{ scripts_path }}\\pc.zip"
-  when: server_type == "dc"
-
-- name: Copy Adalanche to Domain Controller
-  win_copy:
-    src: "{{ scripts_ansible_location }}/adalanche.exe"
-    dest: "{{ scripts_path }}\\tools\\adalanche.exe"
-  when: server_type == "dc"
-
-# Extract Pingcastle and Adalanche
-
-- name: Unzip Pingcastle on Domain Controller
-  community.windows.win_unzip:
-     src: "{{ scripts_path }}\\pc.zip" 
-     dest: "{{ scripts_path }}\\tools\\pc"
-  when: server_type == "dc"
+# Extract Group Policies
 
 - name: Unzip Group Policy Object 1 on Domain Controller
   community.windows.win_unzip:
@@ -274,30 +255,7 @@
     dest: "{{ scripts_path }}\\tools"
   when: is_server_core == "true"
 
-
 # Third Party tools
-
-- name: Copy Chainsaw
-  win_copy:
-    src: "{{ scripts_ansible_location }}/cs.zip"
-    dest: "{{ scripts_path }}\\cs.zip"
-
-- name: Copy Chainsaw Dependency Library
-  win_copy:
-    src: "{{ scripts_ansible_location }}/vc_redist.64.exe"
-    dest: "{{ scripts_path }}\\installers\\vc_redist.64.exe"
-
-- name: Silently Installing Chainsaw Dependency Library
-  win_shell: |
-    .\vc_redist.64.exe /install /passive /norestart
-  args:
-    chdir: "{{ scripts_path }}\\installers"
-    no_profile: true
-
-- name: Copy Hollows Hunter
-  win_copy:
-    src: "{{ scripts_ansible_location }}/hh64.zip"
-    dest: "{{ scripts_path }}\\hh64.zip"
 
 - name: Copy Sysmon Conf file
   win_copy:
@@ -321,7 +279,7 @@
     chdir: "{{ scripts_path }}\\installers"
     no_profile: true
 
-# Sysinternals
+# Copy Sysinternals
 
 - name: Copy Autoruns
   win_copy:
@@ -378,7 +336,7 @@
     src: "{{ scripts_ansible_location }}/str.zip"
     dest: "{{ scripts_path }}\\str.zip"
 
-# Yara and Yara Rules
+# Copy Yara and Yara Rules
 
 - name: Copy Yara
   win_copy:
@@ -400,68 +358,7 @@
     src: "{{ scripts_ansible_location }}/yarahq.zip"
     dest: "{{ scripts_path }}\\yarahq.zip"
 
-# Other tools
-
-- name: Copy Notepad++
-  win_copy:
-    src: "{{ scripts_ansible_location }}/notepadpp_installer.exe"
-    dest: "{{ scripts_path }}\\installers\\notepadpp_installer.exe"
-
-- name: Silently Install Notepad++
-  win_shell: |
-    .\notepadpp_installer.exe /S
-  args:
-    chdir: "{{ scripts_path }}\\installers"
-    no_profile: true
-
-- name: Copy Google Chrome
-  win_copy:
-    src: "{{ scripts_ansible_location }}/chromeinstall.exe"
-    dest: "{{ scripts_path }}\\installers\\chromeinstall.exe"
-
-- name: Check insalled browsers
-  win_shell: |
-    Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\App Paths\*.exe" |
-    Where-Object { $_.PSChildName -match 'chrome|firefox|edge|opera' } |
-    Select-Object -Property PSChildName
-  args:
-    no_profile: true
-  register: browser_check
-
-- name: Silently Install Chrome
-  win_shell: |
-    .\chromeinstall.exe /silent /install
-  args:
-    chdir: "{{ scripts_path }}\\installers"
-    no_profile: true
-  when: browser_check.stdout_lines | length == 0
-
-- name: Copy Everything search tool
-  win_copy:
-    src: "{{ scripts_ansible_location }}/everything.zip"
-    dest: "{{ scripts_path }}\\everything.zip"
-
-- name: Copy Everything CLI
-  win_copy:
-    src: "{{ scripts_ansible_location }}/es.zip"
-    dest: "{{ scripts_path }}\\es.zip"
-
-- name: BCU
-  win_copy:
-    src: "{{ scripts_ansible_location }}/bcu.zip"
-    dest: "{{ scripts_path }}\\bcu.zip"
-
-- name: Copy Antipwny
-  win_copy:
-    src: "{{ scripts_ansible_location }}/AntiPwny.exe"
-    dest: "{{ scripts_path }}\\tools\\Antipwny"
-
-- name: Copy Antipwny DLL
-  win_copy:
-    src: "{{ scripts_ansible_location }}/ObjectListView.dll"
-    dest: "{{ scripts_path }}\\tools\\Antipwny"
-
-# Extracting tools
+# Extracting Sysinternals Tools and Yara
 
 - name: Extract Autoruns
   community.windows.win_unzip:
@@ -584,16 +481,6 @@
   args:
     no_profile: true
 
-- name: Extract Hollows Hunter
-  community.windows.win_unzip:
-    src: "{{ scripts_path }}\\hh64.zip"
-    dest: "{{ scripts_path }}\\tools"
-
-- name: Extract Chainsaw
-  community.windows.win_unzip:
-    src: "{{ scripts_path }}\\cs.zip"
-    dest: "{{ scripts_path }}\\tools"
-
 - name: Extract Yara
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\yara.zip"
@@ -627,12 +514,103 @@
   args:
     no_profile: true
 
-- name: Enable Windows Defender
+# Copy Other Tools
+
+- name: Copy Pingcastle to Domain Controller
+  win_copy:
+    src: "{{ scripts_ansible_location }}/pc.zip"
+    dest: "{{ scripts_path }}\\pc.zip"
+  when: server_type == "dc"
+
+- name: Copy Adalanche to Domain Controller
+  win_copy:
+    src: "{{ scripts_ansible_location }}/adalanche.exe"
+    dest: "{{ scripts_path }}\\tools\\adalanche.exe"
+  when: server_type == "dc"
+
+- name: Copy Chainsaw
+  win_copy:
+    src: "{{ scripts_ansible_location }}/cs.zip"
+    dest: "{{ scripts_path }}\\cs.zip"
+
+- name: Copy Chainsaw Dependency Library
+  win_copy:
+    src: "{{ scripts_ansible_location }}/vc_redist.64.exe"
+    dest: "{{ scripts_path }}\\installers\\vc_redist.64.exe"
+
+- name: Silently Installing Chainsaw Dependency Library
   win_shell: |
-    Set-MpPreference -DisableRealtimeMonitoring $false
+    .\vc_redist.64.exe /install /passive /norestart
+  args:
+    chdir: "{{ scripts_path }}\\installers"
+    no_profile: true
+
+- name: Copy Hollows Hunter
+  win_copy:
+    src: "{{ scripts_ansible_location }}/hh64.zip"
+    dest: "{{ scripts_path }}\\hh64.zip"
+
+- name: Copy Notepad++
+  win_copy:
+    src: "{{ scripts_ansible_location }}/notepadpp_installer.exe"
+    dest: "{{ scripts_path }}\\installers\\notepadpp_installer.exe"
+
+- name: Silently Install Notepad++
+  win_shell: |
+    .\notepadpp_installer.exe /S
+  args:
+    chdir: "{{ scripts_path }}\\installers"
+    no_profile: true
+
+- name: Check insalled browsers
+  win_shell: |
+    Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\App Paths\*.exe" |
+    Where-Object { $_.PSChildName -match 'chrome|firefox|edge|opera' } |
+    Select-Object -Property PSChildName
   args:
     no_profile: true
-  ignore_errors: true
+  register: browser_check
+
+- name: Copy Google Chrome
+  win_copy:
+    src: "{{ scripts_ansible_location }}/chromeinstall.exe"
+    dest: "{{ scripts_path }}\\installers\\chromeinstall.exe"
+  when: browser_check.stdout_lines | length == 0
+
+- name: Silently Install Chrome
+  win_shell: |
+    .\chromeinstall.exe /silent /install
+  args:
+    chdir: "{{ scripts_path }}\\installers"
+    no_profile: true
+  when: browser_check.stdout_lines | length == 0
+
+- name: Copy Everything search tool
+  win_copy:
+    src: "{{ scripts_ansible_location }}/everything.zip"
+    dest: "{{ scripts_path }}\\everything.zip"
+
+- name: Copy Everything CLI
+  win_copy:
+    src: "{{ scripts_ansible_location }}/es.zip"
+    dest: "{{ scripts_path }}\\es.zip"
+
+- name: BCU
+  win_copy:
+    src: "{{ scripts_ansible_location }}/bcu.zip"
+    dest: "{{ scripts_path }}\\bcu.zip"
+
+- name: Copy Antipwny
+  win_copy:
+    src: "{{ scripts_ansible_location }}/AntiPwny.exe"
+    dest: "{{ scripts_path }}\\tools\\Antipwny"
+
+- name: Copy Antipwny DLL
+  win_copy:
+    src: "{{ scripts_ansible_location }}/ObjectListView.dll"
+    dest: "{{ scripts_path }}\\tools\\Antipwny"
+
+#  Extract Other Tools
 
 - name: Extract Everything Search Tool
   community.windows.win_unzip:
@@ -648,6 +626,29 @@
   community.windows.win_unzip:
     src: "{{ scripts_path }}\\bcu.zip"
     dest: "{{ scripts_path }}\\tools\\bcu"
+
+- name: Unzip Pingcastle on Domain Controller
+  community.windows.win_unzip:
+     src: "{{ scripts_path }}\\pc.zip" 
+     dest: "{{ scripts_path }}\\tools\\pc"
+  when: server_type == "dc"
+
+- name: Extract Hollows Hunter
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\hh64.zip"
+    dest: "{{ scripts_path }}\\tools"
+
+- name: Extract Chainsaw
+  community.windows.win_unzip:
+    src: "{{ scripts_path }}\\cs.zip"
+    dest: "{{ scripts_path }}\\tools"
+
+- name: Enable Windows Defender
+  win_shell: |
+    Set-MpPreference -DisableRealtimeMonitoring $false
+  args:
+    no_profile: true
+  ignore_errors: true
 
 # Clean up Zipped files
 
