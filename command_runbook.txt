@@ -10,6 +10,12 @@ Get-CimInstance -ClassName Win32_UserAccount -Filter "LocalAccount='True'" | Whe
 # Remove TacticalRMM and Mesh Agent
 Stop-Service TacticalRMM; Stop-Service 'Mesh Agent'; Remove-Item 'C:\Program Files\Mesh Agent\' -Recurse; Remove-Item "C:\Program Files\TacticalAgent\" -Recurse; Remove-Item 'C:\Program Files\TacticalRMM\' -Recurse
 
+# Base64 Decode a command
+'EncodedCommand' | ForEach-Object {[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_))}
+
+# Base64 Encode a command
+$Text = 'EncodedCommand';$Bytes = [System.Text.Encoding]::Unicode.GetBytes($Text);$EncodedText =[Convert]::ToBase64String($Bytes);$EncodedText
+
 # Recon of listening and active connections:
 while ($true){Get-NetTCPConnection -State Listen,Established -ErrorAction "SilentlyContinue" | Sort-Object state,localport | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,@{'Name'='CommandLine';'Expression'={(Get-CimInstance -Class Win32_Process -Filter "ProcessId = $($_.OwningProcess)").CommandLine}} | Format-Table -AutoSize; sleep 10; clear}
 
