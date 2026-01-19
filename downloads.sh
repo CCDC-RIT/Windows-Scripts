@@ -140,7 +140,7 @@ wget -o /dev/null "https://github.com/hasherezade/hollows_hunter/releases/downlo
 wget -o /dev/null "https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml" -O "sysmon.xml"
 # Windows Firewall Control + .NET 4.8
 wget -o /dev/null "https://www.binisoft.org/download/wfc6setup.exe" -O "wfcsetup.exe"
-wget -o /dev/null "https://go.microsoft.com/fwlink/?LinkId=2088631" -O "net_installer.exe"
+wget -o /dev/null "https://go.microsoft.com/fwlink/?LinkId=2088631" -O "net_installer.exe" --no-check-certificate
 # Wireshark
 wget -o /dev/null "https://1.na.dl.wireshark.org/win64/Wireshark-latest-x64.exe" -O "wsinstall.exe"
 echo "[SUCCESS] Threat-hunting and analysis tools downloaded."
@@ -161,7 +161,7 @@ wget -o /dev/null "https://download.sysinternals.com/files/PsExec.zip" -O "ps.zi
 echo "[SUCCESS] Sysinternals downloaded."
 
 # adfs rapid recreation tool
-wget -o /dev/null "https://download.microsoft.com/download/6/8/a/68af3cd3-1337-4389-967c-a6751182f286/ADFSRapidRecreationTool.msi"
+wget -o /dev/null "https://download.microsoft.com/download/6/8/a/68af3cd3-1337-4389-967c-a6751182f286/ADFSRapidRecreationTool.msi" --no-check-certificate -O "ADFSRapidRecreationTool.msi"
 echo "[SUCCESS] ADFS Rapid Recreation Tool downloaded."
 # yara
 wget -o /dev/null "https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip" -O "yara.zip"
