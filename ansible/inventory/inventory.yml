@@ -7,12 +7,12 @@ all:
         ansible_winrm_server_cert_validation: ignore
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
-        scripts_path: "C:Minecraft.log"
+        scripts_path: "C:\\Minecraft.log"
         scripts_ansible_location: "/Windows-Scripts"
-        password_manager_ip: "192.168.1.10"
+        password_manager_ip: "" #REPLACE
         siem_IP: "" #REPLACE
         siem_name: "Grafana"
-        adfs_backup_password: "c0f97396f68cf45ff46b367a"
+        adfs_backup_password: "27ef52577a35467907ca12ed"
         stabvest_ip: "192.168.1.10"
         winrm_ip: "192.168.1.10"
       children:
@@ -20,7 +20,7 @@ all:
           vars:
             ansible_user: "da1"
             ansible_password: "Password-123456"
-            scored_services: "httpio, ldapio, dnsio"
+            scored_services: "dnsio, httpio, ldapio"
             is_win_server: "true"
             is_server_core: "false"
             server_type: "dc"

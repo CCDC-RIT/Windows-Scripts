@@ -646,7 +646,6 @@ def find_home_directory():
                         if folder.name == "linux-ansible":
                             HOME_DIR_FOUND = True
                             LINUX_INVENTORY_FILE = f"/home/{homedir.name}/linux-ansible/inventory.yml"
-                            print(LINUX_INVENTORY_FILE)
 
     if not HOME_DIR_FOUND:
         print("Could not find linux-ansible directory. inventory saved too {LINUX_INVENTORY_FILE}")
@@ -757,10 +756,10 @@ def main():
         gather_info(ipv6_subnet)
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
     
-    find_home_directory()
     if RUN_WINDOWS:
         create_windows_ansible_inventory()
     if RUN_LINUX:
+        find_home_directory()
         create_linux_ansible_inventory()
     print("\n==================================RECONNAISSANCE COMPLETE==================================\n\n")
 
