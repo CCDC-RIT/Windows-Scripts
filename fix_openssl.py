@@ -8,8 +8,8 @@ def main():
         config = config.split('\n')
         for i in range(len(config)):
             if config[i].startswith('[provider_sect]'):
-                config[i+1] = "default_sect"
-                config[i+2] = "legacy_sect"
+                config[i+1] = "default = default_sect"
+                config[i+2] = "legacy = legacy_sect"
                 provider_sect_set = True
                 print("Set provider_sect")
             if config[i].startswith('[default_sect]'):
