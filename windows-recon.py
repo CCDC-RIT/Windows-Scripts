@@ -256,6 +256,8 @@ def detect_scored_services(session, ip_address):
             print("CA ",end="")
             HOST_INFO[ip_address]['Services'].add('CA')
 
+
+        # switch this to Get-NetShare, filter out default shares
         check_smb = session.run_cmd('sc query lanmanserver')
         if check_smb.status_code == 0:
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":445"').std_out.decode() != '':
@@ -435,7 +437,7 @@ all:
         server_type = "none"
         if 'ADFS' in HOST_INFO[host]['Services']:
             server_type = "adfs"
-        elif 'SMB' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
+        elif 'LDAP' in HOST_INFO[host]['Services']:
             server_type = "dc"
         elif 'CA' in HOST_INFO[host]['Services']:
             server_type = "ca"
