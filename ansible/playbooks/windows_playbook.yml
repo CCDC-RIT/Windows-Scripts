@@ -42,6 +42,16 @@
     - firewall
     - never
 
+- name: "WIN - Copy Scripts and Tools"
+  hosts: windows
+  gather_facts: false
+  roles:
+    - winCopyOtherTools
+  tags:
+    - windows
+    - copy
+    - never
+
 - name: "WIN - Distributed Backups"
   hosts: windows
   gather_facts: false
@@ -53,16 +63,6 @@
     - windowsOld
     - backup
     - firewall
-    - never
-
-- name: "WIN - Copy Scripts and Tools"
-  hosts: windows
-  gather_facts: false
-  roles:
-    - winCopyOtherTools
-  tags:
-    - windows
-    - copy
     - never
 
 - name: "WIN - Setup Password Manager Client"
