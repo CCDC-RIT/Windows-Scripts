@@ -638,6 +638,7 @@ def find_home_directory():
     global LINUX_INVENTORY_FILE
     global HOME_DIR_FOUND
     
+    HOME_DIR_FOUND = False
     with os.scandir("/home/") as entries:
         for homedir in entries:
             if not homedir.is_file():
@@ -648,7 +649,7 @@ def find_home_directory():
                             LINUX_INVENTORY_FILE = f"/home/{homedir.name}/linux-ansible/inventory.yml"
 
     if not HOME_DIR_FOUND:
-        print("Could not find linux-ansible directory. inventory saved too {LINUX_INVENTORY_FILE}")
+        print(f"Could not find linux-ansible directory, Inventory saved to {LINUX_INVENTORY_FILE}")
 
 def main():
     # Parse command line arguments
