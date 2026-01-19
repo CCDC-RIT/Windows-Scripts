@@ -118,6 +118,7 @@ def gather_info(subnet):
     
     for host in HOST_INFO.keys():
         if HOST_INFO[host]['OS'] == "Windows" and RUN_WINDOWS:
+        if HOST_INFO[host]['OS'] == "Windows" and RUN_WINDOWS:
             if 'WinRM_HTTP' in HOST_INFO[host]['Services'] or 'WinRM_HTTPS' in HOST_INFO[host]['Services']:
                 gather_windows_info(host)
                 if HOST_INFO[host]['Username'] is None or HOST_INFO[host]['Password'] is None:
@@ -180,8 +181,70 @@ def gather_linux_info(host):
             session.close()
         except Exception as e:
             pass
+                gather_windows_info(host)
+                if HOST_INFO[host]['Username'] is None or HOST_INFO[host]['Password'] is None:
+                    print(f"Windows Host {host} WinRM Authentication Failed, Running Port Scan:\n",end="")
+                    windows_port_scan_only(host)
+            else:
+                print(f"Windows Host {host} has WinRM Disabled, Running Port Scan:\n",end="")
+                windows_port_scan_only(host)
+        elif LINUX_CREDENTIALS is not None and HOST_INFO[host]['OS'] == 'Linux' and RUN_LINUX:
+            if 'SSH' in HOST_INFO[host]['Services']:
+                gather_linux_info(host)
+            else:
+                print(f"Unix Host {host} has SSH Disabled, Running Port Scan:\n",end="")
+                linux_port_scan_only(host)
+        services_str = ','.join(sorted(HOST_INFO[host]['Services'])) if HOST_INFO[host]['Services'] else 'None'
+        os_version = HOST_INFO[host]['OS_Version']
+        if os_version:
+            os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
+        log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
+
+def gather_windows_info(host):
+    for i in range(len(DOMAIN_CREDENTIALS)):
+        username = DOMAIN_CREDENTIALS[i][0]
+        password = DOMAIN_CREDENTIALS[i][1]
+        try:
+            # Wrap IPv6 addresses in brackets
+            host_addr = f"[{host}]" if ':' in host and not host.startswith('[') else host
+            session = winrm.Session(
+                f'http://{host_addr}:5985/wsman',
+                auth=(f"{username}", password),
+                server_cert_validation='ignore',
+                transport='ntlm'
+            )
+            HOST_INFO[host]['Username'] = username
+            HOST_INFO[host]['Password'] = password
+            print(f"Windows Host {host}:")
+            print(f"Credentials Used: {username}:{password}")
+            detect_windows_scored_services(session, host)
+            determine_windows_os_version(session, host)
+            log(WINDOWS_IP_FILE, host)
+            continue
+        except Exception as e:
+            pass
+
+def gather_linux_info(host):
+    for i in range(len(LINUX_CREDENTIALS)):
+        username = LINUX_CREDENTIALS[i][0]
+        password = LINUX_CREDENTIALS[i][1]
+        print(f"Unix Host {host}:\n",end="")
+        try:
+            session = paramiko.SSHClient()
+            session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            HOST_INFO[host]['Username'] = username
+            HOST_INFO[host]['Password'] = password
+            print(f"Linux Host {host}:")
+            print(f"Credentials Used: {username}:{password}")
+            detect_unix_scored_services(session, host)
+            determine_unix_os_version(session, host, username, password)
+            log(LINUX_IP_FILE, host)
+            continue
+        except Exception as e:
+            pass
 
 # Determines scored service via WinRM
+def detect_windows_scored_services(session, ip_address):
 def detect_windows_scored_services(session, ip_address):
     global HOST_INFO
     
@@ -230,6 +293,7 @@ def detect_windows_scored_services(session, ip_address):
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":443"').std_out.decode() != '':
                 print("HTTPS_IIS:443 ",end="")
                 HOST_INFO[ip_address]['Services'].add('HTTPS')
+
 
         check_http_nginx = session.run_cmd('sc query nginx')
         if check_http_nginx.status_code == 0:
