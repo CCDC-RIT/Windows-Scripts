@@ -80,10 +80,10 @@ foreach ($feature in $features) {
     }
 }
 
-## Uninstalling unnecessary Languages (Java, Rust, Go, Python)
+## Uninstalling unnecessary Languages (Java, Rust, Go)
 
-# Uninstall everything for Java, Python, Go
-$badapps = Get-WmiObject -Class Win32_Product | Where-Object {$_.Name -match "Java" -or $_.Name -Match "Python" -or $_.Name -Match "Go"}
+# Uninstall everything for Java, Go
+$badapps = Get-WmiObject -Class Win32_Product | Where-Object {$_.Name -match "Java" -or $_.Name -Match "Go"}
 
 if($badapps){
     foreach($program in $badapps){
