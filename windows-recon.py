@@ -307,10 +307,12 @@ def detect_unix_scored_services(session, ip_address):
             port = local_address_tokens[-1]
             if "127.0.0" not in local_address and "::1" not in local_address and port != "Local":
                 HOST_INFO[ip_address]['Services'].add(f"{protocol}:{port}")
-                print(f'{protocol}:{port} ',end="")
+        for addy in HOST_INFO[ip_address]['Services']:
+            print(f"{addy}",end=" ")
         print("")
+        
     except Exception as e:
-        print("Unexpected SSH error\n\n",end="")
+        print("Unexpected SSH error\n",end="")
 
 def determine_os(nm, host):
     # Check OS detection results
