@@ -196,8 +196,8 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v Use
 @REM wmic useraccount where "name='Administrator'" rename tomato
 
 :: Create backup admin(s)
-net user cucumber Passw0rd-123* /add
-net localgroup Administrators cucumber /add
+net user pickle.rick Passw0rd-123* /add
+net localgroup Administrators pickle.rick /add
 
 :: Most keys that exist in the SOFTWARE hive also exist under SOFTWARE\Wow6432Node but I am too lazy to add them
 

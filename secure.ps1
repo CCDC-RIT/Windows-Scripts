@@ -168,7 +168,7 @@ if ($DC) {
 }
 
 # Making a backup admin account
-Write-Host "Creating a backup admin account (name: cucumber)..." -ForegroundColor Cyan
+Write-Host "Creating a backup admin account (name: pickle.rick)..." -ForegroundColor Cyan
 # prompt for password if one wasn't specified as cli arg
 $promptPassword = $null
 if ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)) -eq $null) {
@@ -186,10 +186,10 @@ if ([Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.
         }
     }
 }
-New-LocalUser -Name cucumber -Password $Password
-net localgroup Administrators cucumber /add
+New-LocalUser -Name pickle.rick -Password $Password
+net localgroup Administrators pickle.rick /add
 if ($DC) {
-    Add-ADGroupMember -Identity "Domain Admins" -Members "cucumber"
+    Add-ADGroupMember -Identity "Domain Admins" -Members "pickle.rick"
 }
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Backup administrator account created" -ForegroundColor white 
 

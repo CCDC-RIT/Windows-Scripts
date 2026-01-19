@@ -1,5 +1,5 @@
 # Getting all AD users except self, krbtgt, whiteteam users
-Get-ADUser -Filter "SamAccountName -notlike '$Env:UserName' -and SamAccountName -notlike 'krbtgt' -and SamAccountName -notlike 'black-team' -and SamAccountName -notlike 'blackteam' -and SamAccountName -notlike 'white-team' -and SamAccountName -notlike 'whiteteam' -and SamAccountName -notlike 'cucumber' -and SamAccountName -notlike '<domain_user_here>'" -Properties SamAccountName | Select-Object -ExpandProperty SamAccountName | Out-File -FilePath "users.txt"
+Get-ADUser -Filter "SamAccountName -notlike '$Env:UserName' -and SamAccountName -notlike 'krbtgt' -and SamAccountName -notlike 'black-team' -and SamAccountName -notlike 'blackteam' -and SamAccountName -notlike 'white-team' -and SamAccountName -notlike 'whiteteam' -and SamAccountName -notlike 'pickle.rick' -and SamAccountName -notlike '<domain_user_here>'" -Properties SamAccountName | Select-Object -ExpandProperty SamAccountName | Out-File -FilePath "users.txt"
 
 # Getting all local users except self, whiteteam users
 Get-CimInstance -ClassName Win32_UserAccount -Filter "LocalAccount='True'" | Where-Object { $_.Name -notlike $Env:UserName -and $_.Name -notlike '' -and $_.Name -notlike '' } | Select-Object -ExpandProperty Name | Out-File -FilePath "users.txt"
