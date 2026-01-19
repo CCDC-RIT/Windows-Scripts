@@ -494,9 +494,6 @@ def main():
     parser.add_argument('-sp', required=True, help='Scripts Path')
     args = parser.parse_args()
 
-    # Clear Terminal
-    os.system('clear')
-
     print("\n=======================================GENERAL SETUP=======================================\n\n")
 
     # Make sure IP file exists

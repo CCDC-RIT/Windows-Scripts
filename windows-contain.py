@@ -192,9 +192,6 @@ def main():
     for i in range(len(file_path)):
         file_path[i] = file_path[i].strip()
 
-    # Clear Terminal
-    os.system('clear')
-
     # Gets all Windows IPs
     hosts = get_ips()
 
