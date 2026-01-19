@@ -425,9 +425,9 @@ def linux_port_scan_only(host):
         ps = nmap.PortScanner()
         # Use -6 flag for IPv6 scanning
         if ':' in host:
-            ps.scan(hosts=host, arguments='-sV -p [linux ports] -6')
+            ps.scan(hosts=host, arguments='-sV -p 1-65535 -6')
         else:
-            ps.scan(hosts=host, arguments='-sV -p [linux ports]')
+            ps.scan(hosts=host, arguments='-sV -p 1-65535')
         port_dict = {
             21: "FTP",
             22: "SSH",
