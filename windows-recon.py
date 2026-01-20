@@ -12,7 +12,7 @@ import re
 
 # Global File Locations
 WINDOWS_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
-LINUX_INVENTORY_FILE = '/home/inventory.yml' # Gets correctly set in main
+LINUX_INVENTORY_FILE = '/home/inventory.ini' # Gets correctly set in main
 WINDOWS_IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
 LINUX_IP_FILE = '/opt/passwordmanager/linux_starting_clients.txt'
 ALL_IP_FILE = '/opt/passwordmanager/starting_clients.txt'
@@ -509,25 +509,25 @@ def create_linux_ansible_inventory():
     global LINUX_INVENTORY_FILE
     print(f"Adding hosts to Ansible inventory file: {LINUX_INVENTORY_FILE}\n")
 
-    ansible_header_content = f"""---
-all:
-  children:
-    linux:
-      vars:
-        ansible_connection: ssh
-        ssh_port: 22
-        backup_dir: "/usr/share/fonts/roboto-mono"
-        quarantine: "/usr/share/fonts/quar-mono"
-        audit_dir: "/opt/audit"
-        password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
-        siem_ip: "{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
-        stabvest_controller_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
-        ansible_control_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''} 
-        firewall_logging: true
-        siem: "Grafana"
-      children:
-        """
-
+    ansible_host_list = "[all]\n"
+    with open(LINUX_IP_FILE, "r") as Hosts:
+        for line in Hosts:
+            ansible_host_list += (line, "\n")
+    ansible_host_list += f"\n[logging]\n{GRAFANA_IP}\n"
+    
+    ansible_host_list += f"""\n[all:vars]"
+ansible_connection=ssh
+ssh_port=22
+backup_dir="/usr/share/fonts/roboto-mono"
+quarantine="/usr/share/fonts/quar-mono"
+audit_dir="/opt/audit"
+password_manager_ip="{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
+siem_ip="{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
+stabvest_controller_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
+ansible_control_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''} 
+firewall_logging=true
+siem="Grafana"
+"""
     for host in HOST_INFO.keys():
         if HOST_INFO[host]['OS'] == 'Linux':
             scored_ports_tcp = []
@@ -540,16 +540,17 @@ all:
                     elif protocol.lower() == 'udp':
                         scored_ports_udp.append(port)
 
-            ansible_header_content += f"""{HOST_INFO[host]['OS_Short_Name']}_{HOST_INFO[host]['Hostname']}_{host.replace('.', '_').replace(':', '_')}:
-          vars:
-            ansible_user: "{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
-            ansible_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
-            ansible_become_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
-            scored_ports_tcp: { scored_ports_tcp if scored_ports_tcp else [] }
-            scored_ports_udp: { scored_ports_udp if scored_ports_udp else [] }
-          hosts:
-            {host}:
-        """
+            ansible_header_content += f"""
+[{HOST_INFO[host]['OS_Short_Name']}_{HOST_INFO[host]['Hostname']}_{host.replace('.', '_').replace(':', '_')}]
+{host}
+
+[{HOST_INFO[host]['OS_Short_Name']}_{HOST_INFO[host]['Hostname']}_{host.replace('.', '_').replace(':', '_')}:vars]
+ansible_user="{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
+ansible_password="{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
+ansible_become_password="{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
+scored_ports_tcp={ scored_ports_tcp if scored_ports_tcp else [] }
+scored_ports_udp={ scored_ports_udp if scored_ports_udp else [] }
+"""
     with open(LINUX_INVENTORY_FILE, 'w') as inventory_file:
         inventory_file.write(ansible_header_content)
 
@@ -646,7 +647,7 @@ def find_home_directory():
                     for folder in userdir:
                         if folder.name == "linux-ansible":
                             HOME_DIR_FOUND = True
-                            LINUX_INVENTORY_FILE = f"/home/{homedir.name}/linux-ansible/inventory.yml"
+                            LINUX_INVENTORY_FILE = f"/home/{homedir.name}/linux-ansible/inventory.ini"
 
     if not HOME_DIR_FOUND:
         print(f"Could not find linux-ansible directory, Inventory saved to {LINUX_INVENTORY_FILE}")
