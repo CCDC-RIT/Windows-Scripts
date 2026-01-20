@@ -117,7 +117,7 @@ $ProgressPreference = 'SilentlyContinue'
 # Powershell Profile
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "profile.ps1"), (Join-Path -Path $ScriptPath -ChildPath "profile.ps1"))
 # Cert Template
-(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts/certs" -file "cert.inf"), (Join-Path -Path $ScriptPath -ChildPath "cert.inf"))
+(New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "certs/cert.inf"), (Join-Path -Path $ScriptPath -ChildPath "cert.inf"))
 # Windows Contain script
 (New-Object System.Net.WebClient).DownloadFile((Get-DownloadURL -repo "Windows-Scripts" -file "windows-contain.py"), (Join-Path -Path $ScriptPath -ChildPath "windows-contain.py"))
 # Dynamic inventory script
