@@ -366,7 +366,7 @@ def determine_unix_os_version(session, ip_address):
             os_info = "FreeBSD " + stdout.read().decode().strip()
         print(f"Detected OS: {os_info}\n",end="")
         HOST_INFO[ip_address]['OS_Version'] = os_info
-        if ("Ubuntu" in os_info or "Rocky" in os_info) and "443" not in HOST_INFO[ip_address]['Services']:
+        if "Ubuntu" in os_info:
             global PASSWORD_MANAGER_IP
             if PASSWORD_MANAGER_IP is None:
                 PASSWORD_MANAGER_IP = ip_address
@@ -748,15 +748,20 @@ def main():
             cred_str = " | ".join(formatted_linux_creds)
             print(f"Using Linux Credentials | {cred_str}\n")
 
-    scan_all_hosts(subnet)
+    ipv4_subnets = args.s4.split(',')
+    for host in ipv4_subnets:
+        scan_all_hosts(host)
     if ipv6_subnet is not None:
-        scan_all_hosts(ipv6_subnet)
+        ipv6_subnets = args.s6.split(',')
+        for host in ipv6_subnets:
+            scan_all_hosts(host)
     print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
-    gather_info(subnet)
+    for host in ipv4_subnets:
+        gather_info(host)
     if ipv6_subnet is not None:
-        gather_info(ipv6_subnet)
+        for host in ipv6_subnets:
+            gather_info(host)
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
-    
     if RUN_WINDOWS:
         create_windows_ansible_inventory()
     if RUN_LINUX:
