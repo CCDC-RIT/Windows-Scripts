@@ -512,7 +512,7 @@ def create_linux_ansible_inventory():
     ansible_host_list = "[all]\n"
     with open(LINUX_IP_FILE, "r") as Hosts:
         for line in Hosts:
-            ansible_host_list += (line, "\n")
+            ansible_host_list += (line + "\n")
     ansible_host_list += f"\n[logging]\n{GRAFANA_IP}\n"
     
     ansible_host_list += f"""\n[all:vars]"
