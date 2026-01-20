@@ -30,7 +30,7 @@ param(
     [Parameter(Mandatory=$false)]
     [array]$scoringIP2 = @("protocol","0.0.0.0"),
     [Parameter(Mandatory=$false)]
-    [bool]$runByAnsible = $false,
+    [bool]$installWFC = $false,
     [Parameter(Mandatory=$false)]
     [array]$randomExtraPorts,
     [Parameter(Mandatory=$false)]
@@ -79,7 +79,7 @@ netsh advfirewall set allprofiles logging allowedconnections enable | Out-Null
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Firewall logging enabled" -ForegroundColor white
 
 # if key doesn't already exist, install WFC
-if (!(Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Windows Firewall Control") -and !($runByAnsible)) {
+if ($installWFC) {
     $currentDir = ($MyInvocation.MyCommand.Path).substring(0,($MyInvocation.MyCommand.Path).indexOf("scripts\firewall.ps1"))
     $toolInstallPath = Join-Path -Path $currentDir -ChildPath "installers\wfcinstall"
     $installerPath = Join-Path -Path $currentDir -ChildPath "installers\wfcsetup.exe"
