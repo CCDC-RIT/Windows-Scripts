@@ -100,7 +100,7 @@ def scan_all_hosts(subnet):
                 print("Detected Remoting Services: ", end="")
                 for service in HOST_INFO[host]['Services']:
                     print(f"{service} ", end="")
-    
+
         print("\n")
 
 def find_grafana(host):
@@ -117,7 +117,7 @@ def find_grafana(host):
 # Attempts to gather additional information about Windows hosts
 def gather_info(subnet):
     global HOST_INFO
-    
+
     for host in HOST_INFO.keys():
         if HOST_INFO[host]['OS'] == "Windows" and RUN_WINDOWS:
             if 'WinRM_HTTP' in HOST_INFO[host]['Services'] or 'WinRM_HTTPS' in HOST_INFO[host]['Services']:
@@ -188,7 +188,7 @@ def gather_linux_info(host):
 # Determines scored service via WinRM
 def detect_windows_scored_services(session, ip_address):
     global HOST_INFO
-    
+
     try:
         basic_query = session.run_cmd('hostname') #proves connection works
         if basic_query.status_code == 0:
@@ -293,7 +293,7 @@ def detect_windows_scored_services(session, ip_address):
         print("\n",end="")
     except Exception as e:
         print("Failed to create WinRM session\n\n",end="")
-            
+
 def detect_unix_scored_services(session, ip_address):
     global HOST_INFO
 
@@ -313,7 +313,7 @@ def detect_unix_scored_services(session, ip_address):
             if not (addy == "SSH"):
                 print(f"{addy}",end=" ")
         print("")
-        
+
     except Exception as e:
         print("Unexpected SSH error\n",end="")
 
@@ -325,12 +325,12 @@ def determine_os(nm, host):
         for os_info in os_match:
             if 'Windows' in os_info.get('name', ''):
                 return 'Windows'
-        
+
         # If no Windows match found, check for Linux/Unix
         for os_info in os_match:
             if 'Linux' in os_info.get('name', ''):
                 return 'Linux'
-            
+
     return 'FreeBSD'  # Default to FreeBSD if no matches found
 
 def determine_windows_os_version(session, ip_address):
@@ -366,7 +366,7 @@ def determine_unix_os_version(session, ip_address):
             os_info = "FreeBSD " + stdout.read().decode().strip()
         print(f"Detected OS: {os_info}\n",end="")
         HOST_INFO[ip_address]['OS_Version'] = os_info
-        if "Ubuntu" in os_info:
+        if ("Ubuntu" in os_info or "Rocky" in os_info) and "443" not in HOST_INFO[ip_address]['Services']:
             global PASSWORD_MANAGER_IP
             if PASSWORD_MANAGER_IP is None:
                 PASSWORD_MANAGER_IP = ip_address
@@ -438,7 +438,7 @@ def windows_port_scan_only(host):
             5986: "WinRM HTTPS"
         }
         lport = ps[host]['tcp'].keys()
-        
+
         # Log open ports found
         for port in lport:
             port_state = ps[host]['tcp'][port]['state']
@@ -479,7 +479,7 @@ def linux_port_scan_only(host):
             27017: "Graylog",
         }
         lport = ps[host]['tcp'].keys()
-        
+
         # Log open ports found
         for port in lport:
             port_state = ps[host]['tcp'][port]['state']
@@ -503,12 +503,12 @@ def get_local_ip():
         s.connect(("2001:4860:4860::8888", 80))
         LOCAL_IP = s.getsockname()[0]
         s.close()
-        
+
 def create_linux_ansible_inventory():
     global HOST_INFO
     global LINUX_INVENTORY_FILE
     print(f"Adding hosts to Ansible inventory file: {LINUX_INVENTORY_FILE}\n")
-    
+
     ansible_header_content = f"""---
 all:
   children:
@@ -539,7 +539,7 @@ all:
                         scored_ports_tcp.append(port)
                     elif protocol.lower() == 'udp':
                         scored_ports_udp.append(port)
-                
+
             ansible_header_content += f"""{HOST_INFO[host]['OS_Short_Name']}_{HOST_INFO[host]['Hostname']}_{host.replace('.', '_').replace(':', '_')}:
           vars:
             ansible_user: "{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
@@ -602,7 +602,7 @@ all:
         scored_services.add('HTTPS') if 'ADFS' in HOST_INFO[host]['Services'] else None
         scored_services.remove('ADFS') if 'ADFS' in scored_services else None
         scored_services.remove('CA') if 'CA' in scored_services else None    
-        
+
         scored_services = "io, ".join(scored_services)
         if scored_services != "":
             scored_services += "io"
@@ -613,7 +613,7 @@ all:
         is_win_server = 'Windows Server' in HOST_INFO[host]['OS_Version']
         is_server_core = "Server Core" in HOST_INFO[host]['OS_Version']
 
-        
+
         if 'SMB' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
             server_type = "dc"
         elif 'CA' in HOST_INFO[host]['Services']:
@@ -637,7 +637,7 @@ all:
 def find_home_directory():
     global LINUX_INVENTORY_FILE
     global HOME_DIR_FOUND
-    
+
     HOME_DIR_FOUND = False
     with os.scandir("/home/") as entries:
         for homedir in entries:
@@ -692,7 +692,7 @@ def main():
         print(f"Topology file found: {TOPOLOGY_FILE}")
     with open(TOPOLOGY_FILE, 'w') as topology_file:
         topology_file.write('subnet,ip,hostname,os,services' + '\n')
-    
+
     # Set global variables
     global DOMAIN_CREDENTIALS
     global LINUX_CREDENTIALS
@@ -748,22 +748,15 @@ def main():
             cred_str = " | ".join(formatted_linux_creds)
             print(f"Using Linux Credentials | {cred_str}\n")
 
-    ipv4_subnets = args.s4.split(',')
-    for host in ipv4_subnets:
-        print(f"Scanning {host} in subnet")
-        scan_all_hosts(host)
+    scan_all_hosts(subnet)
     if ipv6_subnet is not None:
-        ipv6_subnets = args.s6.split(',')
-        for host in ipv6_subnets:
-            scan_all_hosts(host)
+        scan_all_hosts(ipv6_subnet)
     print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
-    for host in ipv4_subnets:
-        print(f"Gathering info for {host} in subnet")
-        gather_info(host)
+    gather_info(subnet)
     if ipv6_subnet is not None:
-        for host in ipv6_subnets:
-            gather_info(host)
+        gather_info(ipv6_subnet)
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
+
     if RUN_WINDOWS:
         create_windows_ansible_inventory()
     if RUN_LINUX:
