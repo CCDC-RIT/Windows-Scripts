@@ -1,6 +1,0 @@
-subnet,ip,hostname,os,services
-192.168.1.0/24,192.168.1.1,None,,"WinRM_HTTP"
-192.168.1.0/24,192.168.1.10,ubuntu-virtual-machine,Ubuntu 22.04.5,"SSH,tcp:22,tcp:44592,tcp:55956,tcp:5990,udp:34414,udp:41641,udp:45484,udp:5353"
-192.168.1.0/24,192.168.1.254,None,,"SSH"
-192.168.1.0/24,192.168.1.6,None,,"WinRM_HTTP"
-192.168.1.0/24,192.168.1.7,ubuntu-virtual-machine,Ubuntu 22.04.5,"SSH,tcp:22,tcp:80,udp:51901,udp:5353,udp:54096"
