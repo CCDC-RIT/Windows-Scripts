@@ -366,7 +366,7 @@ def determine_unix_os_version(session, ip_address):
             os_info = "FreeBSD " + stdout.read().decode().strip()
         print(f"Detected OS: {os_info}\n",end="")
         HOST_INFO[ip_address]['OS_Version'] = os_info
-        if "Ubuntu" in os_info:
+        if ("Ubuntu" in os_info or "Rocky" in os_info) and "443" not in HOST_INFO[ip_address]['Services']:
             global PASSWORD_MANAGER_IP
             if PASSWORD_MANAGER_IP is None:
                 PASSWORD_MANAGER_IP = ip_address
