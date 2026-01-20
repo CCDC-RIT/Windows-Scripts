@@ -750,6 +750,7 @@ def main():
 
     ipv4_subnets = args.s4.split(',')
     for host in ipv4_subnets:
+        print(f"Scanning {host} in subnet")
         scan_all_hosts(host)
     if ipv6_subnet is not None:
         ipv6_subnets = args.s6.split(',')
@@ -757,6 +758,7 @@ def main():
             scan_all_hosts(host)
     print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
     for host in ipv4_subnets:
+        print(f"Gathering info for {host} in subnet")
         gather_info(host)
     if ipv6_subnet is not None:
         for host in ipv6_subnets:
