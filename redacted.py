@@ -56,9 +56,9 @@ def scan_all_hosts(subnet):
     subnet = subnet.replace(',', ' ')
     # Use -6 flag for IPv6 scanning
     if ':' in subnet:
-        nm.scan(hosts=subnet, arguments='-T5 -n -Pn --open -O -6 --min-parallelism 50 --max-parallelism 100 --min-rate 5000 --max-retries 1 --max-rtt-timeout 1000 --host-timeout 5s -p 22,3389,5985,5986')
+        nm.scan(hosts=subnet, arguments='-T5 -n -Pn --open -O -6 --min-parallelism 50 --max-parallelism 100 --min-rate 5000 --max-retries 1 -p 22,3389,5985,5986')
     else:
-        nm.scan(hosts=subnet, arguments='-T5 -n -Pn --open -O --min-rate 5000 --max-retries 1 --max-rtt-timeout 1000 --host-timeout 5s -p 22,3389,5985,5986')
+        nm.scan(hosts=subnet, arguments='-T5 -n -Pn --open -O --min-rate 5000 --max-retries 1  -p 22,3389,5985,5986')
     for host in [x for x in nm.all_hosts()]:
         lport = nm[host]['tcp'].keys()
 
@@ -421,9 +421,9 @@ def windows_port_scan_only(host):
         ps = nmap.PortScanner()
         # Use -6 flag for IPv6 scanning
         if ':' in host:
-            ps.scan(hosts=host, arguments='-n --max-rtt-timeout 1000 -Pn -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986 -6')
+            ps.scan(hosts=host, arguments='-n -Pn -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986 -6')
         else:
-            ps.scan(hosts=host, arguments='-n --max-rtt-timeout 1000 -Pn -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986')
+            ps.scan(hosts=host, arguments='-n -Pn -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986')
         port_dict = {
             21: "FTP",
             22: "SSH",
@@ -461,9 +461,9 @@ def linux_port_scan_only(host):
         ps = nmap.PortScanner()
         # Use -6 flag for IPv6 scanning
         if ':' in host:
-            ps.scan(hosts=host, arguments='-n --max-rtt-timeout 1000 -Pn -p 1-65535 -6')
+            ps.scan(hosts=host, arguments='-n -Pn -p 1-65535 -6')
         else:
-            ps.scan(hosts=host, arguments='-n --max-rtt-timeout 1000 -Pn -p 1-65535')
+            ps.scan(hosts=host, arguments='-n -Pn -p 1-65535')
         port_dict = {
             21: "FTP",
             22: "SSH",
