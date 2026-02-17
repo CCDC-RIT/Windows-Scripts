@@ -526,6 +526,7 @@ def create_linux_ansible_inventory():
 """
     
     ansible_host_list += f"""\n[all:vars]
+controller_in_scope_allow_ip=""
 important_file_for_backup=[]"
 ansible_connection=ssh
 ssh_port=22
