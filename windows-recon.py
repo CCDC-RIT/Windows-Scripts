@@ -56,9 +56,9 @@ def scan_all_hosts(subnet):
     subnet = subnet.replace(',', ' ')
     # Use -6 flag for IPv6 scanning
     if ':' in subnet:
-        nm.scan(hosts=subnet, arguments='-O -6 -p 22,3389,5985,5986')
+        nm.scan(hosts=subnet, arguments='-T 5 -Pn --open -O -6 -p 22,3389,5985,5986')
     else:
-        nm.scan(hosts=subnet, arguments='-O -p 22,3389,5985,5986')
+        nm.scan(hosts=subnet, arguments='-T 5 -Pn --open -O -p 22,3389,5985,5986')
     for host in [x for x in nm.all_hosts()]:
         lport = nm[host]['tcp'].keys()
 
@@ -107,10 +107,10 @@ def find_grafana(host):
     global GRAFANA_IP
     nm = nmap.PortScanner()
     if ":" in host:
-        nm.scan(hosts=host, arguments='-6 -p 3000')
+        nm.scan(hosts=host, arguments='-6 -p 9000')
     else:
-        nm.scan(hosts=host, arguments='-p 3000')
-    if nm[host].has_tcp(3000) and nm[host]['tcp'][3000]['state'] == 'open':
+        nm.scan(hosts=host, arguments='-p 9000')
+    if nm[host].has_tcp(9000) and nm[host]['tcp'][9000]['state'] == 'open':
         GRAFANA_IP = host
         print(f"Set as Grafana IP\n",end="")
 
@@ -183,7 +183,10 @@ def gather_linux_info(host):
             log(ALL_IP_FILE, host)
             session.close()
         except Exception as e:
-            pass
+            linux_port_scan_only(host)
+            log(LINUX_IP_FILE, host)
+            log(ALL_IP_FILE, host)
+            # TODO: This needs more work, doesn't work well rn
 
 # Determines scored service via WinRM
 def detect_windows_scored_services(session, ip_address):
@@ -418,9 +421,9 @@ def windows_port_scan_only(host):
         ps = nmap.PortScanner()
         # Use -6 flag for IPv6 scanning
         if ':' in host:
-            ps.scan(hosts=host, arguments='-sV -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986 -6')
+            ps.scan(hosts=host, arguments='-T 5 -Pn -sV -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986 -6')
         else:
-            ps.scan(hosts=host, arguments='-sV -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986')
+            ps.scan(hosts=host, arguments='-T 5 -Pn -sV -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986')
         port_dict = {
             21: "FTP",
             22: "SSH",
@@ -458,9 +461,9 @@ def linux_port_scan_only(host):
         ps = nmap.PortScanner()
         # Use -6 flag for IPv6 scanning
         if ':' in host:
-            ps.scan(hosts=host, arguments='-sV -p 1-65535 -6')
+            ps.scan(hosts=host, arguments='-T 5 -Pn -sV -p 1-65535 -6')
         else:
-            ps.scan(hosts=host, arguments='-sV -p 1-65535')
+            ps.scan(hosts=host, arguments='-T 5 -Pn -sV -p 1-65535')
         port_dict = {
             21: "FTP",
             22: "SSH",
@@ -485,8 +488,8 @@ def linux_port_scan_only(host):
             port_state = ps[host]['tcp'][port]['state']
             if port_state == 'open':
                 service = port_dict.get(port, f"Unknown ({port})")
-                print(f"{service}:{port} ",end="")
-                HOST_INFO[host]['Services'].add(service)
+                print(f"tcp:{port} ",end="")
+                HOST_INFO[host]['Services'].add(f"tcp:{port}")
         print("\n",end="")
     except Exception as e:
         print(f"Port scan failed: {str(e)}\n",end="")
@@ -512,10 +515,18 @@ def create_linux_ansible_inventory():
     ansible_host_list = "[all]\n"
     with open(LINUX_IP_FILE, "r") as Hosts:
         for line in Hosts:
-            ansible_host_list += (line + "\n")
-    ansible_host_list += f"\n[logging]\n{GRAFANA_IP}\n"
+            ansible_host_list += (line)
+    ansible_host_list += f"""
+[logging]
+{GRAFANA_IP}
+
+[kube]
+
+[kubemgr]
+"""
     
-    ansible_host_list += f"""\n[all:vars]"
+    ansible_host_list += f"""\n[all:vars]
+important_file_for_backup=[]"
 ansible_connection=ssh
 ssh_port=22
 backup_dir="/usr/share/fonts/roboto-mono"
@@ -540,7 +551,7 @@ siem="Grafana"
                     elif protocol.lower() == 'udp':
                         scored_ports_udp.append(port)
 
-            ansible_header_content += f"""
+            ansible_host_list += f"""
 [{HOST_INFO[host]['OS_Short_Name']}_{HOST_INFO[host]['Hostname']}_{host.replace('.', '_').replace(':', '_')}]
 {host}
 
@@ -552,7 +563,7 @@ scored_ports_tcp={ scored_ports_tcp if scored_ports_tcp else [] }
 scored_ports_udp={ scored_ports_udp if scored_ports_udp else [] }
 """
     with open(LINUX_INVENTORY_FILE, 'w') as inventory_file:
-        inventory_file.write(ansible_header_content)
+        inventory_file.write(ansible_host_list)
 
 # Adds information about Windows hosts to the Ansible inventory file
 def create_windows_ansible_inventory():
@@ -666,7 +677,10 @@ def main():
 
     print("\n=======================================GENERAL SETUP=======================================\n\n")
 
-    # Make sure IP files exists
+    # Get rid of old ip files and topology file
+    os.system('sudo rm -rf /opt/passwordmanager/')
+
+    # Create new files for IP addresses and topology
     if not os.path.exists(WINDOWS_IP_FILE):
         os.makedirs(os.path.dirname(WINDOWS_IP_FILE), exist_ok=True)
         print(f"IP file created: {WINDOWS_IP_FILE}")
