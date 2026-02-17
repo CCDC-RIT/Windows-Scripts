@@ -659,7 +659,7 @@ def find_home_directory():
                     for folder in userdir:
                         if folder.name == "linux-ansible":
                             HOME_DIR_FOUND = True
-                            LINUX_INVENTORY_FILE = f"/home/{homedir.name}/linux-ansible/inventory.ini"
+                            LINUX_INVENTORY_FILE = f"/home/{homedir.name}/linux-ansible/inventory/inventory.ini"
 
     if not HOME_DIR_FOUND:
         print(f"Could not find linux-ansible directory, Inventory saved to {LINUX_INVENTORY_FILE}")
