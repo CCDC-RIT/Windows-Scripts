@@ -1,0 +1,69 @@
+---
+all:
+  children:
+    windows:
+      vars:
+        ansible_connection: winrm
+        ansible_winrm_server_cert_validation: ignore
+        ansible_winrm_port: 5985
+        ansible_winrm_transport: ntlm
+        scripts_path: "C:\\Minecraft.log"
+        scripts_ansible_location: "/Windows-Scripts"
+        password_manager_ip: "" #REPLACE
+        siem_IP: "192.168.X.5" #REPLACE
+        siem_name: "Wazuh"
+        adfs_backup_password: "27ef52577a35467907ca12ed"
+        stabvest_ip: ""
+        winrm_ip: "192.168.X.10" #WHAT LINUX BOX or HOST??
+        ansible_user: "teamXX\\admiral" #REPLACE XX
+        ansible_password: "" #REPLACE
+      children:
+        win_10_x_1_1:
+          vars:
+            scored_services: "ldapio"
+            is_win_server: "true"
+            is_server_core: "false"
+            server_type: "dc"
+          hosts:
+            10.X.1.1:
+        win_10_x_1_2:
+          vars:
+            scored_services: "httpio"
+            is_win_server: "true"
+            is_server_core: "false"
+            server_type: "ca"
+          hosts:
+            10.X.1.2:
+        win_10_x_1_3:
+          vars:
+            scored_services: "winrmio"
+            is_win_server: "false"
+            is_server_core: "false"
+            server_type: "none"
+          hosts:
+            10.X.1.3:
+        win_10_x_1_4:
+          vars:
+            scored_services: "sshio"
+            is_win_server: "false"
+            is_server_core: "false"
+            server_type: "none"
+          hosts:
+            10.X.1.4:
+        win_192_168_X_1:
+          vars:
+            scored_services: "" #REPLACE WIT MSSQLIO later?
+            is_win_server: "true"
+            is_server_core: "false"
+            server_type: "none"
+          hosts:
+            192.168.X.1:
+        win_192_168_X_2:
+          vars:
+            scored_services: "smbio"
+            is_win_server: "true"
+            is_server_core: "false"
+            server_type: "none"
+          hosts:
+            192.168.X.2:
+        
