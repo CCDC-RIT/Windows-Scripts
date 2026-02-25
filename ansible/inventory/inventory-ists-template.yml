@@ -13,7 +13,7 @@ all:
         siem_IP: "192.168.14.5" 
         siem_name: "Wazuh"
         adfs_backup_password: "27ef52577a35467907ca12ed"
-        stabvest_ip: ""
+        stabvest_ip: "192.168.14.5"
         winrm_ip: "192.168.X.10" #WHAT LINUX BOX or HOST??
         ansible_user: "team14\\admiral"
         ansible_password: "" #REPLACE
