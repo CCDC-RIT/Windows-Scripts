@@ -9,7 +9,7 @@ all:
         ansible_winrm_transport: ntlm
         scripts_path: "C:\\Minecraft.log"
         scripts_ansible_location: "/Windows-Scripts"
-        password_manager_ip: "" #REPLACE
+        password_manager_ip: "10.X.1.5" #REPLACE
         siem_IP: "192.168.X.5" #REPLACE
         siem_name: "Wazuh"
         adfs_backup_password: "27ef52577a35467907ca12ed"
@@ -52,7 +52,7 @@ all:
             10.X.1.4:
         win_192_168_X_1:
           vars:
-            scored_services: "" #REPLACE WIT MSSQLIO later?
+            scored_services: "mssqlio"
             is_win_server: "true"
             is_server_core: "false"
             server_type: "none"
