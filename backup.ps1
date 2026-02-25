@@ -60,6 +60,21 @@ if (Get-Service -Name WinRM 2>$null) {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] WinRM configuration backed up" -ForegroundColor white
 }
 
+if (Get-Service -Name "*MSSQL*" 2>$null) {
+    New-Item -Path $backupPath -Name "mssql" -ItemType "directory" | Out-Null
+    $mssqlBackupPath = Join-Path -Path $backupPath -childPath "mssql"
+    Import-Module SqlServer -ErrorAction SilentlyContinue
+    $serverInstance = "localhost"
+    $databases = Get-ChildItem "SQLSERVER:\SQL\$serverInstance\Databases" | Where-Object { $_.Name -notin @("tempdb") }
+    foreach ($db in $databases) {
+        $dbName = $db.Name
+        $backupFile = Join-Path -Path $mssqlBackupPath -ChildPath "$dbName.bak"
+        Backup-SqlDatabase -ServerInstance $serverInstance -Database $dbName -BackupFile $backupFile
+        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Backup completed for database '$dbName'" -ForegroundColor white
+    }
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] MSSQL folder backed up" -ForegroundColor white
+}
+
 # Creates profiles backup folder
 New-Item -Path $backupPath -Name "profiles" -ItemType "directory" | Out-Null
 $profileBackupPath = Join-Path -Path $backupPath -childPath "profiles"
