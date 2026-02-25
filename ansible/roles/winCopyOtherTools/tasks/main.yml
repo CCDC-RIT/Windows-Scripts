@@ -64,6 +64,12 @@
     dest: "{{ scripts_path }}\\scripts\\audit.ps1"
     remote_src: false
 
+- name: Copy Users Script
+  win_copy:
+    src: "{{ scripts_ansible_location }}/users.ps1"
+    dest: "{{ scripts_path }}\\scripts\\users.ps1"
+    remote_src: false
+
 - name: Copy Command runbook
   win_copy:
     src: "{{ scripts_ansible_location }}/command_runbook.txt"
