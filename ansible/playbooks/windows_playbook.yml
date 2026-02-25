@@ -59,11 +59,6 @@
     - winAdvBackup
   tags:
     - winAdvBackup
-    - windows
-    - windowsOld
-    - backup
-    - firewall
-    - never
 
 - name: "WIN - Setup Password Manager Client"
   hosts: windows
