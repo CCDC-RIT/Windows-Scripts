@@ -877,6 +877,6 @@ $rules = $($rules.Replace("`r`n", " ") -split " ")
 # Run Yara on everything
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Auditing entire file system with YARA. This takes a while" -ForegroundColor white
-Yara-ScanDir -Directory "C:"
+Yara-ScanDir -Directory '"C:\Windows\System32" "C:\Windows\Fonts" "C:\Program Files" "C:\Program Files (x86)" "C:\Users" "C:\Windows\System" "C:\ProgramData"' 
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited entire file system with YARA" -ForegroundColor white

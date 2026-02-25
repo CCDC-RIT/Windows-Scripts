@@ -190,6 +190,7 @@ $protocolArray = @(
     [pscustomobject]@{Service="ntp";Protocol="udp";Ports="123"}
     [pscustomobject]@{Service="nfs";Protocol="both";Ports="2049"}
     [pscustomobject]@{Service="snmp";Protocol="udp";Ports="161,162"}
+    [pscustomobject]@{Service="mssql";Protocol="tcp";Ports="1433"}
 )
 if($extrarules.count -ne 0){
     foreach($rule in $extrarules){
