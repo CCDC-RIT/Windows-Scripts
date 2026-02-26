@@ -738,10 +738,6 @@ def main():
         RUN_LINUX = True
 
     print("\n\n======================================SUBNET SCANNING======================================\n\n")
-    print(f"Scanning subnet: {subnet}")
-    if ipv6_subnet is not None:
-        print(f"Scanning IPv6 subnet: {ipv6_subnet}\n")
-
     # Gathers and Formats Credentials
     DOMAIN_CREDENTIALS = args.wc.split(',')
     formatting_domain_creds = []
@@ -763,14 +759,25 @@ def main():
         if formatted_linux_creds:
             cred_str = " | ".join(formatted_linux_creds)
             print(f"Using Linux Credentials | {cred_str}\n")
+    
+    if subnet is not None:
+        subnets = [x.strip() for x in subnet.split(",")]
+        
+        for subnet_select in subnets:
+            print(f"Scanning IPv4 subnet: {subnet_select}")
+            scan_all_hosts(subnet_select)
+            print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {subnet_select}============================\n\n")
+            gather_info(subnet_select)
 
-    scan_all_hosts(subnet)
     if ipv6_subnet is not None:
-        scan_all_hosts(ipv6_subnet)
-    print("\n============================DETECTING OS AND POTENTIAL SERVICES============================\n\n")
-    gather_info(subnet)
-    if ipv6_subnet is not None:
-        gather_info(ipv6_subnet)
+        ipv6_subnets = [x.strip() for x in ipv6_subnet.split(",")]
+        
+        for ipv6_subnet_select in ipv6_subnets:
+            print(f"Scanning IPv6 subnet: {ipv6_subnet_select}\n")
+            scan_all_hosts(ipv6_subnet_select)
+            print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {ipv6_subnet_select}============================\n\n")
+            gather_info(ipv6_subnet_select)
+
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
 
     if RUN_WINDOWS:
