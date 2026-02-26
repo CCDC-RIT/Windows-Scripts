@@ -143,7 +143,9 @@ def gather_info(subnet):
             os_version = HOST_INFO[host]['OS_Version']
             if os_version:
                 os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
-            log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
+
+            if not (host.split("\.")[4] == "254" or host.split("\.")[4] == "255"):
+                log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
 
 def gather_windows_info(host):
     for i in range(len(DOMAIN_CREDENTIALS)):
