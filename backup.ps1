@@ -45,7 +45,7 @@ if (Get-Service -Name CertSvc 2>$null) {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] CA certs, templates, and settings backed up" -ForegroundColor white
 }
 
-if (Get-Service -Name adfssrv 2>$null -and (Get-WindowsFeature ADFS-Federation).InstallState -eq "Installed") {
+if ((Get-Service -Name adfssrv 2>$null) -and ((Get-WindowsFeature ADFS-Federation).InstallState -eq "Installed")) {
     $adfsBackupPath = Join-Path -Path $backupPath -childPath "adfs_backup"
     Import-Module 'C:\Program Files (x86)\ADFS Rapid Recreation Tool\ADFSRapidRecreationTool.dll' 
     Backup-ADFS -StorageType "FileSystem" -StoragePath $adfsBackupPath -EncryptionPassword $adfsPasswd -BackupDKM
@@ -75,11 +75,9 @@ if (Get-Service -Name "*MSSQL*" 2>$null) {
 
     # Get user databases only
     $query = "SELECT name FROM sys.databases WHERE name NOT IN ('tempdb')"
-    $systemDatabases = @('master', 'model', 'msdb')
     $databases = Invoke-Sqlcmd -ServerInstance $serverInstance -Query $query
 
-    $allDatabases = $databases.name + $systemDatabases
-    foreach ($db in $allDatabases) {
+    foreach ($db in $databases) {
 
         $dbName = $db.name
         $backupFile = Join-Path -Path $mssqlBackupPath -ChildPath "$dbName.bak"
