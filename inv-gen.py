@@ -146,7 +146,7 @@ def gather_info(subnet):
 
 
             print(host)
-            if not (host.split(".")[4] == "254" or host.split(".")[4] == "255"):
+            if not (host.split(".")[3] == "254" or host.split(".")[3] == "255"):
                 log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
 
 def gather_windows_info(host):
