@@ -45,7 +45,7 @@ if (Get-Service -Name CertSvc 2>$null) {
     Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] CA certs, templates, and settings backed up" -ForegroundColor white
 }
 
-if (Get-Service -Name adfssrv 2>$null) {
+if (Get-Service -Name adfssrv 2>$null -and (Get-WindowsFeature ADFS-Federation).InstallState -eq "Installed") {
     $adfsBackupPath = Join-Path -Path $backupPath -childPath "adfs_backup"
     Import-Module 'C:\Program Files (x86)\ADFS Rapid Recreation Tool\ADFSRapidRecreationTool.dll' 
     Backup-ADFS -StorageType "FileSystem" -StoragePath $adfsBackupPath -EncryptionPassword $adfsPasswd -BackupDKM
@@ -64,15 +64,36 @@ if (Get-Service -Name "*MSSQL*" 2>$null) {
     New-Item -Path $backupPath -Name "mssql" -ItemType "directory" | Out-Null
     $mssqlBackupPath = Join-Path -Path $backupPath -childPath "mssql"
     Import-Module SqlServer -ErrorAction SilentlyContinue
-    $serverInstance = "localhost"
-    $databases = Get-ChildItem "SQLSERVER:\SQL\$serverInstance\Databases" | Where-Object { $_.Name -notin @("tempdb") }
-    foreach ($db in $databases) {
-        $dbName = $db.Name
-        $backupFile = Join-Path -Path $mssqlBackupPath -ChildPath "$dbName.bak"
-        Backup-SqlDatabase -ServerInstance $serverInstance -Database $dbName -BackupFile $backupFile
-        Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Backup completed for database '$dbName'" -ForegroundColor white
+    $instance = (Get-Service *MSSQL* | Where-Object {$_.Status -eq "Running"} | Select-Object -First 1).Name
+
+    if ($instance -eq "MSSQLSERVER") {
+        $serverInstance = "localhost"
     }
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] MSSQL folder backed up" -ForegroundColor white
+    else {
+        $serverInstance = "localhost\" + ($instance -replace "MSSQL\$", "")
+    }
+
+    # Get user databases only
+    $query = "SELECT name FROM sys.databases WHERE name NOT IN ('tempdb')"
+    $systemDatabases = @('master', 'model', 'msdb')
+    $databases = Invoke-Sqlcmd -ServerInstance $serverInstance -Query $query
+
+    $allDatabases = $databases.name + $systemDatabases
+    foreach ($db in $allDatabases) {
+
+        $dbName = $db.name
+        $backupFile = Join-Path -Path $mssqlBackupPath -ChildPath "$dbName.bak"
+
+        Backup-SqlDatabase `
+            -ServerInstance $serverInstance `
+            -Database $dbName `
+            -BackupFile $backupFile `
+            -Initialize
+
+        Write-Host "[SUCCESS] Backup completed for database '$dbName'" -ForegroundColor Green
+    }
+
+    Write-Host "[SUCCESS] MSSQL folder backed up" -ForegroundColor Green
 }
 
 # Creates profiles backup folder
