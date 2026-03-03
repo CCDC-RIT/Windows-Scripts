@@ -1,0 +1,52 @@
+---
+all:
+  children:
+    windows:
+      vars:
+        ansible_connection: winrm
+        ansible_winrm_server_cert_validation: ignore
+        ansible_winrm_port: 5985
+        ansible_winrm_transport: ntlm
+        scripts_path: "C:\\Minecraft.log"
+        scripts_ansible_location: "/Windows-Scripts"
+        password_manager_ip: "" # REPLACE
+        siem_IP: "" # REPLACE
+        siem_name: "Grafana"
+        adfs_backup_password: "27ef52577a35467907ca12ed"
+        stabvest_ip: "" # REPLACE
+        winrm_ip: "" # REPLACE
+        ansible_user: "" # REPLACE
+        ansible_password: "" # REPLACE
+      children:
+        ad:
+          vars:
+            scored_services: "dnsio, ldapio"
+            is_win_server: "true"
+            is_server_core: "false"
+            server_type: "dc"
+          hosts:
+            1.2.3.4:
+        keycloak:
+          vars:
+            scored_services: "httpio, httpsio"
+            is_win_server: "false"
+            is_server_core: "false"
+            server_type: "none"
+          hosts:
+            1.2.3.4:
+        pos:
+          vars:
+            scored_services: "httpio, httpsio"
+            is_win_server: "false"
+            is_server_core: "false"
+            server_type: "none"
+          hosts:
+            1.2.3.4:
+        dc:
+          vars:
+            scored_services: "dnsio, ldapio"
+            is_win_server: "true"
+            is_server_core: "false"
+            server_type: "dc"
+          hosts:
+            1.2.3.4:
