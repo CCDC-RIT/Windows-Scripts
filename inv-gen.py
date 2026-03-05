@@ -734,7 +734,6 @@ def main():
     parser.add_argument('-windows', action='store_true', help='Choose to only run reconnaissance on Windows hosts')
     parser.add_argument('-linux', action='store_true', help='Choose to only run reconnaissance on Unix hosts')
     parser.add_argument('-siem', required=False, help='Choose the SIEM being used (e.g., Grafana, Graylog, Wazuh)')
-    parser.add_argument('-h', '--help', action='help', help='Show this help message and exit')
     args = parser.parse_args()
 
     print("\n=======================================GENERAL SETUP=======================================\n\n")
