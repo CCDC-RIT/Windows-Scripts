@@ -565,8 +565,19 @@ def create_linux_ansible_inventory():
 [kube]
 
 [kubemgr]
+
+[alpine]
 """
-    
+    with open(LINUX_IP_FILE, "r") as Hosts:
+        for line in Hosts:
+            ip = line.strip()
+            if ip in HOST_INFO and HOST_INFO[ip]['OS'] == 'Linux' and HOST_INFO[ip]['OS_Short_Name'] == 'Alpine':
+                ansible_host_list += (line)
+                
+    ansible_host_list += f"""\n[alpine:vars]
+ansible_become_method=doas
+"""
+                
     # Determine which SIEM IP to use based on SIEM_TYPE
     siem_ip = None
     if SIEM_TYPE == 'grafana':
