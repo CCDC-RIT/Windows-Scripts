@@ -25,11 +25,14 @@ global LINUX_CREDENTIALS
 global SCRIPTS_PATH
 global PASSWORD_MANAGER_IP
 global GRAFANA_IP
+global GRAYLOG_IP
+global WAZUH_IP
 global LOCAL_IP
 global HOME_DIR_FOUND
 global HOST_INFO
 global RUN_WINDOWS
 global RUN_LINUX
+global SIEM_TYPE
 
 # Fixes PyWinRM ipv6 issue (Shoutout illidian80 on github)
 _original_build_url = winrm.Session._build_url
@@ -91,8 +94,12 @@ def scan_all_hosts(subnet):
         else:
             print(f"Unix Host {host} detected:\n",end="")
             HOST_INFO[host]['OS'] = os_version
-            if GRAFANA_IP is None:
+            if GRAFANA_IP is None and SIEM_TYPE == 'grafana':
                 find_grafana(host)
+            elif GRAYLOG_IP is None and SIEM_TYPE == 'graylog':
+                find_graylog(host)
+            elif WAZUH_IP is None and SIEM_TYPE == 'wazuh':
+                find_wazuh(host)
 
         if HOST_INFO[host]['Services'] == set():
             print("No Detected Remoting Services", end="")
@@ -108,12 +115,40 @@ def find_grafana(host):
     global GRAFANA_IP
     nm = nmap.PortScanner()
     if ":" in host:
-        nm.scan(hosts=host, arguments='-6 -p 9000')
+        nm.scan(hosts=host, arguments='-6 -p 3000,9000')
     else:
-        nm.scan(hosts=host, arguments='-p 9000')
-    if nm[host].has_tcp(9000) and nm[host]['tcp'][9000]['state'] == 'open':
-        GRAFANA_IP = host
-        print(f"Set as Grafana IP\n",end="")
+        nm.scan(hosts=host, arguments='-p 3000,9000')
+    grafana_ports = [3000,9000]
+    for port in grafana_ports:
+        if nm[host].has_tcp(port) and nm[host]['tcp'][port]['state'] == 'open':
+            GRAFANA_IP = host
+            print(f"Set as Grafana IP\n",end="")
+            break
+
+def find_graylog(host):
+    global GRAYLOG_IP
+    nm = nmap.PortScanner()
+    if ":" in host:
+        nm.scan(hosts=host, arguments='-6 -p 514,5044,5555,9000,9200,9300,27017')
+    else:
+        nm.scan(hosts=host, arguments='-p 514,5044,5555,9000,9200,9300,27017')
+    graylog_ports = [514,5044,5555,9000,9200,9300,27017]
+    for port in graylog_ports:
+        if nm[host].has_tcp(port) and nm[host]['tcp'][port]['state'] == 'open':
+            GRAYLOG_IP = host
+            print(f"Set as Graylog IP\n",end="")
+            break
+
+def find_wazuh(host):
+    global WAZUH_IP
+    nm = nmap.PortScanner()
+    if ":" in host:
+        nm.scan(hosts=host, arguments='-6 -p 1514')
+    else:
+        nm.scan(hosts=host, arguments='-p 1514')
+    if nm[host].has_tcp(1514) and nm[host]['tcp'][1514]['state'] == 'open':
+        WAZUH_IP = host
+        print(f"Set as Wazuh IP\n",end="")
 
 # Attempts to gather additional information about Windows hosts
 def gather_info(subnet):
@@ -532,6 +567,15 @@ def create_linux_ansible_inventory():
 [kubemgr]
 """
     
+    # Determine which SIEM IP to use based on SIEM_TYPE
+    siem_ip = None
+    if SIEM_TYPE == 'grafana':
+        siem_ip = GRAFANA_IP
+    elif SIEM_TYPE == 'graylog':
+        siem_ip = GRAYLOG_IP
+    elif SIEM_TYPE == 'wazuh':
+        siem_ip = WAZUH_IP
+    
     ansible_host_list += f"""\n[all:vars]
 controller_in_scope_allow_ip=""
 ansible_connection=ssh
@@ -540,11 +584,11 @@ backup_dir="/usr/share/fonts/roboto-mono"
 quarantine="/usr/share/fonts/quar-mono"
 audit_dir="/opt/audit"
 password_manager_ip="{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
-siem_ip="{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
+siem_ip="{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is None else ''}
 stabvest_controller_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
 ansible_control_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''} 
 firewall_logging=true
-siem="Grafana"
+siem="{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if SIEM_TYPE is None else ''}
 """
     for host in HOST_INFO.keys():
         if HOST_INFO[host]['OS'] == 'Linux':
@@ -579,6 +623,15 @@ def create_windows_ansible_inventory():
     print(f"Adding hosts to Ansible inventory file: {WINDOWS_INVENTORY_FILE}\n")
 
     adfs_backup_password = os.urandom(12).hex()
+    
+    # Determine which SIEM IP to use based on SIEM_TYPE
+    siem_ip = None
+    if SIEM_TYPE == 'grafana':
+        siem_ip = GRAFANA_IP
+    elif SIEM_TYPE == 'graylog':
+        siem_ip = GRAYLOG_IP
+    elif SIEM_TYPE == 'wazuh':
+        siem_ip = WAZUH_IP
 
     ansible_header_content = f"""---
 all:
@@ -592,8 +645,8 @@ all:
         scripts_path: "{SCRIPTS_PATH}"
         scripts_ansible_location: "/Windows-Scripts"
         password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
-        siem_IP: "{GRAFANA_IP if GRAFANA_IP is not None else ''}"{' #REPLACE' if GRAFANA_IP is None else ''}
-        siem_name: "Grafana"
+        siem_IP: "{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is None else ''}
+        siem_name: "{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if SIEM_TYPE is None else ''}
         adfs_backup_password: "{adfs_backup_password}"
         stabvest_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
         winrm_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
@@ -680,6 +733,8 @@ def main():
     parser.add_argument('-sp', required=True, help='Scripts Path')
     parser.add_argument('-windows', action='store_true', help='Choose to only run reconnaissance on Windows hosts')
     parser.add_argument('-linux', action='store_true', help='Choose to only run reconnaissance on Unix hosts')
+    parser.add_argument('-siem', required=False, help='Choose the SIEM being used (e.g., Grafana, Graylog, Wazuh)')
+    parser.add_argument('-h', '--help', action='help', help='Show this help message and exit')
     args = parser.parse_args()
 
     print("\n=======================================GENERAL SETUP=======================================\n\n")
@@ -720,15 +775,22 @@ def main():
     global LINUX_CREDENTIALS
     global PASSWORD_MANAGER_IP
     global GRAFANA_IP
+    global GRAYLOG_IP
+    global WAZUH_IP
     global SCRIPTS_PATH
+    global SIEM_TYPE
 
     # Gathers Command Line Arguments
     SCRIPTS_PATH = args.sp
     subnet = args.s4
     ipv6_subnet = args.s6 if args.s6 is not None else None
+    SIEM_TYPE = args.siem.lower() if args.siem is not None else None
 
+    # Initialize Important System IPs to None
     PASSWORD_MANAGER_IP = None
     GRAFANA_IP = None
+    GRAYLOG_IP = None
+    WAZUH_IP = None
 
     global HOST_INFO
     HOST_INFO = {}
