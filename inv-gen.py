@@ -733,7 +733,7 @@ def main():
     parser.add_argument('-sp', required=True, help='Scripts Path')
     parser.add_argument('-windows', action='store_true', help='Choose to only run reconnaissance on Windows hosts')
     parser.add_argument('-linux', action='store_true', help='Choose to only run reconnaissance on Unix hosts')
-    parser.add_argument('-siem', required=False, help='Choose the SIEM being used (e.g., Grafana, Graylog, Wazuh)')
+    parser.add_argument('-siem', required=False, default="Grafana", help='Choose the SIEM being used (e.g., Grafana, Graylog, Wazuh)')
     args = parser.parse_args()
 
     print("\n=======================================GENERAL SETUP=======================================\n\n")
