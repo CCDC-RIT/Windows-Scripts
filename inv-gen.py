@@ -73,6 +73,7 @@ def scan_all_hosts(subnet):
             'Username': None,
             'Password': None,
             'Hostname': None,
+            'Domain': None,
             'Services': set(),
         }
 
@@ -180,7 +181,7 @@ def gather_info(subnet):
                 os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
 
             if not (host.split(".")[3] == "254" or host.split(".")[3] == "255"):
-                log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
+                log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{os_version},\"{services_str}\"")
 
 def gather_windows_info(host):
     for i in range(len(DOMAIN_CREDENTIALS)):
@@ -212,34 +213,43 @@ def gather_linux_info(host):
         username = LINUX_CREDENTIALS[i][0]
         password = LINUX_CREDENTIALS[i][1]
         try:
-            session = paramiko.SSHClient()
-            session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            session.connect(host, username=username, password=password, timeout=10)
             HOST_INFO[host]['Username'] = username
             HOST_INFO[host]['Password'] = password
             print(f"Linux Host {host}:")
             print(f"Credentials Used: {username}:{password}")
+            session = paramiko.SSHClient()
+            session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            session.connect(host, username=username, password=password, timeout=10)
             detect_unix_scored_services(session, host)
             determine_unix_os_version(session, host)
             log(LINUX_IP_FILE, host)
             log(ALL_IP_FILE, host)
             session.close()
         except Exception as e:
+            print(f"Unexpected error connecting to {host}: {str(e)}.. Falling back to port scan")
             linux_port_scan_only(host)
             log(LINUX_IP_FILE, host)
             log(ALL_IP_FILE, host)
-            # TODO: This needs more work, doesn't work well rn
+            continue
 
 # Determines scored service via WinRM
 def detect_windows_scored_services(session, ip_address):
     global HOST_INFO
 
     try:
-        basic_query = session.run_cmd('hostname') #proves connection works
+        # Detects hostname (also serves as a basic command to verify WinRM connection works)
+        basic_query = session.run_cmd('hostname')
         if basic_query.status_code == 0:
             hostname = basic_query.std_out.decode().strip()
             HOST_INFO[ip_address]['Hostname'] = hostname
             print("Detected Potential Scored Services: ",end="")
+        
+        # Detects domain
+        domain_query = session.run_cmd('powershell -c "(Get-WmiObject Win32_ComputerSystem).Domain"')
+        if domain_query.status_code == 0:
+            domain = domain_query.std_out.decode().strip()
+            if domain and domain.lower() != 'workgroup':
+                HOST_INFO[ip_address]['Domain'] = domain
 
         check_ftp = session.run_cmd('sc query ftpsvc')
         if check_ftp.status_code == 0:
@@ -337,7 +347,9 @@ def detect_windows_scored_services(session, ip_address):
                 HOST_INFO[ip_address]['Services'].add('RDP')
         print("\n",end="")
     except Exception as e:
-        print("Failed to create WinRM session\n\n",end="")
+        print("Failed to create WinRM session, attempting port scan\n",end="")
+        windows_port_scan_only(ip_address)
+        print("")
 
 def detect_unix_scored_services(session, ip_address):
     global HOST_INFO
@@ -446,6 +458,16 @@ def determine_unix_os_version(session, ip_address):
         _, stdout, _ = session.exec_command('hostname')
         hostname = stdout.read().decode().strip()
         HOST_INFO[ip_address]['Hostname'] = hostname
+
+        # Get Domain
+        try:
+            _, stdout, _ = session.exec_command('realm list | grep "realm-name" | awk -F\': \' \'{print $2}\'')
+            domain = stdout.read().decode().strip()
+            if domain:
+                HOST_INFO[ip_address]['Domain'] = domain
+        except:
+            pass
+
         session.close()
     except Exception as e:
         print(f"Unexpected SSH Error\n",end="")
@@ -532,7 +554,7 @@ def linux_port_scan_only(host):
                 service = port_dict.get(port, f"Unknown ({port})")
                 print(f"tcp:{port} ",end="")
                 HOST_INFO[host]['Services'].add(f"tcp:{port}")
-        print("\n",end="")
+        print("\n\n",end="")
     except Exception as e:
         print(f"Port scan failed: {str(e)}\n",end="")
 
@@ -778,7 +800,7 @@ def main():
     else:
         print(f"Topology file found: {TOPOLOGY_FILE}")
     with open(TOPOLOGY_FILE, 'w') as topology_file:
-        topology_file.write('subnet,ip,hostname,os,services' + '\n')
+        topology_file.write('subnet,ip,hostname,domain,os,services' + '\n')
 
     # Set global variables
     global DOMAIN_CREDENTIALS
