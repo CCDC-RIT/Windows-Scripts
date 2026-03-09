@@ -12,12 +12,12 @@ import re
 import ipaddress
 
 # Global File Locations
-WINDOWS_INVENTORY_FILE = '/Windows-Scripts/ansible/inventory/inventory.yml'
-LINUX_INVENTORY_FILE = '/home/inventory.ini' # Gets correctly set in main
+WINDOWS_INVENTORY_FILE = 'ansible/inventory/inventory.yml'
+LINUX_INVENTORY_FILE = '../linux-ansible/inventory/inventory.ini'
 WINDOWS_IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
 LINUX_IP_FILE = '/opt/passwordmanager/linux_starting_clients.txt'
 ALL_IP_FILE = '/opt/passwordmanager/starting_clients.txt'
-TOPOLOGY_FILE = '/Windows-Scripts/topology.csv'
+TOPOLOGY_FILE = 'topology.csv'
 
 # Global Variables
 global DOMAIN_CREDENTIALS
@@ -676,7 +676,6 @@ all:
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
         scripts_path: "{SCRIPTS_PATH}"
-        scripts_ansible_location: "/Windows-Scripts"
         password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
         siem_IP: "{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is None else ''}
         siem_name: "{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if SIEM_TYPE is None else ''}
@@ -738,20 +737,6 @@ all:
         """
     with open(WINDOWS_INVENTORY_FILE, 'w') as inventory_file:
         inventory_file.write(ansible_header_content)
-
-def find_home_directory():
-    global LINUX_INVENTORY_FILE
-    global HOME_DIR_FOUND
-
-    HOME_DIR_FOUND = False
-    with os.scandir("/home/") as entries:
-        for homedir in entries:
-            if not homedir.is_file():
-                with os.scandir(f"/home/{homedir.name}/") as userdir:
-                    for folder in userdir:
-                        if folder.name == "linux-ansible":
-                            HOME_DIR_FOUND = True
-                            LINUX_INVENTORY_FILE = f"/home/{homedir.name}/linux-ansible/inventory/inventory.ini"
 
     if not HOME_DIR_FOUND:
         print(f"Could not find linux-ansible directory, Inventory saved to {LINUX_INVENTORY_FILE}")
@@ -883,7 +868,6 @@ def main():
     if RUN_WINDOWS:
         create_windows_ansible_inventory()
     if RUN_LINUX:
-        find_home_directory()
         create_linux_ansible_inventory()
     print("\n==================================RECONNAISSANCE COMPLETE==================================\n\n")
 

@@ -8,7 +8,6 @@ all:
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
         scripts_path: "C:\\Minecraft.log"
-        scripts_ansible_location: "/Windows-Scripts"
         password_manager_ip: "" #REPLACE
         siem_IP: "" #REPLACE
         siem_name: "Grafana"

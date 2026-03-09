@@ -8,7 +8,6 @@ all:
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
         scripts_path: "C:\\Minecraft.log"
-        scripts_ansible_location: "/Windows-Scripts"
         password_manager_ip: "10.14.1.5"
         siem_IP: "192.168.14.5" 
         siem_name: "Wazuh"

@@ -5,25 +5,25 @@
 
 - name: Copy Downloads Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/downloads.ps1"
+    src: "downloads.ps1"
     dest: "{{ scripts_path }}\\downloads.ps1"
     remote_src: false
 
 - name: Copy Datadog IPs Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/datadog_ips.txt"
+    src: "datadog_ips.txt"
     dest: "{{ scripts_path }}\\scripts\\datadog_ips.txt"
     remote_src: false
 
 - name: Copy Firewall Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/firewall.ps1"
+    src: "firewall.ps1"
     dest: "{{ scripts_path }}\\scripts\\firewall.ps1"
     remote_src: false
 
 - name: Copy Backup Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/backup.ps1"
+    src: "backup.ps1"
     dest: "{{ scripts_path }}\\scripts\\backup.ps1"
     remote_src: false
 
@@ -60,7 +60,7 @@
   # ADFS backup support
 - name: "Copy ADFS Rapid Recreation Tool"
   win_copy:
-    src: "{{ scripts_ansible_location }}/ADFSRapidRecreationTool.msi"
+    src: "ADFSRapidRecreationTool.msi"
     dest: "{{ scripts_path }}\\ADFSRapidRecreationTool.msi"
     remote_src: false
   args:

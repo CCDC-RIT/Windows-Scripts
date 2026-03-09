@@ -75,39 +75,44 @@ download() {
 
 # Set up folder for backups
 
-if [ ! -d "/Windows-Scripts/backups" ]; then
-	sudo mkdir /Windows-Scripts/backups
+if [ ! -d "backups" ]; then
+	sudo mkdir backups
+fi
+if [ ! -d "ansible/roles/copy-core-scripts/files" ]; then
+	sudo mkdir ansible/roles/copy-core-scripts/files
+fi
+if [ ! -d "ansible/roles/copy-other/files" ]; then
+	sudo mkdir ansible/roles/copy-other/files
 fi
 
 # Downloading Scripts
 
 # Download script
-# Download script
-download "$(get_download_url "Windows-Scripts" "downloads.ps1")" -O "downloads.ps1"
+download "$(get_download_url "Windows-Scripts" "downloads.ps1")" -O "ansible/roles/copy-core-scripts/files/downloads.ps1"
 # Audit script
-download "$(get_download_url "Windows-Scripts" "audit.ps1")" -O "audit.ps1"
+download "$(get_download_url "Windows-Scripts" "audit.ps1")" -O "ansible/roles/copy-other/files/audit.ps1"
 # Audit policy file
-download "$(get_download_url "Windows-Scripts" "auditpol.csv")" -O "auditpol.csv"
+download "$(get_download_url "Windows-Scripts" "auditpol.csv")" -O "ansible/roles/copy-other/files/auditpol.csv"
 # Backups script
-download "$(get_download_url "Windows-Scripts" "backup.ps1")" -O "backup.ps1"
+download "$(get_download_url "Windows-Scripts" "backup.ps1")" -O "ansible/roles/copy-core-scripts/files/backup.ps1"
 # Command runbook
-download "$(get_download_url "Windows-Scripts" "command_runbook.txt")" -O "command_runbook.txt"
+download "$(get_download_url "Windows-Scripts" "command_runbook.txt")" -O "ansible/roles/copy-other/files/command_runbook.txt"
 # Defender exploit guard settings
-download "$(get_download_url "Windows-Scripts" "defender-exploit-guard-settings.xml")" -O "def-eg-settings.xml"
+download "$(get_download_url "Windows-Scripts" "defender-exploit-guard-settings.xml")" -O "ansible/roles/copy-other/files/def-eg-settings.xml"
 # Firewall script
-download "$(get_download_url "Windows-Scripts" "firewall.ps1")" -O "firewall.ps1"
+download "$(get_download_url "Windows-Scripts" "firewall.ps1")" -O "ansible/roles/copy-core-scripts/files/firewall.ps1"
 # Inventory script
-download "$(get_download_url "Windows-Scripts" "inventory.ps1")" -O "inventory.ps1"
+download "$(get_download_url "Windows-Scripts" "inventory.ps1")" -O "ansible/roles/copy-other/files/inventory.ps1"
 # Logging script
-download "$(get_download_url "Windows-Scripts" "logging.ps1")" -O "logging.ps1"
+download "$(get_download_url "Windows-Scripts" "logging.ps1")" -O "ansible/roles/copy-other/files/logging.ps1"
 # Secure baseline script
-download "$(get_download_url "Windows-Scripts" "secure.ps1")" -O "secure.ps1"
+download "$(get_download_url "Windows-Scripts" "secure.ps1")" -O "ansible/roles/copy-other/files/secure.ps1"
 # Yara response script
-download "$(get_download_url "Logging-Scripts" "yara.bat")" -O "yara.bat"
+download "$(get_download_url "Logging-Scripts" "yara.bat")" -O "ansible/roles/copy-other/files/yara.bat"
 # Powershell profile
-download "$(get_download_url "Windows-Scripts" "profile.ps1")" -O "profile.ps1"
+download "$(get_download_url "Windows-Scripts" "profile.ps1")" -O "ansible/roles/copy-other/files/profile.ps1"
 # HTTPS cert template
-download "$(get_download_url "Windows-Scripts" "certs/cert.inf")" -O "cert.inf"
+download "$(get_download_url "Windows-Scripts" "certs/cert.inf")" -O "ansible/roles/copy-other/files/cert.inf"
 # Windows contain
 download "$(get_download_url "Windows-Scripts" "windows-contain.py")" -O "windows-contain.py"
 
@@ -120,99 +125,100 @@ echo "[SUCCESS] Scripts downloaded."
 
 # Service tooling 
 # DC Tooling
-download "$(get_download_url "Windows-Scripts" "gpos/{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip")" -O "{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
-download "$(get_download_url "Windows-Scripts" "gpos/{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip")" -O "{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"
-download "$(get_download_url "Windows-Scripts" "gpos/{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip")" -O "{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"
+download "$(get_download_url "Windows-Scripts" "gpos/{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip")" -O "ansible/roles/copy-other/files/{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
+download "$(get_download_url "Windows-Scripts" "gpos/{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip")" -O "ansible/roles/copy-other/files/{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"
+download "$(get_download_url "Windows-Scripts" "gpos/{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip")" -O "ansible/roles/copy-other/files/{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"
 
-download "$(get_download_url "Windows-Scripts" "gpos/{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip")" -O "{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"
+download "$(get_download_url "Windows-Scripts" "gpos/{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip")" -O "ansible/roles/copy-other/files/{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"
 
 echo "[SUCCESS] DC tooling downloaded."
 
 # Reset-KrbtgtKeyInteractive script
-download "https://gist.githubusercontent.com/mubix/fd0c89ec021f70023695/raw/02e3f0df13aa86da41f1587ad798ad3c5e7b3711/Reset-KrbtgtKeyInteractive.ps1" -O "Reset-KrbtgtKeyInteractive.ps1"
+download "https://gist.githubusercontent.com/mubix/fd0c89ec021f70023695/raw/02e3f0df13aa86da41f1587ad798ad3c5e7b3711/Reset-KrbtgtKeyInteractive.ps1" -O "ansible/roles/copy-other/files/Reset-KrbtgtKeyInteractive.ps1"
 # Pingcastle
-download "https://github.com/netwrix/pingcastle/releases/download/3.3.0.1/PingCastle_3.3.0.1.zip" -O "pc.zip"
+download "https://github.com/netwrix/pingcastle/releases/download/3.3.0.1/PingCastle_3.3.0.1.zip" -O "ansible/roles/copy-other/files/pc.zip"
 # Adalanche
-download "https://github.com/lkarlslund/Adalanche/releases/download/v2024.1.11/adalanche-windows-x64-v2024.1.11.exe" -O "adalanche.exe"
+download "https://github.com/lkarlslund/Adalanche/releases/download/v2024.1.11/adalanche-windows-x64-v2024.1.11.exe" -O "ansible/roles/copy-other/files/adalanche.exe"
 # Member server/client tools
 # Local policy file
-download "$(get_download_url "Windows-Scripts" "gpos/localpolicy.PolicyRules")" -O "localpolicy.PolicyRules"
+download "$(get_download_url "Windows-Scripts" "gpos/localpolicy.PolicyRules")" -O "ansible/roles/copy-other/files/localpolicy.PolicyRules"
 # LGPO tool
-download "https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip" -O "lg.zip" --no-check-certificate
+download "https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip" -O "ansible/roles/copy-other/files/lg.zip" --no-check-certificate
 
 echo "[SUCCESS] Client tools downloaded."
 
 # Server Core
-download "https://github.com/derceg/explorerplusplus/releases/download/version-1.4.0-beta-2/explorerpp_x64.zip" -O "epp.zip"
+download "https://github.com/derceg/explorerplusplus/releases/download/version-1.4.0-beta-2/explorerpp_x64.zip" -O "ansible/roles/copy-other/files/epp.zip"
 
-download "https://netresec.com/?download=NetworkMiner" -O "nm.zip"
+download "https://netresec.com/?download=NetworkMiner" -O "ansible/roles/copy-other/files/nm.zip"
 
 echo "[SUCCESS] Server Core tools downloaded."
 
 # Third-party tooling for every system
 
 # Everything search tool
-download "https://www.voidtools.com/Everything-1.4.1.1024.x64.zip" -O "everything.zip"
-download "https://www.voidtools.com/ES-1.1.0.27.x64.zip" -O "es.zip"
+download "https://www.voidtools.com/Everything-1.4.1.1024.x64.zip" -O "ansible/roles/copy-other/files/everything.zip"
+download "https://www.voidtools.com/ES-1.1.0.27.x64.zip" -O "ansible/roles/copy-other/files/es.zip"
 
 # BCU
-download "https://github.com/Klocman/Bulk-Crap-Uninstaller/releases/download/v5.7/BCUninstaller_5.7_portable.zip" -O "bcu.zip"
+download "https://github.com/Klocman/Bulk-Crap-Uninstaller/releases/download/v5.7/BCUninstaller_5.7_portable.zip" -O "ansible/roles/copy-other/files/bcu.zip"
 
 # Password Manager
-download "https://github.com/CCDC-RIT/Password-Manager/raw/refs/heads/main/client/windows.exe" -O "CCDC-Password-Manager.exe"
+download "https://github.com/CCDC-RIT/Password-Manager/raw/refs/heads/main/client/windows.exe" -O "ansible/roles/copy-other/files/CCDC-Password-Manager.exe"
 
 # Get-InjectedThread and Stop-Thread
-download "https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1" -O "Get-InjectedThread.ps1"
-download "https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Stop-Thread.ps1" -O "Stop-Thread.ps1"
+download "https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1" -O "ansible/roles/copy-other/files/Get-InjectedThread.ps1"
+download "https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Stop-Thread.ps1" -O "ansible/roles/copy-other/files/Stop-Thread.ps1"
 # PrivEsc checker script
-download "https://github.com/itm4n/PrivescCheck/releases/latest/download/PrivescCheck.ps1" -O "PrivescCheck.ps1"
+download "https://github.com/itm4n/PrivescCheck/releases/latest/download/PrivescCheck.ps1" -O "ansible/roles/copy-other/files/PrivescCheck.ps1"
 # chainsaw + dependency library
-download "https://github.com/WithSecureLabs/chainsaw/releases/latest/download/chainsaw_all_platforms+rules.zip" -O "cs.zip"
-download "https://aka.ms/vs/17/release/vc_redist.x64.exe" -O "vc_redist.64.exe"
+download "https://github.com/WithSecureLabs/chainsaw/releases/latest/download/chainsaw_all_platforms+rules.zip" -O "ansible/roles/copy-other/files/cs.zip"
+download "https://aka.ms/vs/17/release/vc_redist.x64.exe" -O "ansible/roles/copy-other/files/vc_redist.64.exe"
 # hollows hunter
-download "https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip" -O "hh64.zip"
+download "https://github.com/hasherezade/hollows_hunter/releases/download/v0.3.9/hollows_hunter64.zip" -O "ansible/roles/copy-other/files/hh64.zip"
 # Basic Sysmon conf file
-download "https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml" -O "sysmon.xml"
+download "https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml" -O "ansible/roles/copy-other/files/sysmon.xml"
 # Windows Firewall Control + .NET 4.8
-download "https://www.binisoft.org/download/wfc6setup.exe" -O "wfcsetup.exe"
-download "https://go.microsoft.com/fwlink/?LinkId=2088631" -O "net_installer.exe" --no-check-certificate
+download "https://www.binisoft.org/download/wfc6setup.exe" -O "ansible/roles/copy-other/files/wfcsetup.exe"
+download "https://go.microsoft.com/fwlink/?LinkId=2088631" -O "ansible/roles/copy-other/files/net_installer.exe" --no-check-certificate
 # Wireshark
-download "https://1.na.dl.wireshark.org/win64/Wireshark-latest-x64.exe" -O "wsinstall.exe"
+download "https://1.na.dl.wireshark.org/win64/Wireshark-latest-x64.exe" -O "ansible/roles/copy-other/files/wsinstall.exe"
 echo "[SUCCESS] Threat-hunting and analysis tools downloaded."
 
 # Sysinternals
-download "https://download.sysinternals.com/files/Autoruns.zip" -O "ar.zip"
-download "https://download.sysinternals.com/files/ListDlls.zip" -O "dll.zip"
-download "https://download.sysinternals.com/files/ProcessExplorer.zip" -O "pe.zip"
-download "https://download.sysinternals.com/files/ProcessMonitor.zip" -O "pm.zip"
-download "https://download.sysinternals.com/files/Sigcheck.zip" -O "sc.zip"
-download "https://download.sysinternals.com/files/TCPView.zip" -O "tv.zip"
-download "https://download.sysinternals.com/files/Streams.zip" -O "stm.zip"
-download "https://download.sysinternals.com/files/Sysmon.zip" -O "sm.zip"
-download "https://download.sysinternals.com/files/AccessChk.zip" -O "ac.zip"
-download "https://download.sysinternals.com/files/Strings.zip" -O "str.zip"
-download "https://download.sysinternals.com/files/PsExec.zip" -O "ps.zip"
+download "https://download.sysinternals.com/files/Autoruns.zip" -O "ansible/roles/copy-other/files/ar.zip"
+download "https://download.sysinternals.com/files/ListDlls.zip" -O "ansible/roles/copy-other/files/dll.zip"
+download "https://download.sysinternals.com/files/ProcessExplorer.zip" -O "ansible/roles/copy-other/files/pe.zip"
+download "https://download.sysinternals.com/files/ProcessMonitor.zip" -O "ansible/roles/copy-other/files/pm.zip"
+download "https://download.sysinternals.com/files/Sigcheck.zip" -O "ansible/roles/copy-other/files/sc.zip"
+download "https://download.sysinternals.com/files/TCPView.zip" -O "ansible/roles/copy-other/files/tv.zip"
+download "https://download.sysinternals.com/files/Streams.zip" -O "ansible/roles/copy-other/files/stm.zip"
+download "https://download.sysinternals.com/files/Sysmon.zip" -O "ansible/roles/copy-other/files/sm.zip"
+download "https://download.sysinternals.com/files/AccessChk.zip" -O "ansible/roles/copy-other/files/ac.zip"
+download "https://download.sysinternals.com/files/Strings.zip" -O "ansible/roles/copy-other/files/str.zip"
+download "https://download.sysinternals.com/files/PsExec.zip" -O "ansible/roles/copy-other/files/ps.zip"
 
 echo "[SUCCESS] Sysinternals downloaded."
 
 # adfs rapid recreation tool
-download "https://download.microsoft.com/download/6/8/a/68af3cd3-1337-4389-967c-a6751182f286/ADFSRapidRecreationTool.msi" --no-check-certificate -O "ADFSRapidRecreationTool.msi"
+download "https://download.microsoft.com/download/6/8/a/68af3cd3-1337-4389-967c-a6751182f286/ADFSRapidRecreationTool.msi" --no-check-certificate -O "ansible/roles/copy-other/files/ADFSRapidRecreationTool.msi"
 echo "[SUCCESS] ADFS Rapid Recreation Tool downloaded."
 # yara
-download "https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip" -O "yara.zip"
-download "$(get_download_url "YaraRules" "Windows.zip")" -O "Windows.zip"
-download "$(get_download_url "YaraRules" "Multi.zip")" -O "Multi.zip"
-download "https://github.com/YARAHQ/yara-forge/releases/latest/download/yara-forge-rules-full.zip" -O "yarahq.zip"
+download "https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip" -O "ansible/roles/copy-other/files/yara.zip"
+download "$(get_download_url "YaraRules" "Windows.zip")" -O "ansible/roles/copy-other/files/Windows.zip"
+download "$(get_download_url "YaraRules" "Multi.zip")" -O "ansible/roles/copy-other/files/Multi.zip"
+download "https://github.com/YARAHQ/yara-forge/releases/latest/download/yara-forge-rules-full.zip" -O "ansible/roles/copy-other/files/yarahq.zip"
 echo "[SUCCESS] Yara and Yara rules downloaded."
 # Notepad++
-download "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.7.1/npp.8.7.1.Installer.x64.exe" -O "notepadpp_installer.exe"
+download "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.7.1/npp.8.7.1.Installer.x64.exe" -O "ansible/roles/copy-other/files/notepadpp_installer.exe"
 # googoo chrome
-download "http://dl.google.com/chrome/install/375.126/chrome_installer.exe" -O "chromeinstall.exe"
+download "http://dl.google.com/chrome/install/375.126/chrome_installer.exe" -O "ansible/roles/copy-other/files/chromeinstall.exe"
 # Antipwny (Meterpreter Detection)
-download "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/AntiPwny.exe" -O "AntiPwny.exe"
-download "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll" -O "ObjectListView.dll"
+download "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/AntiPwny.exe" -O "ansible/roles/copy-other/files/AntiPwny.exe"
+download "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/ObjectListView.dll" -O "ansible/roles/copy-other/files/ObjectListView.dll"
 # Datadog ip addresses
-download "https://ip-ranges.us5.datadoghq.com/" -O "datadog_ips.txt"
+download "https://ip-ranges.us5.datadoghq.com/" -O "ansible/roles/copy-core-scripts/files/datadog_ips.txt"
 # Tabula Download
-download "https://raw.githubusercontent.com/CCDC-RIT/stabvest-public/refs/heads/main/tabula/tabula.py" -O "tabula.py"
+download "https://raw.githubusercontent.com/CCDC-RIT/stabvest-public/refs/heads/main/tabula/tabula.py" -O "ansible/roles/copy-other/files/tabula.py"
+
 echo "[SUCCESS] All tools downloaded"

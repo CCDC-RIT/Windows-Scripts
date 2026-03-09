@@ -9,7 +9,7 @@
 
 - name: Copy Wireshark Installer
   win_copy:
-    src: "{{ scripts_ansible_location }}/wsinstall.exe"
+    src: "wsinstall.exe"
     dest: "{{ scripts_path }}\\installers\\wsinstall.exe"
 
 - name: Create tools Directory
@@ -60,37 +60,31 @@
 
 - name: Copy Audit Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/audit.ps1"
+    src: "audit.ps1"
     dest: "{{ scripts_path }}\\scripts\\audit.ps1"
-    remote_src: false
-
-- name: Copy Users Script
-  win_copy:
-    src: "{{ scripts_ansible_location }}/users.ps1"
-    dest: "{{ scripts_path }}\\scripts\\users.ps1"
     remote_src: false
 
 - name: Copy Command runbook
   win_copy:
-    src: "{{ scripts_ansible_location }}/command_runbook.txt"
+    src: "command_runbook.txt"
     dest: "{{ scripts_path }}\\scripts\\command_runbook.txt"
     remote_src: false
 
 - name: Copy Injected thread Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/Get-InjectedThread.ps1"
+    src: "Get-InjectedThread.ps1"
     dest: "{{ scripts_path }}\\scripts\\Get-InjectedThread.ps1"
     remote_src: false
 
 - name: Copy Inventory Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/inventory.ps1"
+    src: "inventory.ps1"
     dest: "{{ scripts_path }}\\scripts\\inventory.ps1"
     remote_src: false
 
 - name: Copy Logging Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/logging.ps1"
+    src: "logging.ps1"
     dest: "{{ scripts_path }}\\scripts\\logging.ps1"
     remote_src: false
 
@@ -103,25 +97,25 @@
 
 - name: Copy PrivescCheck Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/PrivescCheck.ps1"
+    src: "PrivescCheck.ps1"
     dest: "{{ scripts_path }}\\scripts\\PrivescCheck.ps1"
     remote_src: false
 
 - name: Copy Secure Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/secure.ps1"
+    src: "secure.ps1"
     dest: "{{ scripts_path }}\\scripts\\secure.ps1"
     remote_src: false
 
 - name: Copy Yara Script
   win_copy:
-    src: "{{ scripts_ansible_location }}/yara.bat"
+    src: "yara.bat"
     dest: "{{ scripts_path }}\\scripts\\yara.bat"
     remote_src: false
 
 - name: Copy Defender Exploit Guard Settings
   win_copy:
-    src: "{{ scripts_ansible_location }}/def-eg-settings.xml"
+    src: "def-eg-settings.xml"
     dest: "{{ scripts_path }}\\scripts\\conf\\def-eg-settings.xml"
     remote_src: false
 
@@ -142,7 +136,7 @@
 
 - name: Copy Powershell Profiles
   win_copy:
-    src: "{{ scripts_ansible_location }}/profile.ps1"
+    src: "profile.ps1"
     dest: "{{ item }}"
     remote_src: false
   loop:
@@ -151,7 +145,7 @@
 
 - name: Copy Cert.inf template
   win_copy:
-    src: "{{ scripts_ansible_location }}/certs/cert.inf"
+    src: "certs/cert.inf"
     dest: "{{ scripts_path }}\\scripts\\cert.inf"
     remote_src: false
 
@@ -171,25 +165,25 @@
 
 - name: Copy Group Policies to Domain Controller
   win_copy:
-    src: "{{ scripts_ansible_location }}/{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
+    src: "{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
     dest: "{{ scripts_path }}\\scripts\\conf\\{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
   when: server_type == "dc"
 
 - name: Copy Group Policies to Domain Controller
   win_copy:
-    src: "{{ scripts_ansible_location }}/{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"
+    src: "{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"
     dest: "{{ scripts_path }}\\scripts\\conf\\{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"
   when: server_type == "dc"
 
 - name: Copy Group Policies to Domain Controller
   win_copy:
-    src: "{{ scripts_ansible_location }}/{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"
+    src: "{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"
     dest: "{{ scripts_path }}\\scripts\\conf\\{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"
   when: server_type == "dc"
 
 - name: Copy Group Policies to Domain Controller
   win_copy:
-    src: "{{ scripts_ansible_location }}/{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"
+    src: "{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"
     dest: "{{ scripts_path }}\\scripts\\conf\\{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"
   when: server_type == "dc"
 
@@ -197,7 +191,7 @@
 
 - name: Copy krbtgt reset script to Domain Controller
   win_copy:
-    src: "{{ scripts_ansible_location }}/Reset-KrbtgtKeyInteractive.ps1"
+    src: "Reset-KrbtgtKeyInteractive.ps1"
     dest: "{{ scripts_path }}\\scripts\\Reset-KrbtgtKeyInteractive.ps1"
   when: server_type == "dc"
 
@@ -231,13 +225,13 @@
 
 - name: Copy Local GP Policy File to Non DC's
   win_copy:
-    src: "{{ scripts_ansible_location }}/localpolicy.PolicyRules"
+    src: "localpolicy.PolicyRules"
     dest: "{{ scripts_path }}\\scripts\\conf\\localpolicy.PolicyRules"
   when: server_type != "dc"
 
 - name: Copy LGPO tool to Non DC's
   win_copy:
-    src: "{{ scripts_ansible_location }}/lg.zip"
+    src: "lg.zip"
     dest: "{{ scripts_path }}\\lg.zip"
   when: server_type != "dc"
 
@@ -251,7 +245,7 @@
 
 - name: Copy Explorer++ to Server Core Machines
   win_copy:
-    src: "{{ scripts_ansible_location }}/epp.zip"
+    src: "epp.zip"
     dest: "{{ scripts_path }}\\epp.zip"
   when: is_server_core == "true"
 
@@ -265,17 +259,17 @@
 
 - name: Copy Sysmon Conf file
   win_copy:
-    src: "{{ scripts_ansible_location }}/sysmon.xml"
+    src: "sysmon.xml"
     dest: "{{ scripts_path }}\\scripts\\conf\\sysmon.xml"
 
 - name: Copy WFC installer
   win_copy:
-    src: "{{ scripts_ansible_location }}/wfcsetup.exe"
+    src: "wfcsetup.exe"
     dest: "{{ scripts_path }}\\installers\\wfcsetup.exe"
 
 - name: Copy .net 4.8
   win_copy:
-    src: "{{ scripts_ansible_location }}/net_installer.exe"
+    src: "net_installer.exe"
     dest: "{{ scripts_path }}\\installers\\net_installer.exe"
 
 - name: Silently Install .net 4.8
@@ -289,79 +283,79 @@
 
 - name: Copy Autoruns
   win_copy:
-    src: "{{ scripts_ansible_location }}/ar.zip"
+    src: "ar.zip"
     dest: "{{ scripts_path }}\\ar.zip"
 
 - name: Copy PSExec
   win_copy:
-    src: "{{ scripts_ansible_location }}/ps.zip"
+    src: "ps.zip"
     dest: "{{ scripts_path }}\\ps.zip"
 
 - name: Copy DLL Check
   win_copy:
-    src: "{{ scripts_ansible_location }}/dll.zip"
+    src: "dll.zip"
     dest: "{{ scripts_path }}\\dll.zip"
 
 - name: Copy Process Explorer
   win_copy:
-    src: "{{ scripts_ansible_location }}/pe.zip"
+    src: "pe.zip"
     dest: "{{ scripts_path }}\\pe.zip"
 
 - name: Copy Process Monitor
   win_copy:
-    src: "{{ scripts_ansible_location }}/pm.zip"
+    src: "pm.zip"
     dest: "{{ scripts_path }}\\pm.zip"
 
 - name: Copy Sig Check
   win_copy:
-    src: "{{ scripts_ansible_location }}/sc.zip"
+    src: "sc.zip"
     dest: "{{ scripts_path }}\\sc.zip"
 
 - name: Copy TCP View
   win_copy:
-    src: "{{ scripts_ansible_location }}/tv.zip"
+    src: "tv.zip"
     dest: "{{ scripts_path }}\\tv.zip"
 
 - name: Copy Streams
   win_copy:
-    src: "{{ scripts_ansible_location }}/stm.zip"
+    src: "stm.zip"
     dest: "{{ scripts_path }}\\stm.zip"
 
 - name: Copy Sysmon
   win_copy:
-    src: "{{ scripts_ansible_location }}/sm.zip"
+    src: "sm.zip"
     dest: "{{ scripts_path }}\\sm.zip"
 
 - name: Copy Access Check
   win_copy:
-    src: "{{ scripts_ansible_location }}/ac.zip"
+    src: "ac.zip"
     dest: "{{ scripts_path }}\\ac.zip"
 
 - name: Copy Strings
   win_copy:
-    src: "{{ scripts_ansible_location }}/str.zip"
+    src: "str.zip"
     dest: "{{ scripts_path }}\\str.zip"
 
 # Copy Yara and Yara Rules
 
 - name: Copy Yara
   win_copy:
-    src: "{{ scripts_ansible_location }}/yara.zip"
+    src: "yara.zip"
     dest: "{{ scripts_path }}\\yara.zip"
 
 - name: Copy Windows Yara Rules
   win_copy:
-    src: "{{ scripts_ansible_location }}/Windows.zip"
+    src: "Windows.zip"
     dest: "{{ scripts_path }}\\Windows.zip"
 
 - name: Copy Multi Yara Rules
   win_copy:
-    src: "{{ scripts_ansible_location }}/Multi.zip"
+    src: "Multi.zip"
     dest: "{{ scripts_path }}\\Multi.zip"
 
 - name: Copy YaraHQ Rules
   win_copy:
-    src: "{{ scripts_ansible_location }}/yarahq.zip"
+    src: "yarahq.zip"
     dest: "{{ scripts_path }}\\yarahq.zip"
 
 # Extracting Sysinternals Tools and Yara
@@ -524,24 +518,24 @@
 
 - name: Copy Pingcastle to Domain Controller
   win_copy:
-    src: "{{ scripts_ansible_location }}/pc.zip"
+    src: "pc.zip"
     dest: "{{ scripts_path }}\\pc.zip"
   when: server_type == "dc"
 
 - name: Copy Adalanche to Domain Controller
   win_copy:
-    src: "{{ scripts_ansible_location }}/adalanche.exe"
+    src: "adalanche.exe"
     dest: "{{ scripts_path }}\\tools\\adalanche.exe"
   when: server_type == "dc"
 
 - name: Copy Chainsaw
   win_copy:
-    src: "{{ scripts_ansible_location }}/cs.zip"
+    src: "cs.zip"
     dest: "{{ scripts_path }}\\cs.zip"
 
 - name: Copy Chainsaw Dependency Library
   win_copy:
-    src: "{{ scripts_ansible_location }}/vc_redist.64.exe"
+    src: "vc_redist.64.exe"
     dest: "{{ scripts_path }}\\installers\\vc_redist.64.exe"
 
 - name: Silently Installing Chainsaw Dependency Library
@@ -553,12 +547,12 @@
 
 - name: Copy Hollows Hunter
   win_copy:
-    src: "{{ scripts_ansible_location }}/hh64.zip"
+    src: "hh64.zip"
     dest: "{{ scripts_path }}\\hh64.zip"
 
 - name: Copy Notepad++
   win_copy:
-    src: "{{ scripts_ansible_location }}/notepadpp_installer.exe"
+    src: "notepadpp_installer.exe"
     dest: "{{ scripts_path }}\\installers\\notepadpp_installer.exe"
 
 - name: Silently Install Notepad++
@@ -579,7 +573,7 @@
 
 - name: Copy Google Chrome
   win_copy:
-    src: "{{ scripts_ansible_location }}/chromeinstall.exe"
+    src: "chromeinstall.exe"
     dest: "{{ scripts_path }}\\installers\\chromeinstall.exe"
   when: browser_check.stdout_lines | length == 0
 
@@ -593,27 +587,27 @@
 
 - name: Copy Everything search tool
   win_copy:
-    src: "{{ scripts_ansible_location }}/everything.zip"
+    src: "everything.zip"
     dest: "{{ scripts_path }}\\everything.zip"
 
 - name: Copy Everything CLI
   win_copy:
-    src: "{{ scripts_ansible_location }}/es.zip"
+    src: "es.zip"
     dest: "{{ scripts_path }}\\es.zip"
 
 - name: BCU
   win_copy:
-    src: "{{ scripts_ansible_location }}/bcu.zip"
+    src: "bcu.zip"
     dest: "{{ scripts_path }}\\bcu.zip"
 
 - name: Copy Antipwny
   win_copy:
-    src: "{{ scripts_ansible_location }}/AntiPwny.exe"
+    src: "AntiPwny.exe"
     dest: "{{ scripts_path }}\\tools\\Antipwny"
 
 - name: Copy Antipwny DLL
   win_copy:
-    src: "{{ scripts_ansible_location }}/ObjectListView.dll"
+    src: "ObjectListView.dll"
     dest: "{{ scripts_path }}\\tools\\Antipwny"
 
 #  Extract Other Tools
