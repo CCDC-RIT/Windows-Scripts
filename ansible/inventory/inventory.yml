@@ -7,32 +7,52 @@ all:
         ansible_winrm_server_cert_validation: ignore
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
-        scripts_path: "C:\\Minecraft.log"
-        password_manager_ip: "" #REPLACE
-        siem_IP: "" #REPLACE
+        scripts_path: "C:\\Perflogs\\roblox"
+        password_manager_ip: "172.16.1.11"
+        siem_IP: "172.16.1.11"
         siem_name: "Grafana"
-        adfs_backup_password: "27ef52577a35467907ca12ed"
-        stabvest_ip: "192.168.1.10"
-        winrm_ip: "192.168.1.10"
+        adfs_backup_password: "76ca53d12642bf8c5fcae66c"
+        stabvest_ip: "192.168.1.51"
+        winrm_ip: "192.168.1.51"
       children:
-        win_192_168_1_1:
+        win_172_16_1_20:
           vars:
-            ansible_user: "da1"
+            ansible_user: "Administrator"
             ansible_password: "Password-123456"
-            scored_services: "dnsio, httpio, ldapio"
+            scored_services: "httpsio"
             is_win_server: "true"
+            is_server_core: "false"
+            server_type: "adfs"
+          hosts:
+            172.16.1.20:
+        win_172_16_1_5:
+          vars:
+            ansible_user: " #REPLACE"
+            ansible_password: " #REPLACE"
+            scored_services: "ldapio"
+            is_win_server: "false"
             is_server_core: "false"
             server_type: "dc"
           hosts:
-            192.168.1.1:
-        win_192_168_1_6:
+            172.16.1.5:
+        win_10_1_1_20:
           vars:
-            ansible_user: "da1"
-            ansible_password: "Password-123456"
-            scored_services: "httpio"
+            ansible_user: " #REPLACE"
+            ansible_password: " #REPLACE"
+            scored_services: "none"
             is_win_server: "false"
             is_server_core: "false"
             server_type: "none"
           hosts:
-            192.168.1.6:
+            10.1.1.20:
+        win_10_1_1_5:
+          vars:
+            ansible_user: "Administrator"
+            ansible_password: "Password-123456"
+            scored_services: "httpsio"
+            is_win_server: "true"
+            is_server_core: "false"
+            server_type: "adfs"
+          hosts:
+            10.1.1.5:
         

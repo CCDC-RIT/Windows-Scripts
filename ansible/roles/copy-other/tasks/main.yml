@@ -107,12 +107,6 @@
     dest: "{{ scripts_path }}\\scripts\\secure.ps1"
     remote_src: false
 
-- name: Copy Yara Script
-  win_copy:
-    src: "yara.bat"
-    dest: "{{ scripts_path }}\\scripts\\yara.bat"
-    remote_src: false
-
 - name: Copy Defender Exploit Guard Settings
   win_copy:
     src: "def-eg-settings.xml"

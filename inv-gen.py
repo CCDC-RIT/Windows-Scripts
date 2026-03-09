@@ -19,6 +19,7 @@ ALL_IP_FILE = '../linux-ansible/roles/password-manager-server/files/starting_cli
 TOPOLOGY_FILE = 'topology.csv'
 
 # Global Variables
+global LOCAL_USERNAME
 global DOMAIN_CREDENTIALS
 global LINUX_CREDENTIALS
 global SCRIPTS_PATH
@@ -27,7 +28,6 @@ global GRAFANA_IP
 global GRAYLOG_IP
 global WAZUH_IP
 global LOCAL_IP
-global HOME_DIR_FOUND
 global HOST_INFO
 global RUN_WINDOWS
 global RUN_LINUX
@@ -510,7 +510,7 @@ def windows_port_scan_only(host):
                 service = port_dict.get(port, f"Unknown ({port})")
                 print(f"{service}:{port} ",end="")
                 HOST_INFO[host]['Services'].add(service)
-        print("\n",end="")
+        print("\n")
     except Exception as e:
         print(f"Port scan failed: {str(e)}\n",end="")
 
@@ -551,7 +551,7 @@ def linux_port_scan_only(host):
                 service = port_dict.get(port, f"Unknown ({port})")
                 print(f"tcp:{port} ",end="")
                 HOST_INFO[host]['Services'].add(f"tcp:{port}")
-        print("\n\n",end="")
+        print("\n")
     except Exception as e:
         print(f"Port scan failed: {str(e)}\n",end="")
 
@@ -733,9 +733,6 @@ all:
     with open(WINDOWS_INVENTORY_FILE, 'w') as inventory_file:
         inventory_file.write(ansible_header_content)
 
-    if not HOME_DIR_FOUND:
-        print(f"Could not find linux-ansible directory, Inventory saved to {LINUX_INVENTORY_FILE}")
-
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Windows Reconnaissance Script to Fill Out Ansible Inventory')
@@ -749,34 +746,8 @@ def main():
     parser.add_argument('-siem', required=False, default="Grafana", help='Choose the SIEM being used (e.g., Grafana, Graylog, Wazuh)')
     args = parser.parse_args()
 
-    print("\n=======================================GENERAL SETUP=======================================\n\n")
-
-    # Get rid of old ip files and topology file
-    os.system('sudo rm -rf /opt/passwordmanager/')
-
-    # Create new files for IP addresses and topology
-    if not os.path.exists(WINDOWS_IP_FILE):
-        os.makedirs(os.path.dirname(WINDOWS_IP_FILE), exist_ok=True)
-        print(f"IP file created: {WINDOWS_IP_FILE}")
-    else:
-        print(f"IP file found: {WINDOWS_IP_FILE}")
-
-    if not os.path.exists(ALL_IP_FILE):
-        os.makedirs(os.path.dirname(ALL_IP_FILE), exist_ok=True)
-        print(f"IP file created: {ALL_IP_FILE}")
-    else:
-        print(f"IP file found: {ALL_IP_FILE}")
-
-    # Make sure Topology CSV file exists
-    if not os.path.exists(TOPOLOGY_FILE):
-        os.makedirs(os.path.dirname(TOPOLOGY_FILE), exist_ok=True)
-        print(f"Topology file created: {TOPOLOGY_FILE}")
-    else:
-        print(f"Topology file found: {TOPOLOGY_FILE}")
-    with open(TOPOLOGY_FILE, 'w') as topology_file:
-        topology_file.write('subnet,ip,hostname,domain,os,services' + '\n')
-
     # Set global variables
+    global LOCAL_USERNAME
     global DOMAIN_CREDENTIALS
     global LINUX_CREDENTIALS
     global PASSWORD_MANAGER_IP
@@ -811,6 +782,41 @@ def main():
         RUN_WINDOWS = True
         RUN_LINUX = True
 
+    
+    print("\n=======================================GENERAL SETUP=======================================\n\n")
+    
+    # Setting up files for IP addresses and topology
+
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    LOCAL_USERNAME = dir_path.split("/")[2]
+
+    # Windows IP file for containment script
+    if os.path.exists(WINDOWS_IP_FILE):
+        os.system(f'rm {WINDOWS_IP_FILE}')
+        
+    os.system(f'touch {WINDOWS_IP_FILE}')
+    os.system(f'chown {LOCAL_USERNAME}:{LOCAL_USERNAME} {WINDOWS_IP_FILE}')
+    print(f"IP file created: {WINDOWS_IP_FILE}")
+
+    # All IP file for password manager
+    if os.path.exists(ALL_IP_FILE):
+        os.system(f'rm {ALL_IP_FILE}')
+    
+    os.system(f'touch {ALL_IP_FILE}')
+    os.system(f'chown {LOCAL_USERNAME}:{LOCAL_USERNAME} {ALL_IP_FILE}')
+    print(f"IP file created: {ALL_IP_FILE}")
+
+    # Topology CSV file for tabula
+    if os.path.exists(TOPOLOGY_FILE):
+        os.system(f'rm {TOPOLOGY_FILE}')
+    
+    os.system(f'touch {TOPOLOGY_FILE}')
+    os.system(f'chown {LOCAL_USERNAME}:{LOCAL_USERNAME} {TOPOLOGY_FILE}')
+    print(f"Topology file created: {TOPOLOGY_FILE}")
+    
+    with open(TOPOLOGY_FILE, 'w') as topology_file:
+        topology_file.write('subnet,ip,hostname,domain,os,services' + '\n')
+
     print("\n\n======================================SUBNET SCANNING======================================\n\n")
     # Gathers and Formats Credentials
     DOMAIN_CREDENTIALS = args.wc.split(',')
@@ -833,12 +839,12 @@ def main():
         if formatted_linux_creds:
             cred_str = " | ".join(formatted_linux_creds)
             print(f"Using Linux Credentials | {cred_str}\n")
-    
+
     if subnet is not None:
         subnets = [x.strip() for x in subnet.split(",")]
         
         for subnet_select in subnets:
-            print(f"Scanning IPv4 subnet: {subnet_select}")
+            print(f"\n=====================================SCANNING IPv4 SUBNET: {subnet_select}=====================================\n\n")
             scan_all_hosts(subnet_select)
             print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {subnet_select}============================\n\n")
             gather_info(subnet_select)
@@ -847,7 +853,7 @@ def main():
         ipv6_subnets = [x.strip() for x in ipv6_subnet.split(",")]
         
         for ipv6_subnet_select in ipv6_subnets:
-            print(f"Scanning IPv6 subnet: {ipv6_subnet_select}\n")
+            print(f"\n=====================================SCANNING IPv6 SUBNET: {ipv6_subnet_select}=====================================\n\n")
             scan_all_hosts(ipv6_subnet_select)
             print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {ipv6_subnet_select}============================\n\n")
             gather_info(ipv6_subnet_select)

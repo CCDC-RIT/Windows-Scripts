@@ -1,0 +1,6 @@
+topology.csv
+windows_clients.txt
+ansible/roles/copy-core-scripts/files/
+ansible/roles/copy-other/files/
+tabula.py
+backups/

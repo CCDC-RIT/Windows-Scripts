@@ -19,23 +19,6 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-get_download_url() {
-	local repo="$1"
-	local file="$2"
-
-    if [ "$repo" = "Windows-Scripts" ]; then
-        local branch="master"
-    else
-        local branch="main"
-    fi
-
-	if [ "$DEV" = true ]; then
-		echo "http://192.168.1.2/ccdc/${repo}/raw/branch/${branch}/${file}"
-	else
-		echo "https://raw.githubusercontent.com/CCDC-RIT/${repo}/${branch}/${file}"
-	fi
-}
-
 # This is just a wget wrapper, that prints nothing if it downloads,
 # and prints an error if it doesn't download
 download() {
@@ -76,62 +59,52 @@ download() {
 # Set up folder for backups
 
 if [ ! -d "backups" ]; then
-	sudo mkdir backups
+	mkdir backups
 fi
 if [ ! -d "ansible/roles/copy-core-scripts/files" ]; then
-	sudo mkdir ansible/roles/copy-core-scripts/files
+	mkdir ansible/roles/copy-core-scripts/files
 fi
 if [ ! -d "ansible/roles/copy-other/files" ]; then
-	sudo mkdir ansible/roles/copy-other/files
+	mkdir ansible/roles/copy-other/files
 fi
 
 # Downloading Scripts
 
 # Download script
-download "$(get_download_url "Windows-Scripts" "downloads.ps1")" -O "ansible/roles/copy-core-scripts/files/downloads.ps1"
+cp downloads.ps1 ansible/roles/copy-core-scripts/files/downloads.ps1
 # Audit script
-download "$(get_download_url "Windows-Scripts" "audit.ps1")" -O "ansible/roles/copy-other/files/audit.ps1"
+cp audit.ps1 ansible/roles/copy-other/files/audit.ps1
 # Audit policy file
-download "$(get_download_url "Windows-Scripts" "auditpol.csv")" -O "ansible/roles/copy-other/files/auditpol.csv"
+cp auditpol.csv ansible/roles/copy-other/files/auditpol.csv
 # Backups script
-download "$(get_download_url "Windows-Scripts" "backup.ps1")" -O "ansible/roles/copy-core-scripts/files/backup.ps1"
+cp backup.ps1 ansible/roles/copy-core-scripts/files/backup.ps1
 # Command runbook
-download "$(get_download_url "Windows-Scripts" "command_runbook.txt")" -O "ansible/roles/copy-other/files/command_runbook.txt"
+cp command_runbook.txt ansible/roles/copy-other/files/command_runbook.txt
 # Defender exploit guard settings
-download "$(get_download_url "Windows-Scripts" "defender-exploit-guard-settings.xml")" -O "ansible/roles/copy-other/files/def-eg-settings.xml"
+cp defender-exploit-guard-settings.xml ansible/roles/copy-other/files/def-eg-settings.xml
 # Firewall script
-download "$(get_download_url "Windows-Scripts" "firewall.ps1")" -O "ansible/roles/copy-core-scripts/files/firewall.ps1"
+cp firewall.ps1 ansible/roles/copy-core-scripts/files/firewall.ps1
 # Inventory script
-download "$(get_download_url "Windows-Scripts" "inventory.ps1")" -O "ansible/roles/copy-other/files/inventory.ps1"
+cp inventory.ps1 ansible/roles/copy-other/files/inventory.ps1
 # Logging script
-download "$(get_download_url "Windows-Scripts" "logging.ps1")" -O "ansible/roles/copy-other/files/logging.ps1"
-# Secure baseline script
-download "$(get_download_url "Windows-Scripts" "secure.ps1")" -O "ansible/roles/copy-other/files/secure.ps1"
-# Yara response script
-download "$(get_download_url "Logging-Scripts" "yara.bat")" -O "ansible/roles/copy-other/files/yara.bat"
+cp logging.ps1 ansible/roles/copy-other/files/logging.ps1
+# Secure script
+cp secure.ps1 ansible/roles/copy-other/files/secure.ps1
 # Powershell profile
-download "$(get_download_url "Windows-Scripts" "profile.ps1")" -O "ansible/roles/copy-other/files/profile.ps1"
+cp profile.ps1 ansible/roles/copy-other/files/profile.ps1
 # HTTPS cert template
-download "$(get_download_url "Windows-Scripts" "certs/cert.inf")" -O "ansible/roles/copy-other/files/cert.inf"
-# Windows contain
-download "$(get_download_url "Windows-Scripts" "windows-contain.py")" -O "windows-contain.py"
+cp certs/cert.inf ansible/roles/copy-other/files/cert.inf
 
-# Ansible Dynamic Inventory Script
-download "$(get_download_url "Windows-Scripts" "inv-gen.py")" -O "inv-gen.py"
-download "$(get_download_url "Windows-Scripts" "recon-requirements.txt")" -O "recon-requirements.txt"
-download "$(get_download_url "Windows-Scripts" "fix_openssl.py")" -O "fix_openssl.py"
-
-echo "[SUCCESS] Scripts downloaded."
+echo "[SUCCESS] Scripts Copied."
 
 # Service tooling 
 # DC Tooling
-download "$(get_download_url "Windows-Scripts" "gpos/{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip")" -O "ansible/roles/copy-other/files/{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip"
-download "$(get_download_url "Windows-Scripts" "gpos/{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip")" -O "ansible/roles/copy-other/files/{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip"
-download "$(get_download_url "Windows-Scripts" "gpos/{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip")" -O "ansible/roles/copy-other/files/{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip"
+cp gpos/{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip ansible/roles/copy-other/files/{EE3B9E95-9783-474A-86A5-907E93E64F57}.zip
+cp gpos/{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip ansible/roles/copy-other/files/{40E1EAFA-8121-4FFA-B6FE-BC348636AB83}.zip
+cp gpos/{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip ansible/roles/copy-other/files/{6136C3E1-B316-4C46-9B8B-8C1FC373F73C}.zip
+cp gpos/{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip ansible/roles/copy-other/files/{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip
 
-download "$(get_download_url "Windows-Scripts" "gpos/{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip")" -O "ansible/roles/copy-other/files/{BEAA6460-782B-4351-B17D-4DC8076633C9}.zip"
-
-echo "[SUCCESS] DC tooling downloaded."
+echo "[SUCCESS] GPO's Copied."
 
 # Reset-KrbtgtKeyInteractive script
 download "https://gist.githubusercontent.com/mubix/fd0c89ec021f70023695/raw/02e3f0df13aa86da41f1587ad798ad3c5e7b3711/Reset-KrbtgtKeyInteractive.ps1" -O "ansible/roles/copy-other/files/Reset-KrbtgtKeyInteractive.ps1"
@@ -141,7 +114,7 @@ download "https://github.com/netwrix/pingcastle/releases/download/3.3.0.1/PingCa
 download "https://github.com/lkarlslund/Adalanche/releases/download/v2024.1.11/adalanche-windows-x64-v2024.1.11.exe" -O "ansible/roles/copy-other/files/adalanche.exe"
 # Member server/client tools
 # Local policy file
-download "$(get_download_url "Windows-Scripts" "gpos/localpolicy.PolicyRules")" -O "ansible/roles/copy-other/files/localpolicy.PolicyRules"
+cp gpos/localpolicy.PolicyRules ansible/roles/copy-other/files/localpolicy.PolicyRules
 # LGPO tool
 download "https://download.microsoft.com/download/8/5/C/85C25433-A1B0-4FFA-9429-7E023E7DA8D8/LGPO.zip" -O "ansible/roles/copy-other/files/lg.zip" --no-check-certificate
 
@@ -205,8 +178,8 @@ download "https://download.microsoft.com/download/6/8/a/68af3cd3-1337-4389-967c-
 echo "[SUCCESS] ADFS Rapid Recreation Tool downloaded."
 # yara
 download "https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip" -O "ansible/roles/copy-other/files/yara.zip"
-download "$(get_download_url "YaraRules" "Windows.zip")" -O "ansible/roles/copy-other/files/Windows.zip"
-download "$(get_download_url "YaraRules" "Multi.zip")" -O "ansible/roles/copy-other/files/Multi.zip"
+download "https://raw.githubusercontent.com/CCDC-RIT/YaraRules/master/Windows.zip" -O "ansible/roles/copy-other/files/Windows.zip"
+download "https://raw.githubusercontent.com/CCDC-RIT/YaraRules/master/Multi.zip" -O "ansible/roles/copy-other/files/Windows.zip"
 download "https://github.com/YARAHQ/yara-forge/releases/latest/download/yara-forge-rules-full.zip" -O "ansible/roles/copy-other/files/yarahq.zip"
 echo "[SUCCESS] Yara and Yara rules downloaded."
 # Notepad++
