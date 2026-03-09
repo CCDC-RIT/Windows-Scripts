@@ -14,9 +14,8 @@ import ipaddress
 # Global File Locations
 WINDOWS_INVENTORY_FILE = 'ansible/inventory/inventory.yml'
 LINUX_INVENTORY_FILE = '../linux-ansible/inventory/inventory.ini'
-WINDOWS_IP_FILE = '/opt/passwordmanager/windows_starting_clients.txt'
-LINUX_IP_FILE = '/opt/passwordmanager/linux_starting_clients.txt'
-ALL_IP_FILE = '/opt/passwordmanager/starting_clients.txt'
+WINDOWS_IP_FILE = 'windows_clients.txt'
+ALL_IP_FILE = '../linux-ansible/roles/password-manager-server/files/starting_clients.txt'
 TOPOLOGY_FILE = 'topology.csv'
 
 # Global Variables
@@ -222,13 +221,11 @@ def gather_linux_info(host):
             session.connect(host, username=username, password=password, timeout=10)
             detect_unix_scored_services(session, host)
             determine_unix_os_version(session, host)
-            log(LINUX_IP_FILE, host)
             log(ALL_IP_FILE, host)
             session.close()
         except Exception as e:
             print(f"Unexpected error connecting to {host}: {str(e)}.. Falling back to port scan")
             linux_port_scan_only(host)
-            log(LINUX_IP_FILE, host)
             log(ALL_IP_FILE, host)
             continue
 
@@ -577,9 +574,9 @@ def create_linux_ansible_inventory():
     print(f"Adding hosts to Ansible inventory file: {LINUX_INVENTORY_FILE}\n")
 
     ansible_host_list = "[all]\n"
-    with open(LINUX_IP_FILE, "r") as Hosts:
-        for line in Hosts:
-            ansible_host_list += (line)
+    for host in HOST_INFO.keys():
+        if HOST_INFO[host]['OS'] == 'Linux':
+            ansible_host_list += host + "\n"
     ansible_host_list += f"""
 [logging]
 {GRAFANA_IP}
@@ -590,11 +587,9 @@ def create_linux_ansible_inventory():
 
 [alpine]
 """
-    with open(LINUX_IP_FILE, "r") as Hosts:
-        for line in Hosts:
-            ip = line.strip()
-            if ip in HOST_INFO and HOST_INFO[ip]['OS'] == 'Linux' and HOST_INFO[ip]['OS_Short_Name'] == 'Alpine':
-                ansible_host_list += (line)
+    for host in HOST_INFO.keys():
+        if HOST_INFO[host]['OS'] == 'Alpine':
+            ansible_host_list += host + "\n"
                 
     ansible_host_list += f"""\n[alpine:vars]
 ansible_become_method=doas
@@ -765,12 +760,6 @@ def main():
         print(f"IP file created: {WINDOWS_IP_FILE}")
     else:
         print(f"IP file found: {WINDOWS_IP_FILE}")
-
-    if not os.path.exists(LINUX_IP_FILE):
-        os.makedirs(os.path.dirname(LINUX_IP_FILE), exist_ok=True)
-        print(f"IP file created: {LINUX_IP_FILE}")
-    else:
-        print(f"IP file found: {LINUX_IP_FILE}")
 
     if not os.path.exists(ALL_IP_FILE):
         os.makedirs(os.path.dirname(ALL_IP_FILE), exist_ok=True)

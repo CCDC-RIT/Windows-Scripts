@@ -5,7 +5,7 @@ import argparse
 import os
 import json
 
-ALL_HOSTS = "/opt/passwordmanager/windows_starting_clients.txt"
+ALL_HOSTS = "windows_clients.txt"
 
 # global FILE_PATH
 # global SERVICE_NAME
