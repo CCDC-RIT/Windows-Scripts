@@ -11,7 +11,7 @@ all:
         password_manager_ip: "192.168.1.51"
         siem_IP: "" #REPLACE
         siem_name: "Grafana"
-        adfs_backup_password: "33149b707b8d89b3c2953b49"
+        adfs_backup_password: "7dff34e39fe48d77ad12fb68"
         stabvest_ip: "192.168.1.60"
         winrm_ip: "192.168.1.60"
       children:

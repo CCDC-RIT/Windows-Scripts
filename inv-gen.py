@@ -699,7 +699,7 @@ siem="{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if 
             for service in HOST_INFO[host]['Services']:
                 if ':' in service:
                     protocol, port = service.split(':')
-                    if protocol.lower() == 'tcp':
+                    if protocol.lower() == 'tcp' and port != "22":
                         scored_ports_tcp.append(port)
                     elif protocol.lower() == 'udp':
                         scored_ports_udp.append(port)
