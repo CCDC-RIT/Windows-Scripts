@@ -166,7 +166,7 @@ def find_domain_controller():
             DOMAIN_CONTROLLER_IP = host
             DOMAIN_CONTROLLER_DOMAIN = HOST_INFO[host]['Domain']
             return
-    print("Failed to find Domain Controller\n. Setting IP to 1.1.1.1, Setting Domain to google.com\n")
+    print("Failed to find Domain Controller\nSetting IP to 1.1.1.1, Setting Domain to google.com\n")
     DOMAIN_CONTROLLER_IP = "1.1.1.1"
     DOMAIN_CONTROLLER_DOMAIN = "google.com"
 
