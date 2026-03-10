@@ -9,7 +9,7 @@
     dest: "{{ scripts_path }}\\downloads.ps1"
     remote_src: false
 
-- name: Copy Datadog IPs Script
+- name: Copy Datadog IPs
   win_copy:
     src: "datadog_ips.txt"
     dest: "{{ scripts_path }}\\scripts\\datadog_ips.txt"

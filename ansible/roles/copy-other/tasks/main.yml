@@ -139,7 +139,7 @@
 
 - name: Copy Cert.inf template
   win_copy:
-    src: "certs/cert.inf"
+    src: "cert.inf"
     dest: "{{ scripts_path }}\\scripts\\cert.inf"
     remote_src: false
 

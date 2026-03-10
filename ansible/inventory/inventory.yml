@@ -11,7 +11,7 @@ all:
         password_manager_ip: "172.16.1.11"
         siem_IP: "172.16.1.11"
         siem_name: "Grafana"
-        adfs_backup_password: "76ca53d12642bf8c5fcae66c"
+        adfs_backup_password: "9f14218156ab36ce48279ac1"
         stabvest_ip: "192.168.1.51"
         winrm_ip: "192.168.1.51"
       children:
@@ -27,20 +27,20 @@ all:
             172.16.1.20:
         win_172_16_1_5:
           vars:
-            ansible_user: " #REPLACE"
-            ansible_password: " #REPLACE"
-            scored_services: "ldapio"
-            is_win_server: "false"
+            ansible_user: "Administrator"
+            ansible_password: "Password-123456"
+            scored_services: "ldapio, dnsio"
+            is_win_server: "true"
             is_server_core: "false"
             server_type: "dc"
           hosts:
             172.16.1.5:
         win_10_1_1_20:
           vars:
-            ansible_user: " #REPLACE"
-            ansible_password: " #REPLACE"
+            ansible_user: "Administrator"
+            ansible_password: "Password-123456"
             scored_services: "none"
-            is_win_server: "false"
+            is_win_server: "true"
             is_server_core: "false"
             server_type: "none"
           hosts:

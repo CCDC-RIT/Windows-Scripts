@@ -174,12 +174,12 @@ download "https://download.sysinternals.com/files/PsExec.zip" -O "ansible/roles/
 echo "[SUCCESS] Sysinternals downloaded."
 
 # adfs rapid recreation tool
-download "https://download.microsoft.com/download/6/8/a/68af3cd3-1337-4389-967c-a6751182f286/ADFSRapidRecreationTool.msi" --no-check-certificate -O "ansible/roles/copy-other/files/ADFSRapidRecreationTool.msi"
+download "https://download.microsoft.com/download/6/8/a/68af3cd3-1337-4389-967c-a6751182f286/ADFSRapidRecreationTool.msi" --no-check-certificate -O "ansible/roles/copy-core-scripts/files/ADFSRapidRecreationTool.msi"
 echo "[SUCCESS] ADFS Rapid Recreation Tool downloaded."
 # yara
 download "https://github.com/VirusTotal/yara/releases/download/v4.5.2/yara-v4.5.2-2326-win64.zip" -O "ansible/roles/copy-other/files/yara.zip"
 download "https://raw.githubusercontent.com/CCDC-RIT/YaraRules/master/Windows.zip" -O "ansible/roles/copy-other/files/Windows.zip"
-download "https://raw.githubusercontent.com/CCDC-RIT/YaraRules/master/Multi.zip" -O "ansible/roles/copy-other/files/Windows.zip"
+download "https://raw.githubusercontent.com/CCDC-RIT/YaraRules/master/Multi.zip" -O "ansible/roles/copy-other/files/Multi.zip"
 download "https://github.com/YARAHQ/yara-forge/releases/latest/download/yara-forge-rules-full.zip" -O "ansible/roles/copy-other/files/yarahq.zip"
 echo "[SUCCESS] Yara and Yara rules downloaded."
 # Notepad++

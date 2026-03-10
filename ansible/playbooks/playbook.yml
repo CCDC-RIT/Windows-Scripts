@@ -41,6 +41,7 @@
     - backup
     - firewall
     - never
+  ignore_errors: true
 
 - name: "WIN - Copy Scripts and Tools"
   hosts: windows
@@ -51,6 +52,7 @@
     - windows
     - copy
     - never
+  ignore_errors: true
 
 - name: "WIN - Distributed Backups"
   hosts: windows
@@ -59,6 +61,7 @@
     - adv-backup
   tags:
     - winAdvBackup
+  ignore_errors: true
 
 - name: "WIN - Setup Password Manager Client"
   hosts: windows
@@ -67,9 +70,11 @@
     - password-manager-client
   tags:
     - windows
+    - windows_old
     - password
     - password_manager
     - never
+  ignore_errors: true
 
 - name: "WIN - Logging"
   hosts: windows
@@ -81,6 +86,7 @@
     - windowsOld
     - logging
     - never
+  ignore_errors: true
 
 - name: "WIN - Inventory"
   hosts: windows
@@ -92,6 +98,7 @@
     - windowsOld
     - inventory
     - never
+  ignore_errors: true
 
 - name: "WIN - Audit"
   hosts: windows  
@@ -103,3 +110,4 @@
     - windowsOld
     - audit
     - never
+  ignore_errors: true

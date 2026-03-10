@@ -4,3 +4,6 @@ ansible/roles/copy-core-scripts/files/
 ansible/roles/copy-other/files/
 tabula.py
 backups/
+ansible/ansible.log
+ansible/retry/
+ansible/facts_cache

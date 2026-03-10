@@ -109,7 +109,7 @@ New-Item -Path $backupPath -Name "user_files" -ItemType "directory" | Out-Null
 $userBackupPath = Join-Path -Path $backupPath -childPath "user_files"
 
 # Finds the paths
-$userPaths = Get-ChildItem -Path C:\Users\ -Include _.txt,_.pdf,*.xlsx,*.xls,*.doc,*.docx,*.ini,*.pdf,*.yaml,*.yml,*.log,*.ps1,*.vbs,*.exe,*.tmp,*.db, *.py -File -Recurse -ErrorAction SilentlyContinue
+$userPaths = Get-ChildItem -Path C:\Users\ -Include *.txt,*.pdf,*.xlsx,*.xls,*.doc,*.docx,*.ini,*.pdf,*.yaml,*.yml,*.log,*.ps1,*.vbs,*.exe,*.tmp,*.db,*.py -File -Recurse -ErrorAction SilentlyContinue
 
 # Copies the items
 foreach ($path in $userPaths){
@@ -136,15 +136,15 @@ foreach ($path in $smbPaths){
 # /X - Copy File Audit settings and file ACLs
 
 # Wazuh agent backup 
-xcopy "C:\Program Files (x86)\ossec-agent\client.keys" $backupPath /H /I /K /S /X | Out-Null
-xcopy "C:\Program Files (x86)\ossec-agent\ossec.conf" $backupPath /H /I /K /S /X | Out-Null
-xcopy "C:\Program Files (x86)\ossec-agent\internal_options.conf" $backupPath /H /I /K /S /X | Out-Null
-xcopy "C:\Program Files (x86)\ossec-agent\local_internal_options.conf" $backupPath /H /I /K /S /X | Out-Null
-xcopy "C:\Program Files (x86)\ossec-agent\*.pem" $backupPath /H /I /K /S /X | Out-Null
-xcopy "C:\Program Files (x86)\ossec-agent\ossec.log" $backupPath /H /I /K /S /X | Out-Null
-xcopy "C:\Program Files (x86)\ossec-agent\logs\*"  $backupPath\logs\ /H /I /K /S /X | Out-Null
-xcopy "C:\Program Files (x86)\ossec-agent\rids\*"  $backupPath\rids\ /H /I /K /S /X | Out-Null
-Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh agent files backed up" -ForegroundColor white
+# xcopy "C:\Program Files (x86)\ossec-agent\client.keys" $backupPath /H /I /K /S /X | Out-Null
+# xcopy "C:\Program Files (x86)\ossec-agent\ossec.conf" $backupPath /H /I /K /S /X | Out-Null
+# xcopy "C:\Program Files (x86)\ossec-agent\internal_options.conf" $backupPath /H /I /K /S /X | Out-Null
+# xcopy "C:\Program Files (x86)\ossec-agent\local_internal_options.conf" $backupPath /H /I /K /S /X | Out-Null
+# xcopy "C:\Program Files (x86)\ossec-agent\*.pem" $backupPath /H /I /K /S /X | Out-Null
+# xcopy "C:\Program Files (x86)\ossec-agent\ossec.log" $backupPath /H /I /K /S /X | Out-Null
+# xcopy "C:\Program Files (x86)\ossec-agent\logs\*"  $backupPath\logs\ /H /I /K /S /X | Out-Null
+# xcopy "C:\Program Files (x86)\ossec-agent\rids\*"  $backupPath\rids\ /H /I /K /S /X | Out-Null
+# Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Wazuh agent files backed up" -ForegroundColor white
 
 # Back up Extra Directories
 foreach ($dir in $extraDirs){
