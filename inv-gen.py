@@ -30,6 +30,7 @@ global GRAYLOG_IP
 global WAZUH_IP
 global LOCAL_IP
 global DOMAIN_CONTROLLER_IP
+global DOMAIN_CONTROLLER_DOMAIN
 
 # Other Global Variables
 global SCRIPTS_PATH
@@ -157,12 +158,17 @@ def find_wazuh(host):
 
 def find_domain_controller():
     global DOMAIN_CONTROLLER_IP
+    global DOMAIN_CONTROLLER_DOMAIN
     for host in HOST_INFO.keys():
         if 'DNS' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
-            print(f"Set as Domain Controller IP: {host}\n")
+            print(f"Set Domain Controller IP: {host}")
+            print(f"Set Domain Controller Domain: {HOST_INFO[host]['Domain']}\n")
             DOMAIN_CONTROLLER_IP = host
-    print("Failed to find Domain Controller IP\n")
+            DOMAIN_CONTROLLER_DOMAIN = HOST_INFO[host]['Domain']
+            return
+    print("Failed to find Domain Controller\n. Setting IP to 1.1.1.1, Setting Domain to google.com\n")
     DOMAIN_CONTROLLER_IP = "1.1.1.1"
+    DOMAIN_CONTROLLER_DOMAIN = "google.com"
 
 # Attempts to gather additional information about Windows hosts
 def gather_info(subnet):
@@ -660,6 +666,7 @@ siem_ip="{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is Non
 stabvest_controller_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
 ansible_control_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''} 
 domain_controller_ip="{DOMAIN_CONTROLLER_IP if DOMAIN_CONTROLLER_IP is not None else ''}"{' #REPLACE' if DOMAIN_CONTROLLER_IP is None else ''}
+domain_controller_domain="{DOMAIN_CONTROLLER_DOMAIN if DOMAIN_CONTROLLER_DOMAIN is not None else ''}"{' #REPLACE' if DOMAIN_CONTROLLER_DOMAIN is None else ''}
 firewall_logging=true
 siem="{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if SIEM_TYPE is None else ''}
 """
@@ -894,10 +901,6 @@ def main():
             print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {subnet_select}============================\n\n")
             gather_info(subnet_select)
 
-            # HOST_INFO is now populated, so we can discover controller/source IP reliably.
-            get_local_ip()
-            find_domain_controller()
-
     if ipv6_subnet is not None:
         ipv6_subnets = [x.strip() for x in ipv6_subnet.split(",")]
         
@@ -907,9 +910,9 @@ def main():
             print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {ipv6_subnet_select}============================\n\n")
             gather_info(ipv6_subnet_select)
 
-            # HOST_INFO is now populated, so we can discover controller/source IP reliably.
-            get_local_ip()
-            find_domain_controller()
+    # HOST_INFO is now populated, so we can discover controller/source IP reliably.
+    get_local_ip()
+    find_domain_controller()
 
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
 
