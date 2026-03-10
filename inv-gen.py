@@ -156,12 +156,13 @@ def find_wazuh(host):
         print(f"Set as Wazuh IP\n",end="")
 
 def find_domain_controller():
+    global DOMAIN_CONTROLLER_IP
     for host in HOST_INFO.keys():
         if 'DNS' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
             print(f"Set as Domain Controller IP: {host}\n")
-            return host
+            DOMAIN_CONTROLLER_IP = host
     print("Failed to find Domain Controller IP\n")
-    return None
+    DOMAIN_CONTROLLER_IP = "1.1.1.1"
 
 # Attempts to gather additional information about Windows hosts
 def gather_info(subnet):
