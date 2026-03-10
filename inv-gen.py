@@ -584,14 +584,10 @@ def get_local_ip():
     ansible_controller_ip = s.getsockname()[0]
 
     for host in HOST_INFO.keys():
-        if host == ansible_controller_ip:
+        if host == ansible_controller_ip or 'SSH' not in HOST_INFO[host]['Services'] or LINUX_CREDENTIALS is None:
             continue 
         if LOCAL_IP is not None:
             break
-        if 'SSH' not in HOST_INFO[host]['Services']:
-            continue
-        if LINUX_CREDENTIALS is None:
-            continue
 
         for username, password in LINUX_CREDENTIALS:
             session = None
@@ -599,11 +595,17 @@ def get_local_ip():
                 session = paramiko.SSHClient()
                 session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 session.connect(host, username=username, password=password, timeout=8)
-                transport = session.get_transport()
-                if transport is not None and transport.sock is not None:
-                    LOCAL_IP = transport.sock.getsockname()[0]
-                    print(f"Detected local IP: {LOCAL_IP}\n")
-                    break
+                _, stdout, _ = session.exec_command('w')
+                for line in stdout.read().decode().split('\n'):
+                    tokens = line.split()
+                    if username in tokens[0] and "ssh" in line:
+                        if len(tokens[1].split(".")) == 4:
+                            LOCAL_IP = tokens[1]
+                        elif len(tokens[2].split(".")) == 4:
+                            LOCAL_IP = tokens[2]
+                        if LOCAL_IP is not None:
+                            print(f"Set Local IP: {LOCAL_IP}\n")
+                            break
             except Exception:
                 continue
             finally:

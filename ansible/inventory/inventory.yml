@@ -8,51 +8,11 @@ all:
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
         scripts_path: "C:\\Perflogs\\Roblox"
-        password_manager_ip: "172.16.1.10"
-        siem_IP: "172.16.1.53"
+        password_manager_ip: "192.168.1.51"
+        siem_IP: "" #REPLACE
         siem_name: "Grafana"
-        adfs_backup_password: "09a56e22d26b52b2309595eb"
-        stabvest_ip: "192.168.1.51"
-        winrm_ip: "192.168.1.51"
+        adfs_backup_password: "33149b707b8d89b3c2953b49"
+        stabvest_ip: "192.168.1.60"
+        winrm_ip: "192.168.1.60"
       children:
-        win_172_16_1_20:
-          vars:
-            ansible_user: "Administrator"
-            ansible_password: "Password-123456"
-            scored_services: "httpsio"
-            is_win_server: "true"
-            is_server_core: "false"
-            server_type: "adfs"
-          hosts:
-            172.16.1.20:
-        win_172_16_1_5:
-          vars:
-            ansible_user: "Administrator"
-            ansible_password: "Password-123456"
-            scored_services: "dnsio, ldapio"
-            is_win_server: "true"
-            is_server_core: "false"
-            server_type: "dc"
-          hosts:
-            172.16.1.5:
-        win_10_1_1_20:
-          vars:
-            ansible_user: "Administrator"
-            ansible_password: "Password-123456"
-            scored_services: "none"
-            is_win_server: "true"
-            is_server_core: "false"
-            server_type: "none"
-          hosts:
-            10.1.1.20:
-        win_10_1_1_5:
-          vars:
-            ansible_user: "Administrator"
-            ansible_password: "Password-123456"
-            scored_services: "httpsio"
-            is_win_server: "true"
-            is_server_core: "false"
-            server_type: "adfs"
-          hosts:
-            10.1.1.5:
         
