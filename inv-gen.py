@@ -557,16 +557,46 @@ def linux_port_scan_only(host):
 
 def get_local_ip():
     global LOCAL_IP
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        LOCAL_IP = s.getsockname()[0]
-        s.close()
-    except Exception as e:
-        s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        s.connect(("2001:4860:4860::8888", 80))
-        LOCAL_IP = s.getsockname()[0]
-        s.close()
+    global HOST_INFO
+    global LINUX_CREDENTIALS
+
+    # Setting Local IP to None Initially
+    LOCAL_IP = None
+
+    # Get Ansible Controller IP
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    ansible_controller_ip = s.getsockname()[0]
+
+    for host in HOST_INFO.keys():
+        if host == ansible_controller_ip:
+            continue 
+        if LOCAL_IP is not None:
+            break
+        if 'SSH' not in HOST_INFO[host]['Services']:
+            continue
+        if LINUX_CREDENTIALS is None:
+            continue
+
+        for username, password in LINUX_CREDENTIALS:
+            session = None
+            try:
+                session = paramiko.SSHClient()
+                session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                session.connect(host, username=username, password=password, timeout=8)
+                transport = session.get_transport()
+                if transport is not None and transport.sock is not None:
+                    LOCAL_IP = transport.sock.getsockname()[0]
+                    print(f"Detected local IP: {LOCAL_IP}\n")
+                    break
+            except Exception:
+                continue
+            finally:
+                if session is not None:
+                    session.close()
+
+    if LOCAL_IP is None:
+        print("Failed to determine local IP\n")
 
 def create_linux_ansible_inventory():
     global HOST_INFO
@@ -772,8 +802,6 @@ def main():
     global HOST_INFO
     HOST_INFO = {}
 
-    get_local_ip()
-
     global RUN_WINDOWS
     global RUN_LINUX
     RUN_WINDOWS = args.windows
@@ -849,6 +877,9 @@ def main():
             print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {subnet_select}============================\n\n")
             gather_info(subnet_select)
 
+            # HOST_INFO is now populated, so we can discover controller/source IP reliably.
+            get_local_ip()
+
     if ipv6_subnet is not None:
         ipv6_subnets = [x.strip() for x in ipv6_subnet.split(",")]
         
@@ -857,6 +888,9 @@ def main():
             scan_all_hosts(ipv6_subnet_select)
             print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {ipv6_subnet_select}============================\n\n")
             gather_info(ipv6_subnet_select)
+
+            # HOST_INFO is now populated, so we can discover controller/source IP reliably.
+            get_local_ip()
 
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
 
