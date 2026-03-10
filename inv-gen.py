@@ -18,16 +18,21 @@ WINDOWS_IP_FILE = 'windows_clients.txt'
 ALL_IP_FILE = '../linux-ansible/roles/password-manager-server/files/starting_clients.txt'
 TOPOLOGY_FILE = 'topology.csv'
 
-# Global Variables
+# Global Credential Variables
 global LOCAL_USERNAME
 global DOMAIN_CREDENTIALS
 global LINUX_CREDENTIALS
-global SCRIPTS_PATH
+
+# Global IP Variables
 global PASSWORD_MANAGER_IP
 global GRAFANA_IP
 global GRAYLOG_IP
 global WAZUH_IP
 global LOCAL_IP
+global DOMAIN_CONTROLLER_IP
+
+# Other Global Variables
+global SCRIPTS_PATH
 global HOST_INFO
 global RUN_WINDOWS
 global RUN_LINUX
@@ -149,6 +154,14 @@ def find_wazuh(host):
     if nm[host].has_tcp(1514) and nm[host]['tcp'][1514]['state'] == 'open':
         WAZUH_IP = host
         print(f"Set as Wazuh IP\n",end="")
+
+def find_domain_controller():
+    for host in HOST_INFO.keys():
+        if 'DNS' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
+            print(f"Set as Domain Controller IP: {host}\n")
+            return host
+    print("Failed to find Domain Controller IP\n")
+    return None
 
 # Attempts to gather additional information about Windows hosts
 def gather_info(subnet):
@@ -645,6 +658,7 @@ password_manager_ip="{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None els
 siem_ip="{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is None else ''}
 stabvest_controller_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
 ansible_control_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''} 
+domain_controller_ip="{DOMAIN_CONTROLLER_IP if DOMAIN_CONTROLLER_IP is not None else ''}"{' #REPLACE' if DOMAIN_CONTROLLER_IP is None else ''}
 firewall_logging=true
 siem="{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if SIEM_TYPE is None else ''}
 """
@@ -784,6 +798,7 @@ def main():
     global GRAFANA_IP
     global GRAYLOG_IP
     global WAZUH_IP
+    global DOMAIN_CONTROLLER_IP
     global SCRIPTS_PATH
     global SIEM_TYPE
 
@@ -798,6 +813,7 @@ def main():
     GRAFANA_IP = None
     GRAYLOG_IP = None
     WAZUH_IP = None
+    DOMAIN_CONTROLLER_IP = None
 
     global HOST_INFO
     HOST_INFO = {}
@@ -879,6 +895,7 @@ def main():
 
             # HOST_INFO is now populated, so we can discover controller/source IP reliably.
             get_local_ip()
+            find_domain_controller()
 
     if ipv6_subnet is not None:
         ipv6_subnets = [x.strip() for x in ipv6_subnet.split(",")]
@@ -891,6 +908,7 @@ def main():
 
             # HOST_INFO is now populated, so we can discover controller/source IP reliably.
             get_local_ip()
+            find_domain_controller()
 
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
 
