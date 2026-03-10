@@ -7,11 +7,11 @@ all:
         ansible_winrm_server_cert_validation: ignore
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
-        scripts_path: "C:\\Perflogs\\roblox"
-        password_manager_ip: "172.16.1.12"
+        scripts_path: "C:\\Perflogs\\Roblox"
+        password_manager_ip: "172.16.1.10"
         siem_IP: "172.16.1.53"
         siem_name: "Grafana"
-        adfs_backup_password: "0efe13a70d39d4442995fff8"
+        adfs_backup_password: "09a56e22d26b52b2309595eb"
         stabvest_ip: "192.168.1.51"
         winrm_ip: "192.168.1.51"
       children:

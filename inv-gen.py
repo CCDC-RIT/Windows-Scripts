@@ -440,11 +440,6 @@ def determine_unix_os_version(session, ip_address):
             os_info = "FreeBSD " + stdout.read().decode().strip()
         print(f"Detected OS: {os_info}\n",end="")
         HOST_INFO[ip_address]['OS_Version'] = os_info
-        if ("Ubuntu" in os_info or "Rocky" in os_info) and "443" not in HOST_INFO[ip_address]['Services']:
-            global PASSWORD_MANAGER_IP
-            if PASSWORD_MANAGER_IP is None:
-                PASSWORD_MANAGER_IP = ip_address
-                print(f"Set as Password Manager IP\n",end="")
 
         if "Ubuntu" in os_info:
             HOST_INFO[ip_address]['OS_Short_Name'] = 'Ubuntu'
@@ -617,6 +612,31 @@ def get_local_ip():
 
     if LOCAL_IP is None:
         print("Failed to determine local IP\n")
+
+def find_password_manager_ip():
+    global PASSWORD_MANAGER_IP
+    best_ips = []
+    next_best_ips = []
+    maybe_ips = []
+    for host in HOST_INFO.keys():
+        if "." in host and "443" not in HOST_INFO[host]['Services']:
+            if "Ubuntu" in HOST_INFO[host]['OS_Version'] or "Debian" in HOST_INFO[host]['OS_Version']:
+                best_ips.append(host)
+            elif "Rocky" in HOST_INFO[host]['OS_Version'] or "Rhel" in HOST_INFO[host]['OS_Version'] or "Fedora" in HOST_INFO[host]['OS_Version']:
+                next_best_ips.append(host)
+            elif "Linux" in HOST_INFO[host]['OS']:
+                maybe_ips.append(host)
+
+    if best_ips:
+        PASSWORD_MANAGER_IP = best_ips[0]
+    elif next_best_ips:
+        PASSWORD_MANAGER_IP = next_best_ips[0]
+    elif maybe_ips:
+        PASSWORD_MANAGER_IP = maybe_ips[0]
+    else:
+        PASSWORD_MANAGER_IP = None
+    
+    print(f"Set Password Manager IP: {PASSWORD_MANAGER_IP}")
 
 def create_linux_ansible_inventory():
     global HOST_INFO
@@ -913,6 +933,7 @@ def main():
     # HOST_INFO is now populated, so we can discover controller/source IP reliably.
     get_local_ip()
     find_domain_controller()
+    find_password_manager_ip()
 
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
 
