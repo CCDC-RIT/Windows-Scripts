@@ -705,10 +705,10 @@ siem="{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if 
                         scored_ports_udp.append(port)
 
             ansible_host_list += f"""
-[{HOST_INFO[host]['OS_Short_Name']}_{HOST_INFO[host]['Hostname']}_{host.replace('.', '_').replace(':', '_')}]
+[{HOST_INFO[host]['OS_Short_Name'].replace('-', '_')}_{HOST_INFO[host]['Hostname'].replace('-', '_')}_{host.replace('.', '_').replace(':', '_')}]
 {host}
 
-[{HOST_INFO[host]['OS_Short_Name']}_{HOST_INFO[host]['Hostname']}_{host.replace('.', '_').replace(':', '_')}:vars]
+[{HOST_INFO[host]['OS_Short_Name'].replace('-', '_')}_{HOST_INFO[host]['Hostname'].replace('-', '_')}_{host.replace('.', '_').replace(':', '_')}:vars]
 ansible_user="{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
 ansible_password="{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
 ansible_become_password="{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
@@ -793,7 +793,7 @@ all:
             server_type = "ca"
 
         if HOST_INFO[host]['OS'] == 'Windows':
-            ansible_header_content += f"""win_{host.replace('.', '_').replace(':', '_')}:
+            ansible_header_content += f"""win_{host.replace('.', '_').replace(':', '_').replace('-', '_')}:
           vars:
             ansible_user: "{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
             ansible_password: "{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
