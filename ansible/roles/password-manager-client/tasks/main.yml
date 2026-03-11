@@ -1,6 +1,6 @@
 - name: Copy Binary
   win_copy:
-    src: "{{ scripts_ansible_location }}/CCDC-Password-Manager.exe"
+    src: CCDC-Password-Manager.exe
     dest: "{{ scripts_path }}\\tools\\CCDC-Password-Manager.exe"
     remote_src: false
 
