@@ -136,12 +136,12 @@ download "https://www.voidtools.com/ES-1.1.0.27.x64.zip" -O "ansible/roles/copy-
 # BCU
 download "https://github.com/Klocman/Bulk-Crap-Uninstaller/releases/download/v5.7/BCUninstaller_5.7_portable.zip" -O "ansible/roles/copy-other/files/bcu.zip"
 
-if [ ! -d "ansible/roles/password-manager/files" ]; then
-    mkdir -p "ansible/roles/password-manager/files"
+if [ ! -d "ansible/roles/password-manager-client/files" ]; then
+    mkdir -p "ansible/roles/password-manager-client/files"
 fi
 
 # Password Manager
-download "https://github.com/CCDC-RIT/Password-Manager/raw/refs/heads/main/client/windows.exe" -O "ansible/roles/password-manager/files/CCDC-Password-Manager.exe"
+download "https://github.com/CCDC-RIT/Password-Manager/raw/refs/heads/main/client/windows.exe" -O "ansible/roles/password-manager-client/files/CCDC-Password-Manager.exe"
 
 # Get-InjectedThread and Stop-Thread
 download "https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1" -O "ansible/roles/copy-other/files/Get-InjectedThread.ps1"
