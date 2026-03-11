@@ -680,9 +680,9 @@ ansible_become_method=doas
 controller_in_scope_allow_ip=""
 ansible_connection=ssh
 ssh_port=22
-backup_dir="/usr/share/fonts/roboto-mono"
-quarantine="/usr/share/fonts/quar-mono"
-audit_dir="/opt/audit"
+backup_dir="/opt/{SCRIPTS_PATH}/backups"
+quarantine="/opt/{SCRIPTS_PATH}/quarantine"
+audit_dir="/opt/{SCRIPTS_PATH}/audit"
 password_manager_ip="{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
 siem_ip="{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is None else ''}
 stabvest_controller_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
@@ -744,7 +744,7 @@ all:
         ansible_winrm_server_cert_validation: ignore
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
-        scripts_path: "{SCRIPTS_PATH}"
+        scripts_path: "C:\\Perflogs\\{SCRIPTS_PATH}"
         password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
         siem_IP: "{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is None else ''}
         siem_name: "{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if SIEM_TYPE is None else ''}
