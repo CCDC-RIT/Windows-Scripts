@@ -80,23 +80,7 @@ foreach ($feature in $features) {
     }
 }
 
-## Uninstalling unnecessary Languages (Java, Rust, Go)
-
-# Uninstall everything for Go
-$badapps = Get-WmiObject -Class Win32_Product | Where-Object {$_.Name -Match "Go"}
-
-if($badapps){
-    foreach($program in $badapps){
-        Write-Host "[INFO] Uninstalling $($program.Name)"
-        $result = $program.Uninstall()
-        if($result.ReturnValue -eq 0){
-            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Uninstalled $($program.Name)" -ForegroundColor white 
-        } else {
-            Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "ERROR" -ForegroundColor red -NoNewLine; Write-Host "] Could not Uninstall $($program.Name). Error Code - $($result.ReturnValue)" -ForegroundColor white 
-        }
-    }
-}
-
+## Uninstalling unnecessary Languages (Rust)
 # Uninstall Rust
 # Get PATH Variables for cmd, powershell, and the system
 $cmdPATH = (Get-ItemProperty -Path 'HKCU:\Environment' -Name PATH).PATH
