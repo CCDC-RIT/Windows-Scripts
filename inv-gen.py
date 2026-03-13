@@ -39,6 +39,7 @@ global HOST_INFO
 global RUN_WINDOWS
 global RUN_LINUX
 global SIEM_TYPE
+global RUN_NMAP
 
 # Fixes PyWinRM ipv6 issue (Shoutout illidian80 on github)
 _original_build_url = winrm.Session._build_url
@@ -58,6 +59,124 @@ def _patched_build_url(target, transport):
     return _original_build_url(target, transport)
 winrm.Session._build_url = _patched_build_url
 
+##################################### HELPER FUNCTIONS (NO INTERACTION WITH HOSTS) ##################################
+
+def get_subnets_from_ips(hosts)
+    # takes a comma seperated list of ips, and determines the ipv4 and ipv6 subnets contained in them
+    # chat fully wrote this function just from this ^ comment
+    ipv4_subnet = None
+    ipv6_subnet = None
+    for host in hosts.split(','):
+        if ':' in host:
+            # IPv6
+            try:
+                ipv6_obj = ipaddress.IPv6Address(host)
+                if ipv6_subnet is None:
+                    ipv6_subnet = ipaddress.IPv6Network(host + '/64', strict=False)
+                else:
+                    ipv6_subnet = ipv6_subnet.supernet(new_prefix=ipv6_subnet.prefixlen - 1)
+                    while not ipv6_obj in ipv6_subnet:
+                        ipv6_subnet = ipv6_subnet.supernet(new_prefix=ipv6_subnet.prefixlen - 1)
+            except Exception as e:
+                print(f"Invalid IPv6 address: {host}")
+        else:
+            # IPv4
+            try:
+                ipv4_obj = ipaddress.IPv4Address(host)
+                if ipv4_subnet is None:
+                    ipv4_subnet = ipaddress.IPv4Network(host + '/24', strict=False)
+                else:
+                    ipv4_subnet = ipv4_subnet.supernet(new_prefix=ipv4_subnet.prefixlen - 1)
+                    while not ipv4_obj in ipv4_subnet:
+                        ipv4_subnet = ipv4_subnet.supernet(new_prefix=ipv4_subnet.prefixlen - 1)
+            except Exception as e:
+                print(f"Invalid IPv4 address: {host}")
+    return ipv4_subnet, ipv6_subnet
+
+def find_siem(host, output):
+    global SIEM_IP
+    for possible_siem_type in ['grafana', 'graylog', 'wazuh']:
+        if SIEM_TYPE == possible_siem_types and possible_siem_type in output:
+            siem_ip = host
+            print(f"Found {possible_siem_type} host: {host}")
+
+def find_domain_controller():
+    global DOMAIN_CONTROLLER_IP
+    global DOMAIN_CONTROLLER_DOMAIN
+    for host in HOST_INFO.keys():
+        if 'DNS' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
+            print(f"Set Domain Controller IP: {host}")
+            print(f"Set Domain Controller Domain: {HOST_INFO[host]['Domain']}\n")
+            DOMAIN_CONTROLLER_IP = host
+            DOMAIN_CONTROLLER_DOMAIN = HOST_INFO[host]['Domain']
+            return
+    print("Failed to find Domain Controller\nSetting IP to 1.1.1.1, Setting Domain to google.com\n")
+    DOMAIN_CONTROLLER_IP = "1.1.1.1"
+    DOMAIN_CONTROLLER_DOMAIN = "google.com"
+
+def find_password_manager_and_birdsnest_ips():
+    global PASSWORD_MANAGER_IP
+    global BIRDSNEST_IP
+    global BIRDSNEST_TOKEN
+    BIRDSNEST_TOKEN = os.urandom(6).hex()
+
+    best_ips = []
+    next_best_ips = []
+    maybe_ips = []
+    ip_list = []
+    for host in HOST_INFO.keys():
+        if "." in host and "443" not in HOST_INFO[host]['Services']:
+            if "Ubuntu" in HOST_INFO[host]['OS_Version'] or "Debian" in HOST_INFO[host]['OS_Version']:
+                best_ips.append(host)
+            elif "Rocky" in HOST_INFO[host]['OS_Version'] or "Rhel" in HOST_INFO[host]['OS_Version'] or "Fedora" in HOST_INFO[host]['OS_Version']:
+                next_best_ips.append(host)
+            elif "Linux" in HOST_INFO[host]['OS']:
+                maybe_ips.append(host)
+
+    for ip in best_ips:
+        if "24" in HOST_INFO[ip]['OS_Version'] and "Ubuntu" in HOST_INFO[ip]['OS_Version']:
+            ip_list.append(ip)
+        elif "12" in HOST_INFO[ip]['OS_Version'] and "Debian" in HOST_INFO[ip]['OS_Version']:
+            ip_list.append(ip)
+        elif "22" in HOST_INFO[ip]['OS_Version'] and "Ubuntu" in HOST_INFO[ip]['OS_Version']:
+            ip_list.append(ip)
+        elif "11" in HOST_INFO[ip]['OS_Version'] and "Debian" in HOST_INFO[ip]['OS_Version']:
+            ip_list.append(ip)
+        else:
+            ip_list.append(ip)
+    
+    for ip in next_best_ips:
+        if "9" in HOST_INFO[ip]['OS_Version'] and "Rocky" in HOST_INFO[ip]['OS_Version']:
+            ip_list.append(ip)
+        elif "9" in HOST_INFO[ip]['OS_Version'] and ("Rhel" in HOST_INFO[ip]['OS_Version'] or "Fedora" in HOST_INFO[ip]['OS_Version']):
+            ip_list.append(ip)
+        elif "8" in HOST_INFO[ip]['OS_Version'] and "Rocky" in HOST_INFO[ip]['OS_Version']:
+            ip_list.append(ip)
+        elif "8" in HOST_INFO[ip]['OS_Version'] and ("Rhel" in HOST_INFO[ip]['OS_Version'] or "Fedora" in HOST_INFO[ip]['OS_Version']):
+            ip_list.append(ip)
+        else:
+            maybe_ips.append(ip)
+
+    for ip in maybe_ips:
+        ip_list.append(ip)
+
+    if len(ip_list) > 0:
+        PASSWORD_MANAGER_IP = ip_list[0]        
+        print(f"Set Password Manager IP: {PASSWORD_MANAGER_IP}")
+        if len(ip_list) > 1:
+            BIRDSNEST_IP = ip_list[1]
+            print(f"Set Birdsnest IP: {BIRDSNEST_IP}\n")
+        else:
+            print("No suitable IP's for Birdsnest :(")
+    else:
+        print("No suitable IP's for Password Manager :(")
+
+def log(file, content):
+    with open(file, 'a') as log_file:
+        log_file.write(content + '\n')
+
+##################################### MAIN ENUMERATION FUNCTIONS ##################################
+
 # Scans the given subnet for hosts
 def scan_all_hosts(subnet):
     global HOST_INFO
@@ -73,9 +192,9 @@ def scan_all_hosts(subnet):
         lport = nm[host]['tcp'].keys()
 
         HOST_INFO[host] = {
-            'OS': '',
-            'OS_Version': '',
-            'OS_Short_Name': '',
+            'OS': None,
+            'OS_Version': None,
+            'OS_Short_Name': None,
             'Username': None,
             'Password': None,
             'Hostname': None,
@@ -114,26 +233,53 @@ def scan_all_hosts(subnet):
 
         print("\n")
 
-def find_siem(host, output):
-    global SIEM_IP
-    for possible_siem_type in ['grafana', 'graylog', 'wazuh']:
-        if SIEM_TYPE.lower() == possible_siem_types and possible_siem_type in output:
-            siem_ip = host
-            print(f"Found {possible_siem_type} host: {host}")
+# This function is used when nmap is not avilable to us. This just populates all of the same information as scan_all_hosts, so that gather_info can be called
+def scan_all_hosts_no_nmap(windows_hosts, linux_hosts):
+    for host in windows_hosts:
+        HOST_INFO[host] = {
+            'OS': '',
+            'OS_Version': '',
+            'OS_Short_Name': '',
+            'Username': None,
+            'Password': None,
+            'Hostname': None,
+            'MAC': None,
+            'Domain': None,
+            'Services': set(),
+            'Users': set(),
+        }
 
-def find_domain_controller():
-    global DOMAIN_CONTROLLER_IP
-    global DOMAIN_CONTROLLER_DOMAIN
-    for host in HOST_INFO.keys():
-        if 'DNS' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
-            print(f"Set Domain Controller IP: {host}")
-            print(f"Set Domain Controller Domain: {HOST_INFO[host]['Domain']}\n")
-            DOMAIN_CONTROLLER_IP = host
-            DOMAIN_CONTROLLER_DOMAIN = HOST_INFO[host]['Domain']
-            return
-    print("Failed to find Domain Controller\nSetting IP to 1.1.1.1, Setting Domain to google.com\n")
-    DOMAIN_CONTROLLER_IP = "1.1.1.1"
-    DOMAIN_CONTROLLER_DOMAIN = "google.com"
+        HOST_INFO[host]['Services'].add('RDP')
+        HOST_INFO[host]['Services'].add('WinRM_HTTP')
+        HOST_INFO[host]['Services'].add('WinRM_HTTPS')
+
+        HOST_INFO[host]['OS'] = 'Windows'
+
+        print(f"Windows Host {host} detected:\n",end="")
+        print("Detected Remoting Services: WinRM_HTTP RDP")
+        print("\n")
+    
+    for host in linux_hosts:
+        HOST_INFO[host] = {
+            'OS': '',
+            'OS_Version': '',
+            'OS_Short_Name': '',
+            'Username': None,
+            'Password': None,
+            'Hostname': None,
+            'MAC': None,
+            'Domain': None,
+            'Services': set(),
+            'Users': set(),
+        }
+
+        HOST_INFO[host]['Services'].add('SSH')
+        HOST_INFO[host]['OS'] = "Linux"
+        
+        print(f"Unix Host {host} detected:\n",end="")
+        print("Detected Remoting Services: SSH")
+
+        print("\n")
 
 # Attempts to gather additional information about Windows hosts
 def gather_info(subnet):
@@ -170,6 +316,7 @@ def gather_info(subnet):
             log(FULL_INVENTORY_FILE, f"{subnet},{host},{HOST_INFO[host]['MAC']},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{os_version},\"{services_str}\",\"{users_str}\"")
 
 def gather_windows_info(host):
+    # First, find the right credentials, and establish a WinRM connection
     for i in range(len(DOMAIN_CREDENTIALS)):
         username = DOMAIN_CREDENTIALS[i][0]
         password = DOMAIN_CREDENTIALS[i][1]
@@ -186,6 +333,8 @@ def gather_windows_info(host):
             HOST_INFO[host]['Password'] = password
             print(f"Windows Host {host}:")
             print(f"Credentials Used: {username}:{password}")
+
+            # If successful creds have been found, then enumerate everything we want to know about the boxes
             detect_windows_scored_services(session, host)
             determine_windows_os_version(session, host)
             log(WINDOWS_IP_FILE, host)
@@ -215,6 +364,8 @@ def gather_linux_info(host):
             linux_port_scan_only(host)
             log(ALL_IP_FILE, host)
             continue
+
+##################################### HELPER FUNCTIONS (INTERACTIVE WITH HOSTS) ##################################
 
 # Determines scored service via WinRM
 def detect_windows_scored_services(session, ip_address):
@@ -492,12 +643,13 @@ def determine_unix_os_version(session, ip_address):
         print(f"Unexpected SSH Error\n",end="")
     print("")
 
-def log(file, content):
-    with open(file, 'a') as log_file:
-        log_file.write(content + '\n')
-
 def windows_port_scan_only(host):
     global HOST_INFO
+
+    HOST_INFO[host]['Hostname'] = "no_hostname"
+    if not RUN_NMAP:
+        print("nmap is turned off. Make sure to replace all of the variables in the inventory for this host")
+        return
 
     print("Detected Potential Scored Services: ",end="")
     try:
@@ -538,9 +690,13 @@ def windows_port_scan_only(host):
 
 def linux_port_scan_only(host):
     global HOST_INFO
+    HOST_INFO[host]['Hostname'] = "no_hostname"
+
+    if not RUN_NMAP:
+        print("nmap is turned off. Make sure to replace all of the variables in the inventory for this host")
+        return
 
     print("Detected Potential Scored Services: ",end="")
-    HOST_INFO[host]['Hostname'] = "no_hostname"
     try:
         ps = nmap.PortScanner()
         # Use -6 flag for IPv6 scanning
@@ -623,62 +779,7 @@ def get_local_ip():
     if LOCAL_IP is None:
         print("Failed to determine local IP\n")
 
-def find_password_manager_and_birdsnest_ips():
-    global PASSWORD_MANAGER_IP
-    global BIRDSNEST_IP
-    global BIRDSNEST_TOKEN
-    BIRDSNEST_TOKEN = os.urandom(6).hex()
-
-    best_ips = []
-    next_best_ips = []
-    maybe_ips = []
-    ip_list = []
-    for host in HOST_INFO.keys():
-        if "." in host and "443" not in HOST_INFO[host]['Services']:
-            if "Ubuntu" in HOST_INFO[host]['OS_Version'] or "Debian" in HOST_INFO[host]['OS_Version']:
-                best_ips.append(host)
-            elif "Rocky" in HOST_INFO[host]['OS_Version'] or "Rhel" in HOST_INFO[host]['OS_Version'] or "Fedora" in HOST_INFO[host]['OS_Version']:
-                next_best_ips.append(host)
-            elif "Linux" in HOST_INFO[host]['OS']:
-                maybe_ips.append(host)
-
-    for ip in best_ips:
-        if "24" in HOST_INFO[ip]['OS_Version'] and "Ubuntu" in HOST_INFO[ip]['OS_Version']:
-            ip_list.append(ip)
-        elif "12" in HOST_INFO[ip]['OS_Version'] and "Debian" in HOST_INFO[ip]['OS_Version']:
-            ip_list.append(ip)
-        elif "22" in HOST_INFO[ip]['OS_Version'] and "Ubuntu" in HOST_INFO[ip]['OS_Version']:
-            ip_list.append(ip)
-        elif "11" in HOST_INFO[ip]['OS_Version'] and "Debian" in HOST_INFO[ip]['OS_Version']:
-            ip_list.append(ip)
-        else:
-            ip_list.append(ip)
-    
-    for ip in next_best_ips:
-        if "9" in HOST_INFO[ip]['OS_Version'] and "Rocky" in HOST_INFO[ip]['OS_Version']:
-            ip_list.append(ip)
-        elif "9" in HOST_INFO[ip]['OS_Version'] and ("Rhel" in HOST_INFO[ip]['OS_Version'] or "Fedora" in HOST_INFO[ip]['OS_Version']):
-            ip_list.append(ip)
-        elif "8" in HOST_INFO[ip]['OS_Version'] and "Rocky" in HOST_INFO[ip]['OS_Version']:
-            ip_list.append(ip)
-        elif "8" in HOST_INFO[ip]['OS_Version'] and ("Rhel" in HOST_INFO[ip]['OS_Version'] or "Fedora" in HOST_INFO[ip]['OS_Version']):
-            ip_list.append(ip)
-        else:
-            maybe_ips.append(ip)
-
-    for ip in maybe_ips:
-        ip_list.append(ip)
-
-    if len(ip_list) > 0:
-        PASSWORD_MANAGER_IP = ip_list[0]        
-        print(f"Set Password Manager IP: {PASSWORD_MANAGER_IP}")
-        if len(ip_list) > 1:
-            BIRDSNEST_IP = ip_list[1]
-            print(f"Set Birdsnest IP: {BIRDSNEST_IP}\n")
-        else:
-            print("No suitable IP's for Birdsnest :(")
-    else:
-        print("No suitable IP's for Password Manager :(")
+##################################### INVENTORY CREATION FUNCTIONS ##################################
 
 def create_linux_ansible_inventory():
     global HOST_INFO
@@ -832,6 +933,8 @@ all:
     with open(WINDOWS_INVENTORY_FILE, 'w') as inventory_file:
         inventory_file.write(ansible_header_content)
 
+############################################## MAIN ################################################
+
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Windows Reconnaissance Script to Fill Out Ansible Inventory')
@@ -842,7 +945,9 @@ def main():
     parser.add_argument('-sp', required=True, help='Scripts Path')
     parser.add_argument('-windows', action='store_true', help='Choose to only run reconnaissance on Windows hosts')
     parser.add_argument('-linux', action='store_true', help='Choose to only run reconnaissance on Unix hosts')
-    parser.add_argument('-siem', required=False, default="Grafana", help='Choose the SIEM being used (e.g., Grafana, Graylog, Wazuh)')
+    parser.add_argument('-siem', required=False, default="grafana", help='Choose the SIEM being used (e.g., grafana, graylog, wazuh)')
+    parser.add_argument('-windows-hosts', required=False, help='Windows hosts')
+    parser.add_argument('-linux-hosts', required=False, help='Linux hosts')
     args = parser.parse_args()
 
     # Set global variables
@@ -856,12 +961,18 @@ def main():
     global DOMAIN_CONTROLLER_IP
     global SCRIPTS_PATH
     global SIEM_TYPE
+    global RUN_NMAP
 
     # Gathers Command Line Arguments
     SCRIPTS_PATH = args.sp
-    subnet = args.s4
+    subnet = args.s4 if args.s4 is not None else None
     ipv6_subnet = args.s6 if args.s6 is not None else None
     SIEM_TYPE = args.siem.lower() if args.siem is not None else None
+
+    RUN_NMAP = True
+    if args.windows_hosts is not None and args.linux_hosts is not None:
+        RUN_NMAP = False
+        subnet, ipv6_subnet = get_subnets_from_ips(hosts=f"{args.windows_hosts},{args.linux_hosts})
 
     # Initialize Important System IPs to None
     PASSWORD_MANAGER_IP = None
@@ -950,12 +1061,17 @@ def main():
             cred_str = " | ".join(formatted_linux_creds)
             print(f"Using Linux Credentials | {cred_str}\n")
 
+    if not RUN_NMAP:
+        print(f"\n=====================================Setting Vars based on Params: {subnet_select}=====================================\n\n")
+        scan_all_hosts_no_nmap(windows_hosts=args.windows_hosts, linux_hosts=args.linux_hosts)
+
     if subnet is not None:
         subnets = [x.strip() for x in subnet.split(",")]
         
         for subnet_select in subnets:
-            print(f"\n=====================================SCANNING IPv4 SUBNET: {subnet_select}=====================================\n\n")
-            scan_all_hosts(subnet_select)
+            if RUN_NMAP:
+                print(f"\n=====================================SCANNING IPv4 SUBNET: {subnet_select}=====================================\n\n")
+                scan_all_hosts(subnet_select)
             print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {subnet_select}============================\n\n")
             gather_info(subnet_select)
 
@@ -963,8 +1079,9 @@ def main():
         ipv6_subnets = [x.strip() for x in ipv6_subnet.split(",")]
         
         for ipv6_subnet_select in ipv6_subnets:
-            print(f"\n=====================================SCANNING IPv6 SUBNET: {ipv6_subnet_select}=====================================\n\n")
-            scan_all_hosts(ipv6_subnet_select)
+            if RUN_NMAP:
+                print(f"\n=====================================SCANNING IPv6 SUBNET: {ipv6_subnet_select}=====================================\n\n")
+                scan_all_hosts(ipv6_subnet_select)
             print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {ipv6_subnet_select}============================\n\n")
             gather_info(ipv6_subnet_select)
 
