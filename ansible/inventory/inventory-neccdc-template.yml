@@ -12,7 +12,7 @@ all:
         siem_IP: "" # REPLACE
         siem_name: "Grafana"
         adfs_backup_password: "27ef52577a35467907ca12ed"
-        stabvest_ip: "" # REPLACE
+        magpie_ip: "" # REPLACE
         winrm_ip: "" # REPLACE
         birdsnest_host_ip: "192.168.14.5"
         birdsnest_host: "192.168.14.5:443"

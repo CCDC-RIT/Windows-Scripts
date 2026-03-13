@@ -12,7 +12,7 @@ param(
     [ValidateSet("Grafana","Graylog","Wazuh","none")]
     [array]$siemName = "none",
     [Parameter(Mandatory=$false)]
-    [string]$stabvestIP="169.254.0.0/16",
+    [string]$magpieIP="169.254.0.0/16",
     [Parameter(Mandatory=$false)]
     [string]$passmgrIP="169.254.0.0/16",
     [Parameter(Mandatory=$false)]
@@ -386,10 +386,10 @@ if ($siemName -ne "none") {
     }
 }
 
-# Stabvest 
-$errorChecking = netsh adv f a r n=Stabvest-Client dir=out act=allow prof=any prot=tcp remoteip=$stabvestIP remoteport=443
-if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "Stabvest"){
-    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Stabvest firewall rules set" -ForegroundColor white
+# Magpie 
+$errorChecking = netsh adv f a r n=Magpie-Client dir=out act=allow prof=any prot=tcp remoteip=$magpieIP remoteport=443
+if(handleErrors -errorString $errorChecking -numRules 1 -ruleType "Magpie"){
+    Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Magpie firewall rules set" -ForegroundColor white
 }
 
 # Passmgr

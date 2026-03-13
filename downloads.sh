@@ -146,8 +146,8 @@ download "https://github.com/CCDC-RIT/Password-Manager/raw/refs/heads/main/clien
 if [ ! -d "ansible/roles/birdsnest-owlet/files" ]; then
     mkdir -p "ansible/roles/birdsnest-owlet/files"
 fi
-if [ ! -d "ansible/roles/birdsnest-stabvest/files" ]; then
-    mkdir -p "ansible/roles/birdsnest-stabvest/files"
+if [ ! -d "ansible/roles/birdsnest-magpie/files" ]; then
+    mkdir -p "ansible/roles/birdsnest-magpie/files"
 fi
 if [ ! -d "/opt/birdsnest" ]; then
     mkdir -p "/opt/birdsnest"
@@ -155,7 +155,7 @@ fi
 git clone https://github.com/CCDC-RIT/birdsnest "/opt/birdsnest"
 chmod -R 0777 "/opt/birdsnest"
 cp -p /opt/birdsnest/birdsnest/agents/owlet ansible/roles/birdsnest-owlet/files
-cp -p /opt/birdsnest/birdsnest/agents/stabvest ansible/roles/birdsnest-stabvest/files
+cp -p /opt/birdsnest/birdsnest/agents/magpie ansible/roles/birdsnest-magpie/files
 
 # Get-InjectedThread and Stop-Thread
 download "https://gist.githubusercontent.com/jaredcatkinson/23905d34537ce4b5b1818c3e6405c1d2/raw/104f630cc1dda91d4cb81cf32ef0d67ccd3e0735/Get-InjectedThread.ps1" -O "ansible/roles/copy-other/files/Get-InjectedThread.ps1"

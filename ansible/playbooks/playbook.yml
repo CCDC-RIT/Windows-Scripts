@@ -86,14 +86,14 @@
     - owlet
   #ignore_errors: true
 
-- name: "WIN - Setup Birdsnest Stabvest Client"
+- name: "WIN - Setup Birdsnest Magpie Client"
   hosts: windows
   roles:
-    - birdsnest-stabvest
+    - birdsnest-magpie
   tags:
     - never
     - windows
-    - stabvest
+    - magpie
   #ignore_errors: true
 
 - name: "WIN - Logging"
