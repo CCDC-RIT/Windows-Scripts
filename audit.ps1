@@ -33,10 +33,11 @@ if (Get-Service -Name CertSvc 2>$null) {
 
 Function Yara-ScanDir {
     param(
-        [string]$Directory
+        [string[]]$Directories
     )
-    & $psexecPath /accepteula -s (Join-Path -Path $yaraDir -ChildPath "yara64_ccdc.exe") -C (Join-Path -Path $yaraDir -ChildPath "windows_compiled_yara_rules") $Directory -r --threads=1 --no-warnings > $yaraPath
-
+    foreach ($Directory in $Directories) {
+        & $psexecPath /accepteula -s (Join-Path -Path $yaraDir -ChildPath "yara64_ccdc.exe") -C (Join-Path -Path $yaraDir -ChildPath "windows_compiled_yara_rules") $Directory -r --threads=1 --no-warnings >> $yaraPath
+    }
     (Get-Content $yaraPath | Where-Object { -not $_.Contains($rootDir) }) | Set-Content $yaraPath
 
 }
@@ -877,6 +878,6 @@ $rules = $($rules.Replace("`r`n", " ") -split " ")
 # Run Yara on everything
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "INFO" -ForegroundColor yellow -NoNewLine; Write-Host "] Auditing entire file system with YARA. This takes a while" -ForegroundColor white
-Yara-ScanDir -Directory '"C:\Windows\System32" "C:\Windows\Fonts" "C:\Program Files" "C:\Program Files (x86)" "C:\Users" "C:\Windows\System" "C:\ProgramData"' 
+Yara-ScanDir -Directories @('"C:\Windows\System32"', '"C:\Windows\Fonts"', '"C:\Program Files"', '"C:\Program Files (x86)"', '"C:\Users"', '"C:\Windows\System"', '"C:\ProgramData"')
 
 Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -ForegroundColor green -NoNewLine; Write-Host "] Audited entire file system with YARA" -ForegroundColor white
