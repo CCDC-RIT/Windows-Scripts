@@ -435,8 +435,11 @@ def detect_windows_mac(session, ip_address):
     global HOST_INFO
 
     # Detects MAC Address
-    mac_query = session.run_cmd(f'powershell -c "(Get-NetIPConfiguration | Where-Object {{ $_.IPv4Address.IPAddress -eq {host} }}).NetAdapter.MacAddress"')
-    pass
+    mac_query = session.run_cmd(f'powershell -c "(Get-NetIPConfiguration | Where-Object {{ $_.IPv4Address.IPAddress -eq {ip_address} }}).NetAdapter.MacAddress"')
+    if mac_query.status_code == 0:
+        mac_address = mac_query.std_out.decode().strip()
+        if mac_address != '':
+            HOST_INFO[ip_address]['MAC'] = mac_address
 
 def determine_windows_os_version(session, ip_address):
     global HOST_INFO
@@ -564,6 +567,7 @@ def linux_port_scan_only(host):
     global HOST_INFO
 
     print("Detected Potential Scored Services: ",end="")
+    HOST_INFO[host]['Hostname'] = "no_hostname"
     try:
         ps = nmap.PortScanner()
         # Use -6 flag for IPv6 scanning
@@ -666,25 +670,25 @@ def find_password_manager_and_birdsnest_ips():
                 maybe_ips.append(host)
 
     for ip in best_ips:
-        if "24" in HOST_INFO[ip][OS_Version] and "Ubuntu" in HOST_INFO[ip][OS_Version]:
+        if "24" in HOST_INFO[ip]['OS_Version'] and "Ubuntu" in HOST_INFO[ip]['OS_Version']:
             ip_list.append(ip)
-        elif "12" in HOST_INFO[ip][OS_Version] and "Debian" in HOST_INFO[ip][OS_Version]:
+        elif "12" in HOST_INFO[ip]['OS_Version'] and "Debian" in HOST_INFO[ip]['OS_Version']:
             ip_list.append(ip)
-        elif "22" in HOST_INFO[ip][OS_Version] and "Ubuntu" in HOST_INFO[ip][OS_Version]:
+        elif "22" in HOST_INFO[ip]['OS_Version'] and "Ubuntu" in HOST_INFO[ip]['OS_Version']:
             ip_list.append(ip)
-        elif "11" in HOST_INFO[ip][OS_Version] and "Debian" in HOST_INFO[ip][OS_Version]:
+        elif "11" in HOST_INFO[ip]['OS_Version'] and "Debian" in HOST_INFO[ip]['OS_Version']:
             ip_list.append(ip)
         else:
             ip_list.append(ip)
     
     for ip in next_best_ips:
-        if "9" in HOST_INFO[ip][OS_Version] and "Rocky" in HOST_INFO[ip][OS_Version]:
+        if "9" in HOST_INFO[ip]['OS_Version'] and "Rocky" in HOST_INFO[ip]['OS_Version']:
             ip_list.append(ip)
-        elif "9" in HOST_INFO[ip][OS_Version] and ("Rhel" in HOST_INFO[ip][OS_Version] or "Fedora" in HOST_INFO[ip][OS_Version]):
+        elif "9" in HOST_INFO[ip]['OS_Version'] and ("Rhel" in HOST_INFO[ip]['OS_Version'] or "Fedora" in HOST_INFO[ip]['OS_Version']):
             ip_list.append(ip)
-        elif "8" in HOST_INFO[ip][OS_Version] and "Rocky" in HOST_INFO[ip][OS_Version]:
+        elif "8" in HOST_INFO[ip]['OS_Version'] and "Rocky" in HOST_INFO[ip]['OS_Version']:
             ip_list.append(ip)
-        elif "8" in HOST_INFO[ip][OS_Version] and ("Rhel" in HOST_INFO[ip][OS_Version] or "Fedora" in HOST_INFO[ip][OS_Version]):
+        elif "8" in HOST_INFO[ip]['OS_Version'] and ("Rhel" in HOST_INFO[ip]['OS_Version'] or "Fedora" in HOST_INFO[ip]['OS_Version']):
             ip_list.append(ip)
         else:
             maybe_ips.append(ip)
@@ -694,14 +698,14 @@ def find_password_manager_and_birdsnest_ips():
 
     if len(ip_list) > 0:
         PASSWORD_MANAGER_IP = ip_list[0]        
-
+        print(f"Set Password Manager IP: {PASSWORD_MANAGER_IP}")
         if len(ip_list) > 1:
             BIRDSNEST_IP = ip_list[1]
             print(f"Set Birdsnest IP: {BIRDSNEST_IP}\n")
         else:
             print("No suitable IP's for Birdsnest :(")
     else:
-        print("No suitable IP's for Password Manager :(")    print(f"Set Password Manager IP: {PASSWORD_MANAGER_IP}")
+        print("No suitable IP's for Password Manager :(")
 
 def create_linux_ansible_inventory():
     global HOST_INFO
@@ -746,15 +750,17 @@ ssh_port=22
 backup_dir="/opt/{SCRIPTS_PATH}/backups"
 quarantine="/opt/{SCRIPTS_PATH}/quarantine"
 audit_dir="/opt/{SCRIPTS_PATH}/audit"
-password_manager_ip="{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
-birdsnest_host_ip="{BIRDSNEST_IP if BIRDSNEST_IP is not None elif PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
-birdsnest_host="{BIRDSNEST_IP if BIRDSNEST_IP is not None elif PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}:{"443" if BIRDSNEST_IP is not None elif "1738" if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
-birdsnest_token="{BIRDSNEST_TOKEN}"stabvest_controller_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
 ansible_control_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''} 
 domain_controller_ip="{DOMAIN_CONTROLLER_IP if DOMAIN_CONTROLLER_IP is not None else ''}"{' #REPLACE' if DOMAIN_CONTROLLER_IP is None else ''}
 domain_controller_domain="{DOMAIN_CONTROLLER_DOMAIN if DOMAIN_CONTROLLER_DOMAIN is not None else ''}"{' #REPLACE' if DOMAIN_CONTROLLER_DOMAIN is None else ''}
 firewall_logging=true
 siem="{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if SIEM_TYPE is None else ''}
+password_manager_ip="{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
+birdsnest_host_ip="{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
+birdsnest_host="{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}:{'443' if BIRDSNEST_IP is not None else '1738' if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
+birdsnest_token="{BIRDSNEST_TOKEN}"
+birdsnest_allow_ips_web="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
+birdsnest_allow_ips_agent="{list(HOST_INFO.keys()) if len(HOST_INFO) > 0 else ''}"{' #REPLACE' if len(HOST_INFO) == 0 else ''}
 """
     for host in HOST_INFO.keys():
         if HOST_INFO[host]['OS'] == 'Linux':
@@ -812,8 +818,8 @@ all:
         password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
         siem_IP: "{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is None else ''}
         siem_name: "{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if SIEM_TYPE is None else ''}
-        birdsnest_host_ip: "{BIRDSNEST_IP ifIP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
-        birdsnest_host: "{BIRDSNEST_IP if BIRDSNEST_IP is not None elif PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}:{"443" if BIRDSNEST_IP is not None elif "1738" if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
+        birdsnest_host_ip: "{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"
+        birdsnest_host: "{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}:{"443" if BIRDSNEST_IP is not None else "1738" if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
         birdsnest_token: "{BIRDSNEST_TOKEN}"
         winrm_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
       children:
@@ -1010,8 +1016,8 @@ def main():
 
     # HOST_INFO is now populated, so we can discover controller/source IP reliably.
     get_local_ip()
-    find_password_manager_and_birdsnest_ips
-    find_password_manager_ip()
+    find_domain_controller()
+    find_password_manager_and_birdsnest_ips()
 
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")
 

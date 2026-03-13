@@ -7,12 +7,13 @@ all:
         ansible_winrm_server_cert_validation: ignore
         ansible_winrm_port: 5985
         ansible_winrm_transport: ntlm
-        scripts_path: "C:\\Perflogs\\Minecraft.log"
+        scripts_path: "C:\\Perflogs\\roblox"
         password_manager_ip: "172.16.1.10"
-        siem_IP: "172.16.1.11"
+        siem_IP: "172.16.1.10"
         siem_name: "Grafana"
-        adfs_backup_password: "a30d9d168c6d8a80f1d4e7f2"
-        stabvest_ip: "192.168.1.51"
+        birdsnest_host_ip: "10.1.1.10"
+        birdsnest_host: "10.1.1.10:443"
+        birdsnest_token: "ec452d9c489b"
         winrm_ip: "192.168.1.51"
       children:
         win_172_16_1_20:
