@@ -153,8 +153,8 @@ if [ ! -d "birdsnest" ]; then
     mkdir -p "birdsnest"
 fi
 git clone https://github.com/CCDC-RIT/birdsnest "birdsnest"
-cp -p birdsnest/birdsnest/agents/owlet ansible/roles/birdsnest-owlet/files
-cp -p birdsnest/birdsnest/agents/magpie ansible/roles/birdsnest-magpie/files
+cp -pr birdsnest/birdsnest/agents/owlet ansible/roles/birdsnest-owlet/files
+cp -pr birdsnest/birdsnest/agents/magpie ansible/roles/birdsnest-magpie/files
 rm -r birdsnest
 
 # Get-InjectedThread and Stop-Thread
