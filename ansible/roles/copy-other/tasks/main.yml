@@ -361,7 +361,7 @@
 
 - name: Rename Autoruns executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ar" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ar\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ar" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ar\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -372,7 +372,7 @@
 
 - name: Rename PSExec executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ps" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ps\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ps" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ps\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -383,7 +383,7 @@
 
 - name: Rename List DLLs executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\dll" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\dll\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\dll" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\dll\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -394,7 +394,7 @@
 
 - name: Rename Process Explorer executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pe" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pe\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pe" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pe\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -405,7 +405,7 @@
 
 - name: Rename Process Monitor executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\pm" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\pm\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -416,7 +416,7 @@
 
 - name: Rename Sig Check executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sc" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sc\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sc" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sc\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -427,7 +427,7 @@
 
 - name: Rename TCP View executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\tv" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\tv\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\tv" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\tv\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -438,7 +438,7 @@
 
 - name: Rename Streams executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\stm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\stm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\stm" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\stm\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -449,7 +449,7 @@
 
 - name: Rename Sysmon executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sm" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sm\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\sm" -Filter "*.exe").BaseName | ForEach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\sm\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -460,7 +460,7 @@
 
 - name: Rename Access Check executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ac" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ac\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\ac" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\ac\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -471,7 +471,7 @@
 
 - name: Rename Strings executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\str" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\str\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\sys\\str" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\sys\\str\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
@@ -482,7 +482,7 @@
 
 - name: Rename Yara executables
   win_shell: |
-    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\yara" -Filter "*.exe").BaseName | Foreach-Object { Rename-Item -Path "{{ scripts_path }}\\tools\\yara\\$($_).exe" -NewName "$($_)_ccdc.exe" }
+    (Get-ChildItem -Path "{{ scripts_path }}\\tools\\yara" -Filter "*.exe").BaseName | Foreach-Object { if ($_ -notlike "*_ccdc") { Rename-Item -Path "{{ scripts_path }}\\tools\\yara\\$($_).exe" -NewName "$($_)_ccdc.exe" } }
   args:
     no_profile: true
 
