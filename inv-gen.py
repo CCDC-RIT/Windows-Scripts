@@ -17,6 +17,7 @@ LINUX_INVENTORY_FILE = '../linux-ansible/inventory/inventory.ini'
 WINDOWS_IP_FILE = 'windows_clients.txt'
 ALL_IP_FILE = '../linux-ansible/roles/password-manager-server/files/starting_clients.txt'
 TOPOLOGY_FILE = 'topology.csv'
+FULL_INVENTORY_FILE = 'inventory.csv'
 
 # Global Credential Variables
 global LOCAL_USERNAME
@@ -25,6 +26,8 @@ global LINUX_CREDENTIALS
 
 # Global IP Variables
 global PASSWORD_MANAGER_IP
+global BIRDSNEST_IP
+global BIRDSNEST_TOKEN
 global GRAFANA_IP
 global GRAYLOG_IP
 global WAZUH_IP
@@ -78,8 +81,10 @@ def scan_all_hosts(subnet):
             'Username': None,
             'Password': None,
             'Hostname': None,
+            'MAC': None,
             'Domain': None,
             'Services': set(),
+            'Users': set(),
         }
 
         for port in lport:
@@ -200,7 +205,8 @@ def gather_info(subnet):
                 os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
 
             if not (host.split(".")[3] == "254" or host.split(".")[3] == "255"):
-                log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{os_version},\"{services_str}\"")
+                log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
+            log(FULL_INVENTORY_FILE, f"{host},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{HOST_INFO[host]['OS']},{os_version},\"{services_str}\"")
 
 def gather_windows_info(host):
     for i in range(len(DOMAIN_CREDENTIALS)):
@@ -261,12 +267,9 @@ def detect_windows_scored_services(session, ip_address):
             HOST_INFO[ip_address]['Hostname'] = hostname
             print("Detected Potential Scored Services: ",end="")
         
-        # Detects domain
-        domain_query = session.run_cmd('powershell -c "(Get-WmiObject Win32_ComputerSystem).Domain"')
-        if domain_query.status_code == 0:
-            domain = domain_query.std_out.decode().strip()
-            if domain and domain.lower() != 'workgroup':
-                HOST_INFO[ip_address]['Domain'] = domain
+        detect_windows_domain(session, ip_address)
+        detect_windows_users(session, ip_address)
+        detect_windows_mac(session, ip_address)
 
         check_ftp = session.run_cmd('sc query ftpsvc')
         if check_ftp.status_code == 0:
@@ -406,6 +409,34 @@ def determine_os(nm, host):
                 return 'Linux'
 
     return 'FreeBSD'  # Default to FreeBSD if no matches found
+
+def detect_windows_domain(session, ip_address):
+    global HOST_INFO
+
+    # Detects domain
+    domain_query = session.run_cmd('powershell -c "(Get-WmiObject Win32_ComputerSystem).Domain"')
+    if domain_query.status_code == 0:
+        domain = domain_query.std_out.decode().strip()
+        if domain and domain.lower() != 'workgroup':
+            HOST_INFO[ip_address]['Domain'] = domain
+
+def detect_windows_users(session, ip_address):
+    global HOST_INFO
+
+    # Detects users
+    users_query = session.run_cmd('powershell -c "Get-WmiObject Win32_UserAccount -Filter \'LocalAccount=True\' | Select-Object -ExpandProperty Name"')
+    if users_query.status_code == 0:
+        users = users_query.std_out.decode().strip().split('\n')
+        for user in users:
+            if user.strip() != '':
+                HOST_INFO[ip_address]['Users'].add(user.strip())
+
+def detect_windows_mac(session, ip_address):
+    global HOST_INFO
+
+    # Detects MAC Address
+    mac_query = session.run_cmd(f'powershell -c "(Get-NetIPConfiguration | Where-Object {{ $_.IPv4Address.IPAddress -eq {host} }}).NetAdapter.MacAddress"')
+    pass
 
 def determine_windows_os_version(session, ip_address):
     global HOST_INFO
@@ -615,11 +646,16 @@ def get_local_ip():
     if LOCAL_IP is None:
         print("Failed to determine local IP\n")
 
-def find_password_manager_ip():
+def find_password_manager_and_birdsnest_ips():
     global PASSWORD_MANAGER_IP
+    global BIRDSNEST_IP
+    global BIRDSNEST_TOKEN
+    BIRDSNEST_TOKEN = os.urandom(6).hex()
+
     best_ips = []
     next_best_ips = []
     maybe_ips = []
+    ip_list = []
     for host in HOST_INFO.keys():
         if "." in host and "443" not in HOST_INFO[host]['Services']:
             if "Ubuntu" in HOST_INFO[host]['OS_Version'] or "Debian" in HOST_INFO[host]['OS_Version']:
@@ -629,16 +665,43 @@ def find_password_manager_ip():
             elif "Linux" in HOST_INFO[host]['OS']:
                 maybe_ips.append(host)
 
-    if best_ips:
-        PASSWORD_MANAGER_IP = best_ips[0]
-    elif next_best_ips:
-        PASSWORD_MANAGER_IP = next_best_ips[0]
-    elif maybe_ips:
-        PASSWORD_MANAGER_IP = maybe_ips[0]
-    else:
-        PASSWORD_MANAGER_IP = None
+    for ip in best_ips:
+        if "24" in HOST_INFO[ip][OS_Version] and "Ubuntu" in HOST_INFO[ip][OS_Version]:
+            ip_list.append(ip)
+        elif "12" in HOST_INFO[ip][OS_Version] and "Debian" in HOST_INFO[ip][OS_Version]:
+            ip_list.append(ip)
+        elif "22" in HOST_INFO[ip][OS_Version] and "Ubuntu" in HOST_INFO[ip][OS_Version]:
+            ip_list.append(ip)
+        elif "11" in HOST_INFO[ip][OS_Version] and "Debian" in HOST_INFO[ip][OS_Version]:
+            ip_list.append(ip)
+        else:
+            ip_list.append(ip)
     
-    print(f"Set Password Manager IP: {PASSWORD_MANAGER_IP}")
+    for ip in next_best_ips:
+        if "9" in HOST_INFO[ip][OS_Version] and "Rocky" in HOST_INFO[ip][OS_Version]:
+            ip_list.append(ip)
+        elif "9" in HOST_INFO[ip][OS_Version] and ("Rhel" in HOST_INFO[ip][OS_Version] or "Fedora" in HOST_INFO[ip][OS_Version]):
+            ip_list.append(ip)
+        elif "8" in HOST_INFO[ip][OS_Version] and "Rocky" in HOST_INFO[ip][OS_Version]:
+            ip_list.append(ip)
+        elif "8" in HOST_INFO[ip][OS_Version] and ("Rhel" in HOST_INFO[ip][OS_Version] or "Fedora" in HOST_INFO[ip][OS_Version]):
+            ip_list.append(ip)
+        else:
+            maybe_ips.append(ip)
+
+    for ip in maybe_ips:
+        ip_list.append(ip)
+
+    if len(ip_list) > 0:
+        PASSWORD_MANAGER_IP = ip_list[0]        
+
+        if len(ip_list) > 1:
+            BIRDSNEST_IP = ip_list[1]
+            print(f"Set Birdsnest IP: {BIRDSNEST_IP}\n")
+        else:
+            print("No suitable IP's for Birdsnest :(")
+    else:
+        print("No suitable IP's for Password Manager :(")    print(f"Set Password Manager IP: {PASSWORD_MANAGER_IP}")
 
 def create_linux_ansible_inventory():
     global HOST_INFO
@@ -684,8 +747,9 @@ backup_dir="/opt/{SCRIPTS_PATH}/backups"
 quarantine="/opt/{SCRIPTS_PATH}/quarantine"
 audit_dir="/opt/{SCRIPTS_PATH}/audit"
 password_manager_ip="{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
-siem_ip="{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is None else ''}
-stabvest_controller_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
+birdsnest_host_ip="{BIRDSNEST_IP if BIRDSNEST_IP is not None elif PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
+birdsnest_host="{BIRDSNEST_IP if BIRDSNEST_IP is not None elif PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}:{"443" if BIRDSNEST_IP is not None elif "1738" if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
+birdsnest_token="{BIRDSNEST_TOKEN}"stabvest_controller_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
 ansible_control_ip="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''} 
 domain_controller_ip="{DOMAIN_CONTROLLER_IP if DOMAIN_CONTROLLER_IP is not None else ''}"{' #REPLACE' if DOMAIN_CONTROLLER_IP is None else ''}
 domain_controller_domain="{DOMAIN_CONTROLLER_DOMAIN if DOMAIN_CONTROLLER_DOMAIN is not None else ''}"{' #REPLACE' if DOMAIN_CONTROLLER_DOMAIN is None else ''}
@@ -748,8 +812,9 @@ all:
         password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
         siem_IP: "{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is None else ''}
         siem_name: "{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if SIEM_TYPE is None else ''}
-        adfs_backup_password: "{adfs_backup_password}"
-        stabvest_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
+        birdsnest_host_ip: "{BIRDSNEST_IP ifIP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
+        birdsnest_host: "{BIRDSNEST_IP if BIRDSNEST_IP is not None elif PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}:{"443" if BIRDSNEST_IP is not None elif "1738" if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
+        birdsnest_token: "{BIRDSNEST_TOKEN}"
         winrm_ip: "{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
       children:
         """
@@ -889,7 +954,18 @@ def main():
     print(f"Topology file created: {TOPOLOGY_FILE}")
     
     with open(TOPOLOGY_FILE, 'w') as topology_file:
-        topology_file.write('subnet,ip,hostname,domain,os,services' + '\n')
+        topology_file.write('subnet,ip,hostname,os,services' + '\n')
+
+    # Full Inventory CSV file for Inject 1
+    if os.path.exists(FULL_INVENTORY_FILE):
+        os.system(f'rm {FULL_INVENTORY_FILE}')
+    
+    os.system(f'touch {FULL_INVENTORY_FILE}')
+    os.system(f'chown {LOCAL_USERNAME}:{LOCAL_USERNAME} {FULL_INVENTORY_FILE}')
+    print(f"Topology file created: {FULL_INVENTORY_FILE}")
+    
+    with open(FULL_INVENTORY_FILE, 'w') as inventory_file:
+        inventory_file.write('subnet,ip,mac,hostname,domain,os,services,users' + '\n')
 
     print("\n\n======================================SUBNET SCANNING======================================\n\n")
     # Gathers and Formats Credentials
@@ -934,7 +1010,7 @@ def main():
 
     # HOST_INFO is now populated, so we can discover controller/source IP reliably.
     get_local_ip()
-    find_domain_controller()
+    find_password_manager_and_birdsnest_ips
     find_password_manager_ip()
 
     print("\n==========================ADDING INFORMATION TO ANSIBLE INVENTORY==========================\n\n")

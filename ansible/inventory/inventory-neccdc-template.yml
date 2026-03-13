@@ -14,6 +14,9 @@ all:
         adfs_backup_password: "27ef52577a35467907ca12ed"
         stabvest_ip: "" # REPLACE
         winrm_ip: "" # REPLACE
+        birdsnest_host_ip: "192.168.14.5"
+        birdsnest_host: "192.168.14.5:443"
+        birdsnest_token: "ABCDEFGHIJKL" # REPLACE
         ansible_user: "" # REPLACE
         ansible_password: "" # REPLACE
       children:
