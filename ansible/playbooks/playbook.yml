@@ -76,6 +76,26 @@
     - never
   ignore_errors: true
 
+- name: "WIN - Setup Birdsnest Owlet Client"
+  hosts: all
+  roles:
+    - birdsnest-owlet
+  tags:
+    - never
+    - windows
+    - owlet
+  #ignore_errors: true
+
+- name: "WIN - Setup Birdsnest Stabvest Client"
+  hosts: windows
+  roles:
+    - birdsnest-stabvest
+  tags:
+    - never
+    - windows
+    - stabvest
+  #ignore_errors: true
+
 - name: "WIN - Logging"
   hosts: windows
   gather_facts: false
