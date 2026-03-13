@@ -13,7 +13,7 @@ all:
         siem_name: "Grafana"
         birdsnest_host_ip: "10.1.1.10"
         birdsnest_host: "10.1.1.10:443"
-        birdsnest_token: "ec452d9c489b"
+        birdsnest_token: "e017e2a7b28e"
         winrm_ip: "192.168.1.51"
       children:
         win_172_16_1_20:
@@ -51,7 +51,7 @@ all:
             ansible_user: "Administrator"
             ansible_password: "Password-123456"
             scored_services: "httpsio"
-            is_win_server: "true"
+            is_win_server: "false"
             is_server_core: "false"
             server_type: "adfs"
           hosts:

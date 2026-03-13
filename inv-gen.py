@@ -28,9 +28,7 @@ global LINUX_CREDENTIALS
 global PASSWORD_MANAGER_IP
 global BIRDSNEST_IP
 global BIRDSNEST_TOKEN
-global GRAFANA_IP
-global GRAYLOG_IP
-global WAZUH_IP
+global SIEM_IP
 global LOCAL_IP
 global DOMAIN_CONTROLLER_IP
 global DOMAIN_CONTROLLER_DOMAIN
@@ -105,12 +103,6 @@ def scan_all_hosts(subnet):
         else:
             print(f"Unix Host {host} detected:\n",end="")
             HOST_INFO[host]['OS'] = os_version
-            if GRAFANA_IP is None and SIEM_TYPE == 'grafana':
-                find_grafana(host)
-            elif GRAYLOG_IP is None and SIEM_TYPE == 'graylog':
-                find_graylog(host)
-            elif WAZUH_IP is None and SIEM_TYPE == 'wazuh':
-                find_wazuh(host)
 
         if HOST_INFO[host]['Services'] == set():
             print("No Detected Remoting Services", end="")
@@ -122,44 +114,12 @@ def scan_all_hosts(subnet):
 
         print("\n")
 
-def find_grafana(host):
-    global GRAFANA_IP
-    nm = nmap.PortScanner()
-    if ":" in host:
-        nm.scan(hosts=host, arguments='-6 -p 3000,9000')
-    else:
-        nm.scan(hosts=host, arguments='-p 3000,9000')
-    grafana_ports = [3000,9000]
-    for port in grafana_ports:
-        if nm[host].has_tcp(port) and nm[host]['tcp'][port]['state'] == 'open':
-            GRAFANA_IP = host
-            print(f"Set as Grafana IP\n",end="")
-            break
-
-def find_graylog(host):
-    global GRAYLOG_IP
-    nm = nmap.PortScanner()
-    if ":" in host:
-        nm.scan(hosts=host, arguments='-6 -p 514,5044,5555,9000,9200,9300,27017')
-    else:
-        nm.scan(hosts=host, arguments='-p 514,5044,5555,9000,9200,9300,27017')
-    graylog_ports = [514,5044,5555,9000,9200,9300,27017]
-    for port in graylog_ports:
-        if nm[host].has_tcp(port) and nm[host]['tcp'][port]['state'] == 'open':
-            GRAYLOG_IP = host
-            print(f"Set as Graylog IP\n",end="")
-            break
-
-def find_wazuh(host):
-    global WAZUH_IP
-    nm = nmap.PortScanner()
-    if ":" in host:
-        nm.scan(hosts=host, arguments='-6 -p 1514')
-    else:
-        nm.scan(hosts=host, arguments='-p 1514')
-    if nm[host].has_tcp(1514) and nm[host]['tcp'][1514]['state'] == 'open':
-        WAZUH_IP = host
-        print(f"Set as Wazuh IP\n",end="")
+def find_siem(host, output):
+    global SIEM_IP
+    for possible_siem_type in ['grafana', 'graylog', 'wazuh']:
+        if SIEM_TYPE.lower() == possible_siem_types and possible_siem_type in output:
+            siem_ip = host
+            print(f"Found {possible_siem_type} host: {host}")
 
 def find_domain_controller():
     global DOMAIN_CONTROLLER_IP
@@ -200,13 +160,14 @@ def gather_info(subnet):
                     print(f"Unix Host {host} has SSH Disabled, Running Port Scan:\n",end="")
                     linux_port_scan_only(host)
             services_str = ','.join(sorted(HOST_INFO[host]['Services'])) if HOST_INFO[host]['Services'] else 'None'
+            users_str = ','.join(sorted(HOST_INFO[host]['Users'])) if HOST_INFO[host]['Users'] else 'None'
             os_version = HOST_INFO[host]['OS_Version']
             if os_version:
                 os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
 
             if not (host.split(".")[3] == "254" or host.split(".")[3] == "255"):
                 log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
-            log(FULL_INVENTORY_FILE, f"{host},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{HOST_INFO[host]['OS']},{os_version},\"{services_str}\"")
+            log(FULL_INVENTORY_FILE, f"{subnet},{host},{HOST_INFO[host]['MAC']},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{os_version},\"{services_str}\",\"{users_str}\"")
 
 def gather_windows_info(host):
     for i in range(len(DOMAIN_CREDENTIALS)):
@@ -378,6 +339,7 @@ def detect_unix_scored_services(session, ip_address):
         print("Detected Potential Scored Services: ",end="")
         _, stdout, _ = session.exec_command('ss -tulnp')
         lines = stdout.read().decode().strip()
+        find_siem(lines)
         for line in lines.split('\n'):
             tokens = line.split()
             protocol = tokens[0]
@@ -417,15 +379,20 @@ def detect_windows_domain(session, ip_address):
     domain_query = session.run_cmd('powershell -c "(Get-WmiObject Win32_ComputerSystem).Domain"')
     if domain_query.status_code == 0:
         domain = domain_query.std_out.decode().strip()
-        print(f"Detected Domain: {domain}\n",end="")
+        #print(f"Detected Domain: {domain}\n",end="")
         if domain and domain.lower() != 'workgroup':
             HOST_INFO[ip_address]['Domain'] = domain
 
 def detect_windows_users(session, ip_address):
     global HOST_INFO
 
-    # Detects users
-    users_query = session.run_cmd('powershell -c "Get-WmiObject Win32_UserAccount -Filter \'LocalAccount=True\' | Select-Object -ExpandProperty Name"')
+    # Detects local users
+    if ip_address != DOMAIN_CONTROLLER_IP:
+        users_query = session.run_cmd('powershell -c "Get-WmiObject Win32_UserAccount -Filter \'LocalAccount=True\' | Select-Object -ExpandProperty Name"')
+    else:
+        # Detects domain users
+        users_query = session.run_cmd('powershell -c "Get-WmiObject Win32_UserAccount | Select-Object -ExpandProperty Name"')
+    
     if users_query.status_code == 0:
         users = users_query.std_out.decode().strip().split('\n')
         for user in users:
@@ -437,12 +404,15 @@ def detect_windows_mac(session, ip_address):
     global HOST_INFO
 
     # Detects MAC Address
-    mac_query = session.run_cmd(f'powershell -c "(Get-NetIPConfiguration | Where-Object {{ $_.IPv4Address.IPAddress -eq {ip_address} }}).NetAdapter.MacAddress"')
+    mac_query = session.run_cmd(f'powershell -c "(Get-NetIPConfiguration | Where-Object {{ $_.IPv4Address.IPAddress -eq {{{ip_address}}} }}).NetAdapter.MacAddress"')
     if mac_query.status_code == 0:
         mac_address = mac_query.std_out.decode().strip()
+        print(f"MAC Address Query Output: '{mac_address}'\n",end="")
         if mac_address != '':
             print(f"Detected MAC Address: {mac_address}\n",end="")
             HOST_INFO[ip_address]['MAC'] = mac_address
+    else:
+        print("Failed to retrieve MAC Address\n",end="")
 
 def determine_windows_os_version(session, ip_address):
     global HOST_INFO
@@ -721,7 +691,7 @@ def create_linux_ansible_inventory():
             ansible_host_list += host + "\n"
     ansible_host_list += f"""
 [logging]
-{GRAFANA_IP}
+{SIEM_IP if SIEM_IP is not None else ''}{' #REPLACE' if SIEM_IP is None else ''}
 
 [kube]
 
@@ -735,18 +705,8 @@ def create_linux_ansible_inventory():
                 
     ansible_host_list += f"""\n[alpine:vars]
 ansible_become_method=doas
-"""
-                
-    # Determine which SIEM IP to use based on SIEM_TYPE
-    siem_ip = None
-    if SIEM_TYPE == 'grafana':
-        siem_ip = GRAFANA_IP
-    elif SIEM_TYPE == 'graylog':
-        siem_ip = GRAYLOG_IP
-    elif SIEM_TYPE == 'wazuh':
-        siem_ip = WAZUH_IP
-    
-    ansible_host_list += f"""\n[all:vars]
+
+[all:vars]
 controller_in_scope_allow_ip=""
 ansible_connection=ssh
 ssh_port=22
@@ -798,15 +758,6 @@ def create_windows_ansible_inventory():
     print(f"Adding hosts to Ansible inventory file: {WINDOWS_INVENTORY_FILE}\n")
 
     adfs_backup_password = os.urandom(12).hex()
-    
-    # Determine which SIEM IP to use based on SIEM_TYPE
-    siem_ip = None
-    if SIEM_TYPE == 'grafana':
-        siem_ip = GRAFANA_IP
-    elif SIEM_TYPE == 'graylog':
-        siem_ip = GRAYLOG_IP
-    elif SIEM_TYPE == 'wazuh':
-        siem_ip = WAZUH_IP
 
     ansible_header_content = f"""---
 all:
