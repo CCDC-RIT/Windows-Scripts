@@ -210,6 +210,6 @@ download "https://github.com/rvazarkar/antipwny/raw/refs/heads/master/exe/x86/Ob
 # Datadog ip addresses
 download "https://ip-ranges.us5.datadoghq.com/" -O "ansible/roles/copy-core-scripts/files/datadog_ips.txt"
 # Tabula Download
-download "https://raw.githubusercontent.com/CCDC-RIT/stabvest-public/refs/heads/main/tabula/tabula.py" -O "ansible/roles/copy-other/files/tabula.py"
+download "https://raw.githubusercontent.com/CCDC-RIT/birdsnest/refs/heads/main/tabula/tabula.py" -O "ansible/roles/copy-other/files/tabula.py"
 
 echo "[SUCCESS] All tools downloaded"

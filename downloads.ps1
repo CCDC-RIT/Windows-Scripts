@@ -294,7 +294,7 @@ Write-Host "[" -ForegroundColor white -NoNewLine; Write-Host "SUCCESS" -Foregrou
 (New-Object System.Net.WebClient).DownloadFile("https://ip-ranges.us5.datadoghq.com/", (Join-Path -Path $ScriptPath -ChildPath "datadog_ips.txt"))
 
 # Tabula
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/stabvest-public/refs/heads/main/tabula/tabula.py", (Join-Path -Path $ScriptPath -ChildPath "tabula.py"))
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/CCDC-RIT/birdsnest/refs/heads/main/tabula/tabula.py", (Join-Path -Path $ScriptPath -ChildPath "tabula.py"))
 
 # Extraction
 Expand-Archive -LiteralPath (Join-Path -Path $InputPath -ChildPath "ar.zip") -DestinationPath (Join-Path -Path $SysPath -ChildPath "ar")
