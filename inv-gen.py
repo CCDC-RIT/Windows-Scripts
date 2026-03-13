@@ -417,6 +417,7 @@ def detect_windows_domain(session, ip_address):
     domain_query = session.run_cmd('powershell -c "(Get-WmiObject Win32_ComputerSystem).Domain"')
     if domain_query.status_code == 0:
         domain = domain_query.std_out.decode().strip()
+        print(f"Detected Domain: {domain}\n",end="")
         if domain and domain.lower() != 'workgroup':
             HOST_INFO[ip_address]['Domain'] = domain
 
@@ -429,6 +430,7 @@ def detect_windows_users(session, ip_address):
         users = users_query.std_out.decode().strip().split('\n')
         for user in users:
             if user.strip() != '':
+                print(f"Detected User: {user.strip()}",end=" ")
                 HOST_INFO[ip_address]['Users'].add(user.strip())
 
 def detect_windows_mac(session, ip_address):
@@ -439,6 +441,7 @@ def detect_windows_mac(session, ip_address):
     if mac_query.status_code == 0:
         mac_address = mac_query.std_out.decode().strip()
         if mac_address != '':
+            print(f"Detected MAC Address: {mac_address}\n",end="")
             HOST_INFO[ip_address]['MAC'] = mac_address
 
 def determine_windows_os_version(session, ip_address):
@@ -759,7 +762,7 @@ password_manager_ip="{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None els
 birdsnest_host_ip="{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
 birdsnest_host="{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}:{'443' if BIRDSNEST_IP is not None else '1738' if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
 birdsnest_token="{BIRDSNEST_TOKEN}"
-birdsnest_allow_ips_web="{LOCAL_IP if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
+birdsnest_allow_ips_web="{list(LOCAL_IP) if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
 birdsnest_allow_ips_agent="{list(HOST_INFO.keys()) if len(HOST_INFO) > 0 else ''}"{' #REPLACE' if len(HOST_INFO) == 0 else ''}
 """
     for host in HOST_INFO.keys():
