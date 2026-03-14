@@ -387,6 +387,10 @@ def gather_linux_info(host):
             print(f"Linux Host {host}:")
             print(f"Credentials Used: {username}:{password}")
             session = paramiko.SSHClient()
+
+            # host_config = ssh_config.lookup(host)
+
+
             session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             session.connect(host, username=username, password=password, timeout=10)
             detect_unix_hostname(session, host)
@@ -504,7 +508,17 @@ def detect_windows_scored_services(session, ip_address):
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":3389"').std_out.decode() != '':
                 print("RDP:3389",end="")
                 HOST_INFO[ip_address]['Services'].add('RDP')
+
+        check_keycloak = session.run_cmd('sc query keycloak')
+        if check_keycloak.status_code == 0:
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":8080"').std_out.decode() != '':
+                print("Keycloak:8080 ",end="")
+                HOST_INFO[ip_address]['Services'].add('Keycloak HTTP')
+            if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":8443"').std_out.decode() != '':
+                print("Keycloak:8443 ",end="")
+                HOST_INFO[ip_address]['Services'].add('Keycloak HTTPS')
         print("\n",end="")
+                
     except Exception as e:
         print("Failed to create WinRM session, attempting port scan\n",end="")
         windows_port_scan_only(ip_address)
@@ -744,9 +758,9 @@ def windows_port_scan_only(host):
         ps = nmap.PortScanner()
         # Use -6 flag for IPv6 scanning
         if ':' in host:
-            ps.scan(hosts=host, arguments='-n -Pn -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986 -6')
+            ps.scan(hosts=host, arguments='-n -Pn -p 21,22,23,53,67,80,123,389,443,445,636,1500,3389,5985,5986,8080,8443 -6')
         else:
-            ps.scan(hosts=host, arguments='-n -Pn -p 21,22,23,53,67,80,123,389,443,445,1500,3389,5985,5986')
+            ps.scan(hosts=host, arguments='-n -Pn -p 21,22,23,53,67,80,123,389,443,445,636,1500,3389,5985,5986,8080,8443')
         port_dict = {
             21: "FTP",
             22: "SSH",
@@ -758,10 +772,13 @@ def windows_port_scan_only(host):
             389: "LDAP",
             443: "HTTPS",
             445: "SMB",
+            636: "LDAPS",
             1500: "ADFS",
             3389: "RDP",
             5985: "WinRM HTTP",
-            5986: "WinRM HTTPS"
+            5986: "WinRM HTTPS",
+            8080: "Keycloak HTTP",
+            8443: "Keycloak HTTPS",
         }
         lport = ps[host]['tcp'].keys()
 
@@ -1062,6 +1079,17 @@ def main():
     if args.windows_hosts is not None and args.linux_hosts is not None:
         RUN_NMAP = False
         subnet, ipv6_subnet = get_subnets_from_ips(hosts=f"{args.windows_hosts},{args.linux_hosts}")
+
+    # load SSH config
+    ssh_config = SSHConfig.from_file("ssh.cfg")
+
+    # Initialize Teleport IPs
+    TELEPORT_IPS = {}
+    if args.teleport_mapping is not None:
+        teleport_mappings = args.teleport_mapping.split(',')
+        for mapping in teleport_mappings:
+            ip, hostname = mapping.split(':')
+            TELEPORT_IPS[ip.strip()] = hostname.strip()
 
     # Initialize Important System IPs to None
     PASSWORD_MANAGER_IP = None
