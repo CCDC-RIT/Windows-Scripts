@@ -590,9 +590,8 @@ def detect_windows_mac(session, ip_address):
     mac_query = session.run_cmd(f'powershell -c "(Get-NetIPConfiguration | Where-Object {{ $_.IPv4Address.IPAddress -eq {{{ip_address}}} }}).NetAdapter.MacAddress"')
     if mac_query.status_code == 0:
         mac_address = mac_query.std_out.decode().strip()
-        print(f"MAC Address Query Output: '{mac_address}'\n",end="")
         if mac_address != '':
-            print(f"Detected MAC Address: {mac_address}\n",end="")
+            #print(f"Detected MAC Address: {mac_address}\n",end="")
             HOST_INFO[ip_address]['MAC'] = mac_address
     else:
         print("Failed to retrieve MAC Address\n",end="")
@@ -661,19 +660,48 @@ def determine_unix_os_version(session, ip_address):
         hostname = stdout.read().decode().strip()
         HOST_INFO[ip_address]['Hostname'] = hostname
 
-        # Get Domain
-        try:
-            _, stdout, _ = session.exec_command('realm list | grep "realm-name" | awk -F\': \' \'{print $2}\'')
-            domain = stdout.read().decode().strip()
-            if domain:
-                HOST_INFO[ip_address]['Domain'] = domain
-        except:
-            pass
+        detect_unix_domain(session, ip_address)
+        detect_unix_users(session, ip_address)
+        detect_unix_mac(session, ip_address)
 
         session.close()
     except Exception as e:
         print(f"Unexpected SSH Error\n",end="")
     print("")
+
+def detect_unix_domain(session, ip_address):
+    global HOST_INFO
+
+    try:
+        _, stdout, _ = session.exec_command('realm list | grep "realm-name" | awk -F\': \' \'{print $2}\'')
+        domain = stdout.read().decode().strip()
+        if domain:
+            HOST_INFO[ip_address]['Domain'] = domain
+    except Exception as e:
+        pass
+
+def detect_unix_users(session, ip_address):
+    global HOST_INFO
+
+    try:
+        _, stdout, _ = session.exec_command('awk -F: \'$3 >= 1000 && $3 != 65534 {print $1}\' /etc/passwd')
+        users = stdout.read().decode().strip().split('\n')
+        for user in users:
+            if user.strip() != '':
+                HOST_INFO[ip_address]['Users'].add(user.strip())
+    except Exception as e:
+        pass
+
+def detect_unix_mac(session, ip_address):
+    global HOST_INFO
+
+    try:
+        _, stdout, _ = session.exec_command("ip link | grep 'link/ether' | awk '{print $2}'")
+        mac_address = stdout.read().decode().strip()
+        if mac_address != '':
+            HOST_INFO[ip_address]['MAC'] = mac_address
+    except Exception as e:
+        pass
 
 def windows_port_scan_only(host):
     global HOST_INFO
