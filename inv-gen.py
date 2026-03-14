@@ -365,6 +365,10 @@ def gather_windows_info(host):
             print(f"Credentials Used: {username}:{password}")
 
             # If successful creds have been found, then enumerate everything we want to know about the boxes
+            detect_windows_hostname(session, host)
+            detect_windows_domain(session, host)
+            detect_windows_users(session, host)
+            detect_windows_mac(session, host)
             detect_windows_scored_services(session, host)
             determine_windows_os_version(session, host)
             log(WINDOWS_IP_FILE, host)
@@ -385,6 +389,10 @@ def gather_linux_info(host):
             session = paramiko.SSHClient()
             session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             session.connect(host, username=username, password=password, timeout=10)
+            detect_unix_hostname(session, host)
+            detect_unix_domain(session, host)
+            detect_unix_mac(session, host)
+            detect_unix_users(session, host)
             detect_unix_scored_services(session, host)
             determine_unix_os_version(session, host)
             log(ALL_IP_FILE, host)
@@ -401,18 +409,7 @@ def gather_linux_info(host):
 def detect_windows_scored_services(session, ip_address):
     global HOST_INFO
 
-    try:
-        # Detects hostname (also serves as a basic command to verify WinRM connection works)
-        basic_query = session.run_cmd('hostname')
-        if basic_query.status_code == 0:
-            hostname = basic_query.std_out.decode().strip()
-            HOST_INFO[ip_address]['Hostname'] = hostname
-            print("Detected Potential Scored Services: ",end="")
-        
-        detect_windows_domain(session, ip_address)
-        detect_windows_users(session, ip_address)
-        detect_windows_mac(session, ip_address)
-
+    try:        
         check_ftp = session.run_cmd('sc query ftpsvc')
         if check_ftp.status_code == 0:
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":21"').std_out.decode() != '':
@@ -556,46 +553,70 @@ def determine_os(nm, host):
 
     return 'FreeBSD'  # Default to FreeBSD if no matches found
 
+def detect_windows_hostname(session, ip_address):
+    global HOST_INFO
+    
+    # Detects Hostname
+    try:    
+        hostname_query = session.run_cmd('hostname')
+        if hostname_query.status_code == 0:
+            hostname = hostname_query.std_out.decode().strip()
+            HOST_INFO[ip_address]['Hostname'] = hostname
+            print("Detected Potential Scored Services: ",end="")
+    except Exception as e:
+        print("Failed to create WinRM session, attempting port scan\n",end="")
+        print("")
+
 def detect_windows_domain(session, ip_address):
     global HOST_INFO
 
     # Detects domain
-    domain_query = session.run_cmd('powershell -c "(Get-WmiObject Win32_ComputerSystem).Domain"')
-    if domain_query.status_code == 0:
-        domain = domain_query.std_out.decode().strip()
-        #print(f"Detected Domain: {domain}\n",end="")
-        if domain and domain.lower() != 'workgroup':
-            HOST_INFO[ip_address]['Domain'] = domain
+    try:
+        domain_query = session.run_cmd('powershell -c "(Get-WmiObject Win32_ComputerSystem).Domain"')
+        if domain_query.status_code == 0:
+            domain = domain_query.std_out.decode().strip()
+            if domain and domain.lower() != 'workgroup':
+                HOST_INFO[ip_address]['Domain'] = domain
+    except Exception as e:
+        pass
 
 def detect_windows_users(session, ip_address):
     global HOST_INFO
 
-    # Detects local users
-    if ip_address != DOMAIN_CONTROLLER_IP:
-        users_query = session.run_cmd('powershell -c "Get-WmiObject Win32_UserAccount -Filter \'LocalAccount=True\' | Select-Object -ExpandProperty Name"')
-    else:
-        # Detects domain users
-        users_query = session.run_cmd('powershell -c "Get-WmiObject Win32_UserAccount | Select-Object -ExpandProperty Name"')
-    
-    if users_query.status_code == 0:
-        users = users_query.std_out.decode().strip().split('\n')
-        for user in users:
-            if user.strip() != '':
-                print(f"Detected User: {user.strip()}",end=" ")
-                HOST_INFO[ip_address]['Users'].add(user.strip())
+    # Detects users
+    try:
+        dc_query = session.run_cmd('powershell -c "(Get-WmiObject Win32_ComputerSystem).DomainRole"')
+        if dc_query.status_code == 0:
+            if dc_query.std_out.decode().strip() == '5' or dc_query.std_out.decode().strip() == '4': # Computer is a Domain Controller
+                # Find domain users
+                users_query = session.run_cmd('powershell -c "Get-WmiObject Win32_UserAccount | Select-Object -ExpandProperty Name"')
+            else:
+                # Find local users
+                users_query = session.run_cmd('powershell -c "Get-WmiObject Win32_UserAccount -Filter \'LocalAccount=True\' | Select-Object -ExpandProperty Name"')
+            if users_query.status_code == 0:
+                users = users_query.std_out.decode().strip().split('\n')
+                for user in users:
+                    if user.strip() != '':
+                        HOST_INFO[ip_address]['Users'].add(user.strip())
+        else:
+            pass
+    except Exception as e:
+        pass
 
 def detect_windows_mac(session, ip_address):
     global HOST_INFO
 
     # Detects MAC Address
-    mac_query = session.run_cmd(f'powershell -c "(Get-NetIPConfiguration | Where-Object {{ $_.IPv4Address.IPAddress -eq {{{ip_address}}} }}).NetAdapter.MacAddress"')
-    if mac_query.status_code == 0:
-        mac_address = mac_query.std_out.decode().strip()
-        if mac_address != '':
-            #print(f"Detected MAC Address: {mac_address}\n",end="")
-            HOST_INFO[ip_address]['MAC'] = mac_address
-    else:
-        print("Failed to retrieve MAC Address\n",end="")
+    try:
+        mac_query = session.run_cmd(f'powershell -c "(Get-NetIPConfiguration | Where-Object {{ $_.IPv4Address.IPAddress -eq {{{ip_address}}} }}).NetAdapter.MacAddress"')
+        if mac_query.status_code == 0:
+            mac_address = mac_query.std_out.decode().strip()
+            if mac_address != '':
+                HOST_INFO[ip_address]['MAC'] = mac_address
+        else:
+            pass
+    except Exception as e:
+        pass
 
 def determine_windows_os_version(session, ip_address):
     global HOST_INFO
@@ -656,23 +677,27 @@ def determine_unix_os_version(session, ip_address):
         elif "Amazon Linux" in os_info:
             HOST_INFO[ip_address]['OS_Short_Name'] = 'AmazonLinux'
 
-        # Get Hostname
-        _, stdout, _ = session.exec_command('hostname')
-        hostname = stdout.read().decode().strip()
-        HOST_INFO[ip_address]['Hostname'] = hostname
-
-        detect_unix_domain(session, ip_address)
-        detect_unix_users(session, ip_address)
-        detect_unix_mac(session, ip_address)
-
         session.close()
     except Exception as e:
         print(f"Unexpected SSH Error\n",end="")
     print("")
 
+def detect_unix_hostname(session, ip_address):
+    global HOST_INFO
+
+    # Get Hostname
+    try:
+        _, stdout, _ = session.exec_command('hostname')
+        hostname = stdout.read().decode().strip()
+        HOST_INFO[ip_address]['Hostname'] = hostname
+    except Exception as e:
+        print(f"Failed to create SSH session, attempting port scan\n",end="")
+        linux_port_scan_only(ip_address)
+
 def detect_unix_domain(session, ip_address):
     global HOST_INFO
 
+    # Get Domain
     try:
         _, stdout, _ = session.exec_command('realm list | grep "realm-name" | awk -F\': \' \'{print $2}\'')
         domain = stdout.read().decode().strip()
@@ -684,6 +709,7 @@ def detect_unix_domain(session, ip_address):
 def detect_unix_users(session, ip_address):
     global HOST_INFO
 
+    # Get Users with UID >= 1000 and != 65534 (nobody)
     try:
         _, stdout, _ = session.exec_command('awk -F: \'$3 >= 1000 && $3 != 65534 {print $1}\' /etc/passwd')
         users = stdout.read().decode().strip().split('\n')
@@ -696,8 +722,9 @@ def detect_unix_users(session, ip_address):
 def detect_unix_mac(session, ip_address):
     global HOST_INFO
 
+    # Get MAC Address
     try:
-        _, stdout, _ = session.exec_command("ip link | grep 'link/ether' | awk '{print $2}'")
+        _, stdout, _ = session.exec_command("ip link | grep 'link/ether' | awk '{print $2}' | head -n 1")
         mac_address = stdout.read().decode().strip()
         if mac_address != '':
             HOST_INFO[ip_address]['MAC'] = mac_address
@@ -1009,6 +1036,7 @@ def main():
     parser.add_argument('-siem', required=False, default="grafana", help='Choose the SIEM being used (e.g., grafana, graylog, wazuh)')
     parser.add_argument('-windows-hosts', required=False, help='Windows hosts')
     parser.add_argument('-linux-hosts', required=False, help='Linux hosts')
+    parser.add_argument('-teleport-mapping', required=False, help='List mapping teleport ips to hostnames in the format ip:hostname,ip:hostname')
     args = parser.parse_args()
 
     # Set global variables
@@ -1131,9 +1159,9 @@ def main():
         
         for subnet_select in subnets:
             if RUN_NMAP:
-                print(f"\n=====================================SCANNING IPv4 SUBNET: {subnet_select}=====================================\n\n")
+                print(f"\n=================================SCANNING IPv4 SUBNET: {subnet_select}=================================\n\n")
                 scan_all_hosts(subnet_select)
-            print(f"\n============================DETECTING OS AND POTENTIAL SERVICES FOR {subnet_select}============================\n\n")
+            print(f"\n========================DETECTING OS AND POTENTIAL SERVICES FOR {subnet_select}========================\n\n")
             gather_info(subnet_select)
 
     if ipv6_subnet is not None:
