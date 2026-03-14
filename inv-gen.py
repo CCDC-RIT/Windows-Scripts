@@ -518,7 +518,7 @@ def detect_windows_scored_services(session, ip_address):
                 print("Keycloak:8443 ",end="")
                 HOST_INFO[ip_address]['Services'].add('Keycloak HTTPS')
         print("\n",end="")
-                
+
     except Exception as e:
         print("Failed to create WinRM session, attempting port scan\n",end="")
         windows_port_scan_only(ip_address)
@@ -809,30 +809,12 @@ def linux_port_scan_only(host):
             ps.scan(hosts=host, arguments='-n -Pn -p 1-65535 -6')
         else:
             ps.scan(hosts=host, arguments='-n -Pn -p 1-65535')
-        port_dict = {
-            21: "FTP",
-            22: "SSH",
-            23: "Telnet",
-            80: "HTTP",
-            123: "NTP",
-            443: "HTTPS",
-            445: "SMB",
-            514: "Graylog",
-            3000: "Grafana",
-            5044: "Graylog",
-            5555: "Graylog",
-            9000: "Graylog",
-            9200: "Graylog",
-            9300: "Graylog",
-            27017: "Graylog",
-        }
         lport = ps[host]['tcp'].keys()
 
         # Log open ports found
         for port in lport:
             port_state = ps[host]['tcp'][port]['state']
             if port_state == 'open':
-                service = port_dict.get(port, f"Unknown ({port})")
                 print(f"tcp:{port} ",end="")
                 HOST_INFO[host]['Services'].add(f"tcp:{port}")
         print("\n")
