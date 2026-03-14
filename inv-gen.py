@@ -1029,6 +1029,11 @@ birdsnest_allow_ips_agent={list(HOST_INFO.keys()) + ["127.0.0.1"] if len(HOST_IN
                         scored_ports_tcp.append(port)
                     elif protocol.lower() == 'udp':
                         scored_ports_udp.append(port)
+            
+            if host in TELEPORT_IPS.keys():
+                key_checking = True
+            else:
+                key_checking = False
 
             ansible_host_list += f"""
 [{HOST_INFO[host]['OS_Short_Name'].replace('-', '_')}_{HOST_INFO[host]['Hostname'].replace('-', '_')}_{host.replace('.', '_').replace(':', '_')}]
@@ -1040,6 +1045,7 @@ ansible_password="{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is
 ansible_become_password="{HOST_INFO[host]['Password'] if HOST_INFO[host]['Password'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Password'] is None else ''}"
 scored_ports_tcp={ scored_ports_tcp if scored_ports_tcp else [] }
 scored_ports_udp={ scored_ports_udp if scored_ports_udp else [] }
+host_key_checking={ key_checking }
 """
     with open(LINUX_INVENTORY_FILE, 'w') as inventory_file:
         inventory_file.write(ansible_host_list)
@@ -1156,6 +1162,10 @@ def main():
     global SIEM_TYPE
     global RUN_NMAP
     global TELEPORT_IPS
+    global SIEM_IP
+    global BIRDSNEST_IP
+    
+    
 
     # Gathers Command Line Arguments
     SCRIPTS_PATH = args.sp
@@ -1170,10 +1180,9 @@ def main():
 
     # Initialize Important System IPs to None
     PASSWORD_MANAGER_IP = None
-    GRAFANA_IP = None
-    GRAYLOG_IP = None
-    WAZUH_IP = None
     DOMAIN_CONTROLLER_IP = None
+    SIEM_IP = None
+    BIRDSNEST_IP = None
 
     global HOST_INFO
     HOST_INFO = {}
