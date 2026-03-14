@@ -1,3 +1,24 @@
+# 🤖✨ inv-gen.py ✨🤖
+#
+# 🌟 WELCOME to the ULTIMATE Inventory Generation Script! 🌟
+#
+# 🔍 This INCREDIBLY POWERFUL script leverages cutting-edge network reconnaissance
+# 🚀 techniques to AUTOMATICALLY discover and catalog Windows and Linux hosts across
+# 💻 your enterprise environment with MAXIMUM EFFICIENCY and ZERO MANUAL EFFORT! 💡
+#
+# 🛠️  Key Features:
+#   📡 Performs lightning-fast nmap scanning to identify live hosts on your network
+#   🪟 Seamlessly enumerates Windows machines via WinRM for deep system intelligence
+#   🐧 Effortlessly connects to Linux hosts using SSH-based credential validation
+#   📋 Dynamically generates Ansible inventory files for streamlined automation
+#   🗂️ Writes comprehensive CSV inventory reports for full situational awareness
+#
+# 💼 This script is an ESSENTIAL TOOL for any world-class cybersecurity professional
+# 🏆 seeking to DOMINATE their network management workflows with UNPARALLELED precision!
+#
+# ⚠️ Please use responsibly and only on networks you own or have authorization to scan! ⚠️
+#
+
 # Windows Reconnaissance Script to Fill Out Ansible Inventory
 import os
 import nmap
