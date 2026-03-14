@@ -941,8 +941,8 @@ password_manager_ip="{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None els
 birdsnest_host_ip="{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
 birdsnest_host="{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}:{'443' if BIRDSNEST_IP is not None else '1738' if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
 birdsnest_token="{BIRDSNEST_TOKEN}"
-birdsnest_allow_ips_web="['{LOCAL_IP if LOCAL_IP is not None else ''}']"{' #REPLACE' if LOCAL_IP is None else ''}
-birdsnest_allow_ips_agent="{list(HOST_INFO.keys()) if len(HOST_INFO) > 0 else ''}"{' #REPLACE' if len(HOST_INFO) == 0 else ''}
+birdsnest_allow_ips_web=['{LOCAL_IP if LOCAL_IP is not None else ''}','127.0.0.1']{' #REPLACE' if LOCAL_IP is None else ''}
+birdsnest_allow_ips_agent={list(HOST_INFO.keys()) + ["127.0.0.1"] if len(HOST_INFO) > 0 else ''}{' #REPLACE' if len(HOST_INFO) == 0 else ''}
 """
     for host in HOST_INFO.keys():
         if HOST_INFO[host]['OS'] == 'Linux':
