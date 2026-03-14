@@ -340,9 +340,10 @@ def gather_info(subnet):
             if os_version:
                 os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
 
+            # Prevents routers being added to CSV files
             if not (host.split(".")[3] == "254" or host.split(".")[3] == "255"):
                 log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
-            log(FULL_INVENTORY_FILE, f"{subnet},{host},{HOST_INFO[host]['MAC']},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{os_version},\"{services_str}\",\"{users_str}\"")
+                log(FULL_INVENTORY_FILE, f"{subnet},{host},{HOST_INFO[host]['MAC']},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{os_version},\"{services_str}\",\"{users_str}\"")
 
 def gather_windows_info(host):
     # First, find the right credentials, and establish a WinRM connection
