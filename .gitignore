@@ -1,4 +1,5 @@
 topology.csv
+ssh.cfg
 inventory.csv
 windows_clients.txt
 ansible/roles/copy-core-scripts/files/

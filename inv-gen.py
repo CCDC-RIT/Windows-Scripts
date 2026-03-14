@@ -58,6 +58,7 @@ global RUN_WINDOWS
 global RUN_LINUX
 global SIEM_TYPE
 global RUN_NMAP
+global TELEPORT_IPS
 
 # Fixes PyWinRM ipv6 issue (Shoutout illidian80 on github)
 _original_build_url = winrm.Session._build_url
@@ -78,6 +79,76 @@ def _patched_build_url(target, transport):
 winrm.Session._build_url = _patched_build_url
 
 ##################################### HELPER FUNCTIONS (NO INTERACTION WITH HOSTS) ##################################
+
+def get_teleport_session(username, remote_fqdn):
+
+    ssh_config_path = os.path.expanduser("ssh.cfg")
+    ssh_config = paramiko.SSHConfig()
+    try:
+        with open(ssh_config_path) as f:
+            ssh_config.parse(f)
+    except FileNotFoundError:
+        print(f"Error: SSH config file not found at {ssh_config_path}")
+        exit(1)
+
+    # Look up configuration for the specific host
+    host_config = ssh_config.lookup(remote_fqdn)
+
+    # Handle ProxyCommand for Teleport (if applicable)
+    proxy = None
+    if 'proxycommand' in host_config:
+        proxy_command_str = host_config['proxycommand']
+        # Paramiko's ProxyCommand handles the execution
+        proxy = paramiko.ProxyCommand(proxy_command_str)
+
+    # Create the SSH client
+    session = paramiko.SSHClient()
+    # Automatically add the host key (use with caution, or pre-load known hosts)
+    session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    try:
+        # Extract parameters from the config lookup
+        hostname = host_config.get('hostname', remote_fqdn)
+        port = int(host_config.get('port', 22))
+        
+        # Handle identity file (private key) if specified
+        key_filename = host_config.get('identityfile')
+        cert_filename = host_config.get('certificatefile')
+
+        if key_filename:
+            key_filename = key_filename[0]
+
+        try:
+            priv_key = paramiko.RSAKey.from_private_key_file(key_filename)
+        except paramiko.SSHException:
+            priv_key = paramiko.Ed25519Key.from_private_key_file(key_filename)
+
+        # Manually load the certificate
+        if cert_filename:
+            with open(cert_filename, 'r') as f:
+                cert_content = f.read().strip()
+                priv_key.load_certificate(cert_content)
+
+        session.connect(
+            hostname=hostname,
+            port=port,
+            username=username,
+            pkey=priv_key,
+            sock=proxy,
+            timeout=10,
+            allow_agent=False,
+            look_for_keys=False
+        )
+
+        return session
+
+    except paramiko.SSHException as e:
+        print(f"SSH connection failed: {e}")
+    except socket.timeout:
+        print("Connection timed out.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
 
 def get_subnets_from_ips(hosts):
     # takes a comma seperated list of ips, and determines the ipv4 and ipv6 subnets contained in them
@@ -240,7 +311,7 @@ def scan_all_hosts(subnet):
     if ':' in subnet:
         nm.scan(hosts=subnet, arguments='-T5 -n -Pn --open -O -6 --min-parallelism 50 --max-parallelism 100 --min-rate 5000 --max-retries 1 -p 22,3389,5985,5986')
     else:
-        nm.scan(hosts=subnet, arguments='-T5 -n -Pn --open -O --min-rate 5000 --max-retries 1  -p 22,3389,5985,5986')
+        nm.scan(hosts=subnet, arguments='-T5 -n -Pn --open -O --min-rate 5000 --max-retries 1 -p 22,3389,5985,5986')
     for host in [x for x in nm.all_hosts()]:
         lport = nm[host]['tcp'].keys()
 
@@ -288,48 +359,50 @@ def scan_all_hosts(subnet):
 
 # This function is used when nmap is not avilable to us. This just populates all of the same information as scan_all_hosts, so that gather_info can be called
 def scan_all_hosts_no_nmap(windows_hosts, linux_hosts):
-    for host in windows_hosts.split(","):
-        HOST_INFO[host] = {
-            'OS': '',
-            'OS_Version': '',
-            'OS_Short_Name': '',
-            'Username': None,
-            'Password': None,
-            'Hostname': None,
-            'MAC': None,
-            'Domain': None,
-            'Services': set(),
-            'Users': set(),
-        }
+    if windows_hosts is not None:
+        for host in windows_hosts.split(","):
+            HOST_INFO[host] = {
+                'OS': '',
+                'OS_Version': '',
+                'OS_Short_Name': '',
+                'Username': None,
+                'Password': None,
+                'Hostname': None,
+                'MAC': None,
+                'Domain': None,
+                'Services': set(),
+                'Users': set(),
+            }
 
-        HOST_INFO[host]['Services'].add('RDP')
-        HOST_INFO[host]['Services'].add('WinRM_HTTP')
-        HOST_INFO[host]['Services'].add('WinRM_HTTPS')
+            HOST_INFO[host]['Services'].add('RDP')
+            HOST_INFO[host]['Services'].add('WinRM_HTTP')
+            HOST_INFO[host]['Services'].add('WinRM_HTTPS')
 
-        HOST_INFO[host]['OS'] = 'Windows'
+            HOST_INFO[host]['OS'] = 'Windows'
 
-        print(f"Windows Host {host} detected:")
-        print("Detected Remoting Services: WinRM_HTTP RDP\n")
+            print(f"Windows Host {host} detected:")
+            print("Detected Remoting Services: WinRM_HTTP RDP\n")
     
-    for host in linux_hosts.split(","):
-        HOST_INFO[host] = {
-            'OS': '',
-            'OS_Version': '',
-            'OS_Short_Name': '',
-            'Username': None,
-            'Password': None,
-            'Hostname': None,
-            'MAC': None,
-            'Domain': None,
-            'Services': set(),
-            'Users': set(),
-        }
+    if linux_hosts is not None:
+        for host in linux_hosts.split(","):
+            HOST_INFO[host] = {
+                'OS': '',
+                'OS_Version': '',
+                'OS_Short_Name': '',
+                'Username': None,
+                'Password': None,
+                'Hostname': None,
+                'MAC': None,
+                'Domain': None,
+                'Services': set(),
+                'Users': set(),
+            }
 
-        HOST_INFO[host]['Services'].add('SSH')
-        HOST_INFO[host]['OS'] = "Linux"
-        
-        print(f"Unix Host {host} detected:")
-        print("Detected Remoting Services: SSH\n")
+            HOST_INFO[host]['Services'].add('SSH')
+            HOST_INFO[host]['OS'] = "Linux"
+            
+            print(f"Unix Host {host} detected:")
+            print("Detected Remoting Services: SSH\n")
 
 # Attempts to gather additional information about Windows hosts
 def gather_info(subnet):
@@ -409,13 +482,14 @@ def gather_linux_info(host):
             HOST_INFO[host]['Password'] = password
             print(f"Linux Host {host}:")
             print(f"Credentials Used: {username}:{password}")
-            session = paramiko.SSHClient()
+            
+            if host in TELEPORT_IPS.keys():
+                session = get_teleport_session(username, TELEPORT_IPS[host])
+            else:
+                session = paramiko.SSHClient()
+                session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                session.connect(host, username=username, password=password, timeout=10)
 
-            # host_config = ssh_config.lookup(host)
-
-
-            session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            session.connect(host, username=username, password=password, timeout=10)
             detect_unix_hostname(session, host)
             detect_unix_domain(session, host)
             detect_unix_mac(session, host)
@@ -958,7 +1032,7 @@ birdsnest_allow_ips_agent="{list(HOST_INFO.keys()) if len(HOST_INFO) > 0 else ''
 
             ansible_host_list += f"""
 [{HOST_INFO[host]['OS_Short_Name'].replace('-', '_')}_{HOST_INFO[host]['Hostname'].replace('-', '_')}_{host.replace('.', '_').replace(':', '_')}]
-{host}
+{TELEPORT_IPS[host] if host in TELEPORT_IPS.keys() else host}
 
 [{HOST_INFO[host]['OS_Short_Name'].replace('-', '_')}_{HOST_INFO[host]['Hostname'].replace('-', '_')}_{host.replace('.', '_').replace(':', '_')}:vars]
 ansible_user="{HOST_INFO[host]['Username'] if HOST_INFO[host]['Username'] is not None else ''}{' #REPLACE' if HOST_INFO[host]['Username'] is None else ''}"
@@ -1081,6 +1155,7 @@ def main():
     global SCRIPTS_PATH
     global SIEM_TYPE
     global RUN_NMAP
+    global TELEPORT_IPS
 
     # Gathers Command Line Arguments
     SCRIPTS_PATH = args.sp
@@ -1092,17 +1167,6 @@ def main():
     if args.windows_hosts is not None and args.linux_hosts is not None:
         RUN_NMAP = False
         subnet, ipv6_subnet = get_subnets_from_ips(hosts=f"{args.windows_hosts},{args.linux_hosts}")
-
-    # load SSH config
-    ssh_config = SSHConfig.from_file("ssh.cfg")
-
-    # Initialize Teleport IPs
-    TELEPORT_IPS = {}
-    if args.teleport_mapping is not None:
-        teleport_mappings = args.teleport_mapping.split(',')
-        for mapping in teleport_mappings:
-            ip, hostname = mapping.split(':')
-            TELEPORT_IPS[ip.strip()] = hostname.strip()
 
     # Initialize Important System IPs to None
     PASSWORD_MANAGER_IP = None
@@ -1169,7 +1233,19 @@ def main():
         inventory_file.write('subnet,ip,mac,hostname,domain,os,services,users' + '\n')
 
     print("\n\n======================================SUBNET SCANNING======================================\n\n")
+
+    # Initialize Teleport IPs
+    TELEPORT_IPS = {}
+    if args.teleport_mapping is not None:
+        teleport_mappings = args.teleport_mapping.split(',')
+        for mapping in teleport_mappings:
+            ip, hostname = mapping.split(':')
+            TELEPORT_IPS[ip.strip()] = hostname.strip()
+        
+        scan_all_hosts_no_nmap(windows_hosts=None, linux_hosts=",".join(TELEPORT_IPS.keys()))
+    
     # Gathers and Formats Credentials
+    get_teleport_session("ccdc", "new-test-deb12.teleport.local")
     DOMAIN_CREDENTIALS = args.wc.split(',')
     formatting_domain_creds = []
     for i in range(len(DOMAIN_CREDENTIALS)):
