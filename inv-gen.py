@@ -61,10 +61,12 @@ winrm.Session._build_url = _patched_build_url
 
 ##################################### HELPER FUNCTIONS (NO INTERACTION WITH HOSTS) ##################################
 
-def get_subnets_from_ips(hosts)
+def get_subnets_from_ips(hosts):
     # takes a comma seperated list of ips, and determines the ipv4 and ipv6 subnets contained in them
     # chat fully wrote this function just from this ^ comment
-    ipv4_subnet = None
+    a_ipv4_subnet = None
+    b_ipv4_subnet = None
+    c_ipv4_subnet = None
     ipv6_subnet = None
     for host in hosts.split(','):
         if ':' in host:
@@ -80,24 +82,54 @@ def get_subnets_from_ips(hosts)
             except Exception as e:
                 print(f"Invalid IPv6 address: {host}")
         else:
-            # IPv4
             try:
-                ipv4_obj = ipaddress.IPv4Address(host)
-                if ipv4_subnet is None:
-                    ipv4_subnet = ipaddress.IPv4Network(host + '/24', strict=False)
-                else:
-                    ipv4_subnet = ipv4_subnet.supernet(new_prefix=ipv4_subnet.prefixlen - 1)
-                    while not ipv4_obj in ipv4_subnet:
-                        ipv4_subnet = ipv4_subnet.supernet(new_prefix=ipv4_subnet.prefixlen - 1)
+                match host.split(".")[0]:
+                    case "10":
+                        ipv4_obj = ipaddress.IPv4Address(host)
+                        if a_ipv4_subnet is None:
+                            a_ipv4_subnet = ipaddress.IPv4Network(host + '/24', strict=False)
+                        else:
+                            a_ipv4_subnet = a_ipv4_subnet.supernet(new_prefix=a_ipv4_subnet.prefixlen)
+                            while not ipv4_obj in a_ipv4_subnet:
+                                a_ipv4_subnet = a_ipv4_subnet.supernet(new_prefix=a_ipv4_subnet.prefixlen)
+                    case "172":
+                        ipv4_obj = ipaddress.IPv4Address(host)
+                        if b_ipv4_subnet is None:
+                            b_ipv4_subnet = ipaddress.IPv4Network(host + '/24', strict=False)
+                        else:
+                            b_ipv4_subnet = b_ipv4_subnet.supernet(new_prefix=b_ipv4_subnet.prefixlen)
+                            while not ipv4_obj in b_ipv4_subnet:
+                                b_ipv4_subnet = b_ipv4_subnet.supernet(new_prefix=b_ipv4_subnet.prefixlen)
+                    case "192":
+                        ipv4_obj = ipaddress.IPv4Address(host)
+                        if c_ipv4_subnet is None:
+                            c_ipv4_subnet = ipaddress.IPv4Network(host + '/24', strict=False)
+                        else:
+                            c_ipv4_subnet = c_ipv4_subnet.supernet(new_prefix=c_ipv4_subnet.prefixlen)
+                            while not ipv4_obj in c_ipv4_subnet:
+                                c_ipv4_subnet = c_ipv4_subnet.supernet(new_prefix=c_ipv4_subnet.prefixlen)       
             except Exception as e:
                 print(f"Invalid IPv4 address: {host}")
-    return ipv4_subnet, ipv6_subnet
+
+    final_ipv4_subnet = ""
+    if a_ipv4_subnet is not None:
+        final_ipv4_subnet = str(a_ipv4_subnet)
+    if b_ipv4_subnet is not None:
+        if final_ipv4_subnet != "":
+            final_ipv4_subnet += ","
+        final_ipv4_subnet += str(b_ipv4_subnet)
+    if c_ipv4_subnet is not None:
+        if final_ipv4_subnet != "":
+            final_ipv4_subnet += ","
+        final_ipv4_subnet += str(c_ipv4_subnet)
+
+    return final_ipv4_subnet, ipv6_subnet
 
 def find_siem(host, output):
     global SIEM_IP
     for possible_siem_type in ['grafana', 'graylog', 'wazuh']:
-        if SIEM_TYPE == possible_siem_types and possible_siem_type in output:
-            siem_ip = host
+        if SIEM_TYPE == possible_siem_type and possible_siem_type in output:
+            SIEM_IP = host
             print(f"Found {possible_siem_type} host: {host}")
 
 def find_domain_controller():
@@ -125,7 +157,7 @@ def find_password_manager_and_birdsnest_ips():
     maybe_ips = []
     ip_list = []
     for host in HOST_INFO.keys():
-        if "." in host and "443" not in HOST_INFO[host]['Services']:
+        if "." in host and "443" not in HOST_INFO[host]['Services'] and "Linux" in HOST_INFO[host]['OS']:
             if "Ubuntu" in HOST_INFO[host]['OS_Version'] or "Debian" in HOST_INFO[host]['OS_Version']:
                 best_ips.append(host)
             elif "Rocky" in HOST_INFO[host]['OS_Version'] or "Rhel" in HOST_INFO[host]['OS_Version'] or "Fedora" in HOST_INFO[host]['OS_Version']:
@@ -235,7 +267,7 @@ def scan_all_hosts(subnet):
 
 # This function is used when nmap is not avilable to us. This just populates all of the same information as scan_all_hosts, so that gather_info can be called
 def scan_all_hosts_no_nmap(windows_hosts, linux_hosts):
-    for host in windows_hosts:
+    for host in windows_hosts.split(","):
         HOST_INFO[host] = {
             'OS': '',
             'OS_Version': '',
@@ -255,11 +287,10 @@ def scan_all_hosts_no_nmap(windows_hosts, linux_hosts):
 
         HOST_INFO[host]['OS'] = 'Windows'
 
-        print(f"Windows Host {host} detected:\n",end="")
-        print("Detected Remoting Services: WinRM_HTTP RDP")
-        print("\n")
+        print(f"Windows Host {host} detected:")
+        print("Detected Remoting Services: WinRM_HTTP RDP\n")
     
-    for host in linux_hosts:
+    for host in linux_hosts.split(","):
         HOST_INFO[host] = {
             'OS': '',
             'OS_Version': '',
@@ -276,10 +307,8 @@ def scan_all_hosts_no_nmap(windows_hosts, linux_hosts):
         HOST_INFO[host]['Services'].add('SSH')
         HOST_INFO[host]['OS'] = "Linux"
         
-        print(f"Unix Host {host} detected:\n",end="")
-        print("Detected Remoting Services: SSH")
-
-        print("\n")
+        print(f"Unix Host {host} detected:")
+        print("Detected Remoting Services: SSH\n")
 
 # Attempts to gather additional information about Windows hosts
 def gather_info(subnet):
@@ -311,9 +340,10 @@ def gather_info(subnet):
             if os_version:
                 os_version = re.sub(r'^(.*[0-9]).*$', r'\1', os_version)
 
+            # Prevents routers being added to CSV files
             if not (host.split(".")[3] == "254" or host.split(".")[3] == "255"):
                 log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
-            log(FULL_INVENTORY_FILE, f"{subnet},{host},{HOST_INFO[host]['MAC']},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{os_version},\"{services_str}\",\"{users_str}\"")
+                log(FULL_INVENTORY_FILE, f"{subnet},{host},{HOST_INFO[host]['MAC']},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{os_version},\"{services_str}\",\"{users_str}\"")
 
 def gather_windows_info(host):
     # First, find the right credentials, and establish a WinRM connection
@@ -487,10 +517,12 @@ def detect_unix_scored_services(session, ip_address):
     global HOST_INFO
 
     try:
+        _, stdout, _ = session.exec_command('ps aux')
+        ps_aux_output = stdout.read().decode().strip()
+        find_siem(ip_address, ps_aux_output)
         print("Detected Potential Scored Services: ",end="")
         _, stdout, _ = session.exec_command('ss -tulnp')
         lines = stdout.read().decode().strip()
-        find_siem(lines)
         for line in lines.split('\n'):
             tokens = line.split()
             protocol = tokens[0]
@@ -505,6 +537,7 @@ def detect_unix_scored_services(session, ip_address):
         print("")
 
     except Exception as e:
+        print(e)
         print("Unexpected SSH error\n",end="")
 
 def determine_os(nm, host):
@@ -558,9 +591,8 @@ def detect_windows_mac(session, ip_address):
     mac_query = session.run_cmd(f'powershell -c "(Get-NetIPConfiguration | Where-Object {{ $_.IPv4Address.IPAddress -eq {{{ip_address}}} }}).NetAdapter.MacAddress"')
     if mac_query.status_code == 0:
         mac_address = mac_query.std_out.decode().strip()
-        print(f"MAC Address Query Output: '{mac_address}'\n",end="")
         if mac_address != '':
-            print(f"Detected MAC Address: {mac_address}\n",end="")
+            #print(f"Detected MAC Address: {mac_address}\n",end="")
             HOST_INFO[ip_address]['MAC'] = mac_address
     else:
         print("Failed to retrieve MAC Address\n",end="")
@@ -629,19 +661,48 @@ def determine_unix_os_version(session, ip_address):
         hostname = stdout.read().decode().strip()
         HOST_INFO[ip_address]['Hostname'] = hostname
 
-        # Get Domain
-        try:
-            _, stdout, _ = session.exec_command('realm list | grep "realm-name" | awk -F\': \' \'{print $2}\'')
-            domain = stdout.read().decode().strip()
-            if domain:
-                HOST_INFO[ip_address]['Domain'] = domain
-        except:
-            pass
+        detect_unix_domain(session, ip_address)
+        detect_unix_users(session, ip_address)
+        detect_unix_mac(session, ip_address)
 
         session.close()
     except Exception as e:
         print(f"Unexpected SSH Error\n",end="")
     print("")
+
+def detect_unix_domain(session, ip_address):
+    global HOST_INFO
+
+    try:
+        _, stdout, _ = session.exec_command('realm list | grep "realm-name" | awk -F\': \' \'{print $2}\'')
+        domain = stdout.read().decode().strip()
+        if domain:
+            HOST_INFO[ip_address]['Domain'] = domain
+    except Exception as e:
+        pass
+
+def detect_unix_users(session, ip_address):
+    global HOST_INFO
+
+    try:
+        _, stdout, _ = session.exec_command('awk -F: \'$3 >= 1000 && $3 != 65534 {print $1}\' /etc/passwd')
+        users = stdout.read().decode().strip().split('\n')
+        for user in users:
+            if user.strip() != '':
+                HOST_INFO[ip_address]['Users'].add(user.strip())
+    except Exception as e:
+        pass
+
+def detect_unix_mac(session, ip_address):
+    global HOST_INFO
+
+    try:
+        _, stdout, _ = session.exec_command("ip link | grep 'link/ether' | awk '{print $2}'")
+        mac_address = stdout.read().decode().strip()
+        if mac_address != '':
+            HOST_INFO[ip_address]['MAC'] = mac_address
+    except Exception as e:
+        pass
 
 def windows_port_scan_only(host):
     global HOST_INFO
@@ -823,7 +884,7 @@ password_manager_ip="{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None els
 birdsnest_host_ip="{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
 birdsnest_host="{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}:{'443' if BIRDSNEST_IP is not None else '1738' if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
 birdsnest_token="{BIRDSNEST_TOKEN}"
-birdsnest_allow_ips_web="{list(LOCAL_IP) if LOCAL_IP is not None else ''}"{' #REPLACE' if LOCAL_IP is None else ''}
+birdsnest_allow_ips_web="['{LOCAL_IP if LOCAL_IP is not None else ''}']"{' #REPLACE' if LOCAL_IP is None else ''}
 birdsnest_allow_ips_agent="{list(HOST_INFO.keys()) if len(HOST_INFO) > 0 else ''}"{' #REPLACE' if len(HOST_INFO) == 0 else ''}
 """
     for host in HOST_INFO.keys():
@@ -871,7 +932,7 @@ all:
         ansible_winrm_transport: ntlm
         scripts_path: "C:\\\\Perflogs\\\\{SCRIPTS_PATH}"
         password_manager_ip: "{PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if PASSWORD_MANAGER_IP is None else ''}
-        siem_IP: "{siem_ip if siem_ip is not None else ''}"{' #REPLACE' if siem_ip is None else ''}
+        siem_IP: "{SIEM_IP if SIEM_IP is not None else ''}"{' #REPLACE' if SIEM_IP is None else ''}
         siem_name: "{SIEM_TYPE.capitalize() if SIEM_TYPE is not None else ''}"{' #REPLACE' if SIEM_TYPE is None else ''}
         birdsnest_host_ip: "{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}"
         birdsnest_host: "{BIRDSNEST_IP if BIRDSNEST_IP is not None else PASSWORD_MANAGER_IP if PASSWORD_MANAGER_IP is not None else ''}:{"443" if BIRDSNEST_IP is not None else "1738" if PASSWORD_MANAGER_IP is not None else ''}"{' #REPLACE' if BIRDSNEST_IP is None and PASSWORD_MANAGER_IP is None else ''}
@@ -909,8 +970,8 @@ all:
             scored_services = "None"
         scored_services = scored_services.lower()
 
-        is_win_server = 'Windows Server' in HOST_INFO[host]['OS_Version']
-        is_server_core = "Server Core" in HOST_INFO[host]['OS_Version']
+        is_win_server = 'Windows Server' in HOST_INFO[host]['OS_Version'] if HOST_INFO[host]['OS_Version'] is not None else False
+        is_server_core = "Server Core" in HOST_INFO[host]['OS_Version'] if HOST_INFO[host]['OS_Version'] is not None else False
 
 
         if 'SMB' in HOST_INFO[host]['Services'] and 'LDAP' in HOST_INFO[host]['Services']:
@@ -938,7 +999,7 @@ all:
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Windows Reconnaissance Script to Fill Out Ansible Inventory')
-    parser.add_argument('-s4', required=True, help='Subnet(s) to scan for Windows hosts (e.g., 192.168.1.0/24)')
+    parser.add_argument('-s4', required=False, help='Subnet(s) to scan for Windows hosts (e.g., 192.168.1.0/24)')
     parser.add_argument('-s6', required=False, help='IPv6 Subnet(s) to scan for Windows hosts (e.g., 2001:0db8::/32)')
     parser.add_argument('-wc', required=True, help='Windows Domain Credentials in the format username:password,username:password')
     parser.add_argument('-lc', required=True, help='Linux Credentials in the format username:password,username:password')
@@ -972,7 +1033,7 @@ def main():
     RUN_NMAP = True
     if args.windows_hosts is not None and args.linux_hosts is not None:
         RUN_NMAP = False
-        subnet, ipv6_subnet = get_subnets_from_ips(hosts=f"{args.windows_hosts},{args.linux_hosts})
+        subnet, ipv6_subnet = get_subnets_from_ips(hosts=f"{args.windows_hosts},{args.linux_hosts}")
 
     # Initialize Important System IPs to None
     PASSWORD_MANAGER_IP = None
@@ -1062,7 +1123,7 @@ def main():
             print(f"Using Linux Credentials | {cred_str}\n")
 
     if not RUN_NMAP:
-        print(f"\n=====================================Setting Vars based on Params: {subnet_select}=====================================\n\n")
+        print(f"\n===================================== Setting Vars based on Params =====================================\n\n")
         scan_all_hosts_no_nmap(windows_hosts=args.windows_hosts, linux_hosts=args.linux_hosts)
 
     if subnet is not None:

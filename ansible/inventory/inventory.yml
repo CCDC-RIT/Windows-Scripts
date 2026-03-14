@@ -9,11 +9,11 @@ all:
         ansible_winrm_transport: ntlm
         scripts_path: "C:\\Perflogs\\roblox"
         password_manager_ip: "172.16.1.10"
-        siem_IP: "172.16.1.10"
+        siem_IP: "172.16.1.53"
         siem_name: "Grafana"
-        birdsnest_host_ip: "10.1.1.10"
-        birdsnest_host: "10.1.1.10:443"
-        birdsnest_token: "e017e2a7b28e"
+        birdsnest_host_ip: "172.16.1.53"
+        birdsnest_host: "172.16.1.53:443"
+        birdsnest_token: "b6b7a3bbe663"
         winrm_ip: "192.168.1.51"
       children:
         win_172_16_1_20:
@@ -30,7 +30,7 @@ all:
           vars:
             ansible_user: "Administrator"
             ansible_password: "Password-123456"
-            scored_services: "ldapio, dnsio"
+            scored_services: "dnsio, ldapio"
             is_win_server: "true"
             is_server_core: "false"
             server_type: "dc"
@@ -51,7 +51,7 @@ all:
             ansible_user: "Administrator"
             ansible_password: "Password-123456"
             scored_services: "httpsio"
-            is_win_server: "false"
+            is_win_server: "true"
             is_server_core: "false"
             server_type: "adfs"
           hosts:
