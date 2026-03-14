@@ -1,6 +1,3 @@
-# IMPORTANT NEEDS TO BE ENABLED ON ALL BOXES!!!
-#https://community.fortinet.com/t5/FortiSOAR-Knowledge-Base/Troubleshooting-Tip-Exchange-Microsoft-WinRM-Connector-Error/ta-p/324015
-
 # Windows Reconnaissance Script to Fill Out Ansible Inventory
 import os
 import nmap
@@ -125,6 +122,7 @@ def get_subnets_from_ips(hosts):
 
     return final_ipv4_subnet, ipv6_subnet
 
+# Finds the SIEM host based on returned output
 def find_siem(host, output):
     global SIEM_IP
     for possible_siem_type in ['grafana', 'graylog', 'wazuh']:
@@ -132,6 +130,7 @@ def find_siem(host, output):
             SIEM_IP = host
             print(f"Found {possible_siem_type} host: {host}")
 
+# Finds the DC host based on returned output
 def find_domain_controller():
     global DOMAIN_CONTROLLER_IP
     global DOMAIN_CONTROLLER_DOMAIN
@@ -146,6 +145,7 @@ def find_domain_controller():
     DOMAIN_CONTROLLER_IP = "1.1.1.1"
     DOMAIN_CONTROLLER_DOMAIN = "google.com"
 
+# Finds the ideal Password Manager and Birdsnest hosts based on returned output
 def find_password_manager_and_birdsnest_ips():
     global PASSWORD_MANAGER_IP
     global BIRDSNEST_IP
@@ -345,6 +345,7 @@ def gather_info(subnet):
                 log(TOPOLOGY_FILE, f"{subnet},{host},{HOST_INFO[host]['Hostname']},{os_version},\"{services_str}\"")
                 log(FULL_INVENTORY_FILE, f"{subnet},{host},{HOST_INFO[host]['MAC']},{HOST_INFO[host]['Hostname']},{HOST_INFO[host]['Domain']},{os_version},\"{services_str}\",\"{users_str}\"")
 
+# Gathers Windows Host Information via WinRM
 def gather_windows_info(host):
     # First, find the right credentials, and establish a WinRM connection
     for i in range(len(DOMAIN_CREDENTIALS)):
@@ -377,6 +378,7 @@ def gather_windows_info(host):
         except Exception as e:
             pass
 
+# Gathers Linux Host Information via SSH
 def gather_linux_info(host):
     for i in range(len(LINUX_CREDENTIALS)):
         username = LINUX_CREDENTIALS[i][0]
@@ -513,10 +515,10 @@ def detect_windows_scored_services(session, ip_address):
         if check_keycloak.status_code == 0:
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":8080"').std_out.decode() != '':
                 print("Keycloak:8080 ",end="")
-                HOST_INFO[ip_address]['Services'].add('Keycloak HTTP')
+                HOST_INFO[ip_address]['Services'].add('Keycloak_HTTP')
             if session.run_cmd('netstat -an | findstr /i "LISTENING" | findstr ":8443"').std_out.decode() != '':
                 print("Keycloak:8443 ",end="")
-                HOST_INFO[ip_address]['Services'].add('Keycloak HTTPS')
+                HOST_INFO[ip_address]['Services'].add('Keycloak_HTTPS')
         print("\n",end="")
 
     except Exception as e:
@@ -524,6 +526,7 @@ def detect_windows_scored_services(session, ip_address):
         windows_port_scan_only(ip_address)
         print("")
 
+# Determines important ports via SSH
 def detect_unix_scored_services(session, ip_address):
     global HOST_INFO
 
@@ -551,6 +554,7 @@ def detect_unix_scored_services(session, ip_address):
         print(e)
         print("Unexpected SSH error\n",end="")
 
+# Determines which OS is running based on nmap results (Windows, Linux, FreeBSD)
 def determine_os(nm, host):
     # Check OS detection results
     os_match = nm[host].get('osmatch', [])
@@ -567,10 +571,10 @@ def determine_os(nm, host):
 
     return 'FreeBSD'  # Default to FreeBSD if no matches found
 
+# Detects Hostname via WinRM
 def detect_windows_hostname(session, ip_address):
     global HOST_INFO
-    
-    # Detects Hostname
+
     try:    
         hostname_query = session.run_cmd('hostname')
         if hostname_query.status_code == 0:
@@ -581,10 +585,10 @@ def detect_windows_hostname(session, ip_address):
         print("Failed to create WinRM session, attempting port scan\n",end="")
         print("")
 
+# Detects Domain via WinRM
 def detect_windows_domain(session, ip_address):
     global HOST_INFO
 
-    # Detects domain
     try:
         domain_query = session.run_cmd('powershell -c "(Get-WmiObject Win32_ComputerSystem).Domain"')
         if domain_query.status_code == 0:
@@ -594,10 +598,10 @@ def detect_windows_domain(session, ip_address):
     except Exception as e:
         pass
 
+# Detects users via WinRM
 def detect_windows_users(session, ip_address):
     global HOST_INFO
 
-    # Detects users
     try:
         dc_query = session.run_cmd('powershell -c "(Get-WmiObject Win32_ComputerSystem).DomainRole"')
         if dc_query.status_code == 0:
@@ -617,10 +621,10 @@ def detect_windows_users(session, ip_address):
     except Exception as e:
         pass
 
+# Detects MAC Address via WinRM
 def detect_windows_mac(session, ip_address):
     global HOST_INFO
 
-    # Detects MAC Address
     try:
         mac_query = session.run_cmd(f'powershell -c "(Get-NetIPConfiguration | Where-Object {{ $_.IPv4Address.IPAddress -eq {{{ip_address}}} }}).NetAdapter.MacAddress"')
         if mac_query.status_code == 0:
@@ -632,10 +636,10 @@ def detect_windows_mac(session, ip_address):
     except Exception as e:
         pass
 
+# Determines Windows OS Version
 def determine_windows_os_version(session, ip_address):
     global HOST_INFO
 
-    # Determines Windows OS Version
     check_os_type = session.run_cmd('powershell -c Get-ItemPropertyValue \'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\' InstallationType')
     check_os_version = session.run_cmd('powershell -c Get-ItemPropertyValue \'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\' ProductName')
     if check_os_type.std_out.decode() != '' and check_os_version.std_out.decode() != '':
@@ -654,6 +658,7 @@ def determine_windows_os_version(session, ip_address):
             HOST_INFO[ip_address]['OS_Version'] += f" {check_os_version.std_out.decode().strip()}"
     print("")
 
+# Determines Linux/Unix OS Version
 def determine_unix_os_version(session, ip_address):
     global HOST_INFO
 
@@ -696,10 +701,10 @@ def determine_unix_os_version(session, ip_address):
         print(f"Unexpected SSH Error\n",end="")
     print("")
 
+# Detects Hostname via SSH
 def detect_unix_hostname(session, ip_address):
     global HOST_INFO
 
-    # Get Hostname
     try:
         _, stdout, _ = session.exec_command('hostname')
         hostname = stdout.read().decode().strip()
@@ -708,10 +713,10 @@ def detect_unix_hostname(session, ip_address):
         print(f"Failed to create SSH session, attempting port scan\n",end="")
         linux_port_scan_only(ip_address)
 
+# Detects Domain via SSH
 def detect_unix_domain(session, ip_address):
     global HOST_INFO
 
-    # Get Domain
     try:
         _, stdout, _ = session.exec_command('realm list | grep "realm-name" | awk -F\': \' \'{print $2}\'')
         domain = stdout.read().decode().strip()
@@ -720,6 +725,7 @@ def detect_unix_domain(session, ip_address):
     except Exception as e:
         pass
 
+# Detects users via SSH
 def detect_unix_users(session, ip_address):
     global HOST_INFO
 
@@ -733,10 +739,10 @@ def detect_unix_users(session, ip_address):
     except Exception as e:
         pass
 
+# Detects MAC Address via SSH
 def detect_unix_mac(session, ip_address):
     global HOST_INFO
 
-    # Get MAC Address
     try:
         _, stdout, _ = session.exec_command("ip link | grep 'link/ether' | awk '{print $2}' | head -n 1")
         mac_address = stdout.read().decode().strip()
@@ -745,6 +751,7 @@ def detect_unix_mac(session, ip_address):
     except Exception as e:
         pass
 
+# Detects potential scored services using nmap if WinRM is not available
 def windows_port_scan_only(host):
     global HOST_INFO
 
@@ -793,6 +800,7 @@ def windows_port_scan_only(host):
     except Exception as e:
         print(f"Port scan failed: {str(e)}\n",end="")
 
+# Detects potential scored services using nmap if SSH is not available
 def linux_port_scan_only(host):
     global HOST_INFO
     HOST_INFO[host]['Hostname'] = "no_hostname"
@@ -821,6 +829,7 @@ def linux_port_scan_only(host):
     except Exception as e:
         print(f"Port scan failed: {str(e)}\n",end="")
 
+# Attempts to determine the local IP of the Ansible Controller by SSHing into hosts and running 'w' to see where connections are coming from
 def get_local_ip():
     global LOCAL_IP
     global HOST_INFO
@@ -868,6 +877,7 @@ def get_local_ip():
 
 ##################################### INVENTORY CREATION FUNCTIONS ##################################
 
+# Adds information about Linux hosts to the Ansible inventory file
 def create_linux_ansible_inventory():
     global HOST_INFO
     global LINUX_INVENTORY_FILE
